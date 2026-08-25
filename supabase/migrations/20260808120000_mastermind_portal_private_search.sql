@@ -27,13 +27,11 @@ CREATE TABLE IF NOT EXISTS public.mastermind_portal_resources (
   video_source_type TEXT NOT NULL DEFAULT 'no_video_url',
   metadata_search_vector TSVECTOR GENERATED ALWAYS AS (
     to_tsvector(
-      'english',
+      'english'::regconfig,
       coalesce(title, '') || ' ' ||
       coalesce(product_title, '') || ' ' ||
       coalesce(category_title, '') || ' ' ||
-      coalesce(search_summary, '') || ' ' ||
-      array_to_string(success_paths, ' ') || ' ' ||
-      array_to_string(stages, ' ')
+      coalesce(search_summary, ' ')
     )
   ) STORED,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -97,7 +95,7 @@ CREATE TABLE IF NOT EXISTS public.mastermind_portal_transcript_segments (
   speaker TEXT,
   transcript_text TEXT NOT NULL,
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english', coalesce(transcript_text, ''))
+    to_tsvector('english'::regconfig, coalesce(transcript_text, ''))
   ) STORED,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT mastermind_portal_transcript_segments_unique_idx UNIQUE (resource_id, segment_index)

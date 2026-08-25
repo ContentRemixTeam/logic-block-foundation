@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS public.replay_transcript_segments (
   ends_at_ms BIGINT NOT NULL CHECK (ends_at_ms >= starts_at_ms),
   speaker_private TEXT,
   transcript_text_private TEXT NOT NULL CHECK (length(btrim(transcript_text_private)) > 0),
-  search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('english', coalesce(transcript_text_private,''))) STORED,
+  search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('english'::regconfig, coalesce(transcript_text_private,''))) STORED,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (transcript_version_id, segment_index)
 );
