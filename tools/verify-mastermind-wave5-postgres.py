@@ -157,8 +157,11 @@ def setup_current_success_path(psql: list[object], env: dict[str, str]) -> tuple
         provider_asset_id,private_locator,source_content_sha256,transcript_version_id,playback_attempt_id,created_by)
       VALUES('{MEDIA}','wave5-synthetic','{RESOURCE}','dropbox','PRIVATE-PROVIDER-ID',
         'id:AbCdEfGhIjKlMnOpQrStUvWxYz_12345','{'d' * 64}','{TRANSCRIPT}','{PLAYBACK}','wave5-test');
-      INSERT INTO public.curriculum_catalog_versions(catalog_version_id,version_key,version_number,created_by)
-      VALUES('{CATALOG}','wave5-synthetic-v1',1,'wave5-test');
+      INSERT INTO public.curriculum_catalog_versions(catalog_version_id,version_key,version_number,created_by,supersedes_version_id)
+      SELECT '{CATALOG}','wave5-synthetic-v1',2,'wave5-test',catalog_version_id
+        FROM public.curriculum_catalog_versions
+       WHERE version_key = 'success-path-catalog-v1'
+         AND lifecycle_state = 'active';
       INSERT INTO public.curriculum_catalog_items(catalog_item_id,catalog_version_id,stable_item_key,item_state,
         stage,milestone_key,milestone_title,item_role,item_order,title,intended_output,action_prompt,evidence_prompt,
         teacher_display_name,attribution_text,source_system,source_native_id,source_provenance,provenance_sha256,

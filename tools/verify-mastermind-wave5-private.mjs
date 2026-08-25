@@ -14,7 +14,7 @@ const previewMock=read('tools/mastermind-wave4-private-preview-supabase.ts');
 const chronology=read('tools/verify-cycle-plan-full-stack-postgres.py');
 const types=read('src/integrations/supabase/types.ts');
 let checks=0;const check=(v,m)=>{checks++;assert.ok(v,`FAIL ${m}`)};
-check(fs.readdirSync(path.join(root,'supabase/migrations')).filter(n=>n.endsWith('.sql')).at(-1)==='20260824210000_success_path_member_authority_engagement.sql','Wave 5 is not final frontier');
+check(fs.readdirSync(path.join(root,'supabase/migrations')).filter(n=>n.endsWith('.sql')).at(-1)==='20260825090000_success_path_real_curriculum_catalog_seed.sql','Wave 5 is not final frontier');
 for(const text of ['My saved 90-day result','Suggested for you','You are the boss. Change anything that does not fit.','Review or change my focus','Based on your saved 90-day plan'])check(page.includes(text),`member authority copy missing: ${text}`);
 check(page.includes("p_transition_kind: 'focus_change'")&&page.includes("p_reason_code: 'member_requested'")&&page.includes('parseTransitionPreview')&&page.includes('parseTransitionConfirmation'),'reviewed Wave 3 transition path not bound');
 check(page.includes("rpc('preview_my_success_path_transition_member'")&&page.includes("rpc('confirm_my_success_path_transition_member'")&&!page.includes("rpc('preview_my_success_path_transition'")&&!page.includes("rpc('confirm_my_success_path_transition'"),'browser is not confined to member-safe transition wrappers');
@@ -36,7 +36,7 @@ check(migration.includes('success_path_member_transition_diff')&&migration.inclu
 check(migration.includes('REVOKE ALL ON FUNCTION public.preview_my_success_path_transition(')&&migration.includes('REVOKE ALL ON FUNCTION public.confirm_my_success_path_transition('),'raw transition RPC ACL closure missing');
 for(const [state,label] of [['assigned_not_opened','Assigned / not opened'],['watched_no_action','Watched / no action'],['stalled','Stalled'],['returned','Returned']])check(migration.includes(`'${state}'`)&&preview.includes(label),`status scenario missing ${state}`);
 check(preview.includes('FAKE / PRIVATE / OFFLINE / NOT LIVE')&&previewMock.includes('Sample playback is intentionally disabled'),'offline labeling/playback fence missing');
-check(chronology.includes('len(migrations) != 198')&&chronology.includes('20260824210000_success_path_member_authority_engagement.sql'),'chronology frontier not updated');
+check(chronology.includes('len(migrations) != 199')&&chronology.includes('20260825090000_success_path_real_curriculum_catalog_seed.sql'),'chronology frontier not updated');
 check(types.includes('assigned_learning_engagement_events: {')&&types.includes('record_my_assigned_learning_engagement:'),'generated contracts missing');
 for(const role of ['PUBLIC','anon','authenticated','service_role'])check(migration.includes(`FROM PUBLIC,anon,authenticated,service_role`)||migration.includes(`FROM PUBLIC, anon, authenticated, service_role`),`ACL revoke missing ${role}`);
 console.log(`Wave 5 private static verifier passed ${checks} authority, parser, engagement, privacy, preview, and chronology checks.`);

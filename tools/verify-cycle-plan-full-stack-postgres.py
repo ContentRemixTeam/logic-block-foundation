@@ -22,6 +22,7 @@ WAVE_CANDIDATES = [
     MIGRATIONS / "20260822220000_success_path_execution_ledger.sql",
     MIGRATIONS / "20260822230000_offer_first_assigned_learning_slice.sql",
     MIGRATIONS / "20260824210000_success_path_member_authority_engagement.sql",
+    MIGRATIONS / "20260825090000_success_path_real_curriculum_catalog_seed.sql",
 ]
 LATEST_CANDIDATE = WAVE_CANDIDATES[-1]
 BEHAVIOR = ROOT / "test/cycle-plan-reconciliation-v2/behavior.sql"
@@ -47,8 +48,8 @@ def main() -> None:
     if " 16." not in version:
         raise SystemExit(f"BLOCKED PostgreSQL 16 required, found {version}")
     migrations = sorted(MIGRATIONS.glob("*.sql"))
-    if len(migrations) != 198:
-        raise SystemExit(f"Expected exact 198-migration chronology, found {len(migrations)}")
+    if len(migrations) != 199:
+        raise SystemExit(f"Expected exact 199-migration chronology, found {len(migrations)}")
     if not migrations or migrations[-1] != LATEST_CANDIDATE:
         raise SystemExit("Latest Wave 4 candidate is not the final chronological migration")
     if any(candidate not in migrations for candidate in WAVE_CANDIDATES):
