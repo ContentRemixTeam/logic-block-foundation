@@ -8,6 +8,11 @@ import {
   type MastermindSuccessPathOutput,
 } from '@/lib/mastermindSuccessPath';
 
+// The Replay Vault / success-path snapshot tables are not present in the generated
+// Supabase types yet, so use a loosely typed handle for those queries only.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as unknown as { from: (table: string) => any };
+
 const CYCLE_SELECT = 'cycle_id,goal,start_date,end_date,focus_area,biggest_bottleneck,discover_score,nurture_score,convert_score,audience_target,audience_frustration,signature_message,why,low_energy_version,medium_energy_version,high_energy_version,updated_at';
 const SNAPSHOT_SELECT = 'snapshot_id,user_id,cycle_id,recommended_stage,confirmed_stage,recommendation_reason,recommendation_evidence,current_milestone_id,current_milestone_title,capacity_mode,curriculum_version,confirmed_at,created_at,updated_at';
 
@@ -81,7 +86,7 @@ export function useMastermindSuccessPath(cycleId?: string) {
       const cycle = cycleRow as MastermindPlanCycle;
       const successPath = inferMastermindSuccessPath(cycle);
 
-      const { data: snapshotRow, error: snapshotError } = await supabase
+      const { data: snapshotRow, error: snapshotError } = await db
         .from('cycle_success_path_snapshots')
         .select(SNAPSHOT_SELECT)
         .eq('user_id', authData.user.id)
@@ -143,7 +148,7 @@ export function useMastermindSuccessPath(cycleId?: string) {
       const recommendedStage = data.successPath?.stageId ?? stageId;
       const now = new Date().toISOString();
 
-      const { data: savedRow, error: saveError } = await supabase
+      const { data: savedRow, error: saveError } = await db
         .from('cycle_success_path_snapshots')
         .upsert({
           user_id: authData.user.id,
