@@ -2059,6 +2059,24 @@ export type Database = {
           },
         ]
       }
+      assigned_learning_engagement_classifications: {
+        Row: { classification: string; classification_id: string; classified_at: string; classifier_reference: string; cycle_id: string; evidence_through: string; assignment_item_id: string; path_id: string; user_id: string }
+        Insert: { classification: string; classification_id?: string; classified_at?: string; classifier_reference: string; cycle_id: string; evidence_through: string; assignment_item_id: string; path_id: string; user_id: string }
+        Update: { classification?: string; classification_id?: string; classified_at?: string; classifier_reference?: string; cycle_id?: string; evidence_through?: string; assignment_item_id?: string; path_id?: string; user_id?: string }
+        Relationships: []
+      }
+      assigned_learning_engagement_events: {
+        Row: { action_id: string | null; assignment_id: string; assignment_item_id: string; cycle_id: string; engagement_event_id: string; event_type: string; occurred_at: string; path_id: string; progress_basis_points: number | null; receipt: Json; request_id: string; request_sha256: string; user_id: string }
+        Insert: { action_id?: string | null; assignment_id: string; assignment_item_id: string; cycle_id: string; engagement_event_id?: string; event_type: string; occurred_at?: string; path_id: string; progress_basis_points?: number | null; receipt: Json; request_id: string; request_sha256: string; user_id: string }
+        Update: { action_id?: string | null; assignment_id?: string; assignment_item_id?: string; cycle_id?: string; engagement_event_id?: string; event_type?: string; occurred_at?: string; path_id?: string; progress_basis_points?: number | null; receipt?: Json; request_id?: string; request_sha256?: string; user_id?: string }
+        Relationships: []
+      }
+      assigned_learning_engagement_requests: {
+        Row: { accepted_progress_basis_points: number | null; assignment_item_id: string; created_at: string; cycle_id: string; engagement_request_id: string; receipt: Json; reported_progress_basis_points: number | null; request_id: string; request_sha256: string; user_id: string }
+        Insert: { accepted_progress_basis_points?: number | null; assignment_item_id: string; created_at?: string; cycle_id: string; engagement_request_id?: string; receipt: Json; reported_progress_basis_points?: number | null; request_id: string; request_sha256: string; user_id: string }
+        Update: { accepted_progress_basis_points?: number | null; assignment_item_id?: string; created_at?: string; cycle_id?: string; engagement_request_id?: string; receipt?: Json; reported_progress_basis_points?: number | null; request_id?: string; request_sha256?: string; user_id?: string }
+        Relationships: []
+      }
       curriculum_cycle_assignments: {
         Row: {
           assignment_id: string
@@ -10364,6 +10382,16 @@ export type Database = {
         }
         Returns: Json
       }
+      confirm_my_success_path_transition_member: {
+        Args: {
+          p_confirm: boolean
+          p_confirmation_request_id: string
+          p_expected_impact_diff: Json
+          p_expected_impact_diff_sha256: string
+          p_proposal_id: string
+        }
+        Returns: Json
+      }
       confirm_curriculum_assignment_rebuild: {
         Args: {
           p_assignment_id: string
@@ -10453,6 +10481,25 @@ export type Database = {
         }
         Returns: Json
       }
+      preview_my_success_path_transition_member: {
+        Args: {
+          p_cycle_id: string
+          p_evidence_receipt_id: string | null
+          p_expected_path_version: number
+          p_proposed_action_minutes: number
+          p_proposed_action_text: string
+          p_proposed_assignment_id: string
+          p_proposed_assignment_item_id: string
+          p_proposed_milestone_key: string
+          p_proposed_milestone_title: string
+          p_proposed_move_key: string
+          p_proposed_stage: string
+          p_reason_code: string
+          p_request_id: string
+          p_transition_kind: string
+        }
+        Returns: Json
+      }
       reconcile_cycle_plan_v2: {
         Args: { p_payload: Json; p_request_id: string }
         Returns: Json
@@ -10483,6 +10530,16 @@ export type Database = {
       resolve_my_assigned_learning: {
         Args: { p_cycle_id: string }
         Returns: Json
+      }
+      record_my_assigned_learning_engagement: {
+        Args: { p_action_id?: string | null; p_assignment_item_id: string; p_cycle_id: string; p_event_type: string; p_progress_basis_points?: number | null; p_request_id: string }
+        Returns: Json
+      }
+      resolve_my_assigned_learning_status: { Args: { p_cycle_id: string }; Returns: Json }
+      resolve_my_success_path_edit_context: { Args: { p_cycle_id: string }; Returns: Json }
+      project_assigned_learning_review_queue: {
+        Args: { p_as_of?: string }
+        Returns: { assignment_item_id: string; classification: string; cycle_id: string; evidence_through: string; user_id: string }[]
       }
       resolve_assigned_learning_playback: {
         Args: {

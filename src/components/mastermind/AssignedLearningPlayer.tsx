@@ -16,6 +16,9 @@ interface Props {
   cycleId: string;
   assignmentItemId: string;
   title: string;
+  onOpened?: () => Promise<void>;
+  onStarted?: () => Promise<void>;
+  onCompleted?: () => Promise<void>;
   onBackToAction: () => void;
 }
 
@@ -33,7 +36,7 @@ function parsePlayback(value: unknown, expectedItem: string): PlaybackResponse {
   return row as unknown as PlaybackResponse;
 }
 
-export function AssignedLearningPlayer({ cycleId, assignmentItemId, title, onBackToAction }: Props) {
+export function AssignedLearningPlayer({ cycleId, assignmentItemId, title, onOpened, onStarted, onCompleted, onBackToAction }: Props) {
   const [opened, setOpened] = useState(false);
   const [playback, setPlayback] = useState<PlaybackResponse | null>(null);
   const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'refreshing' | 'unavailable'>('idle');
@@ -43,6 +46,8 @@ export function AssignedLearningPlayer({ cycleId, assignmentItemId, title, onBac
   const statusRef = useRef<HTMLDivElement>(null);
   const playerFocusFrame = useRef<number | null>(null);
   const actionHandoff = useRef(false);
+  const startedRecorded = useRef(false);
+  const completedRecorded = useRef(false);
 
   const loadPlayback = useCallback(async (refresh = false) => {
     setState(refresh ? 'refreshing' : 'loading');
@@ -87,6 +92,7 @@ export function AssignedLearningPlayer({ cycleId, assignmentItemId, title, onBac
   const open = () => {
     actionHandoff.current = false;
     setOpened(true);
+    void onOpened?.().catch(() => undefined);
     void loadPlayback(false);
   };
 
@@ -115,6 +121,8 @@ export function AssignedLearningPlayer({ cycleId, assignmentItemId, title, onBac
           disablePictureInPicture
           onLoadedMetadata={(event) => { if (position.current > 0) event.currentTarget.currentTime = position.current; }}
           onTimeUpdate={(event) => { position.current = event.currentTarget.currentTime; }}
+          onPlay={() => { if (!startedRecorded.current) { startedRecorded.current = true; void onStarted?.().catch(() => undefined); } }}
+          onEnded={() => { if (!completedRecorded.current) { completedRecorded.current = true; void onCompleted?.().catch(() => undefined); } }}
           onError={() => { if (state === 'ready') void loadPlayback(true); }}
         />
       )}

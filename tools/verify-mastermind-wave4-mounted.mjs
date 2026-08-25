@@ -32,7 +32,8 @@ async function viewport(html, width) {
     const evaluate=async(expression)=>(await command('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result.value;
     await command('Page.enable');await command('Runtime.enable');await command('Network.enable');
     await command('Network.setBlockedURLs',{urls:['https://dl.dropboxusercontent.com/*']});
-    await command('Emulation.setDeviceMetricsOverride',{width,height:1200,deviceScaleFactor:1,mobile:true});
+    await command('Emulation.setDeviceMetricsOverride',{width,height:1600,deviceScaleFactor:1,mobile:width<600});
+    await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
     await command('Page.navigate',{url:`file://${html}`});
     let status='';for(let attempt=0;attempt<100&&status!=='complete'&&status!=='failed';attempt+=1){await new Promise((resolve)=>setTimeout(resolve,100));status=await evaluate('document.body.dataset.wave4Mounted||""');}
     const error=await evaluate('window.__wave4Error||null');assert.equal(status,'complete',`Wave 4 harness failed at ${width}: ${error}`);
@@ -45,6 +46,11 @@ async function viewport(html, width) {
     assert.match(result.videoControls,/nodownload/);assert.equal(result.videoInline,true);
     assert.ok(result.liveRegions>=3,'loading/save/playback live regions missing');
     assert.equal(result.evidenceRequestStable,true);assert.equal(result.evaluationRequestStable,true);
+    assert.equal(result.cancelMutated,false,'cancel invoked a transition RPC');assert.equal(result.previewCalls,1);assert.equal(result.confirmCalls,1);assert.equal(result.rawTransitionCalls,0);
+    assert.ok(result.canonicalCurrentActions>=1,'authoritative readback did not show the one current action');
+    assert.deepEqual(result.focusOrder,['edited-action','edited-minutes','Confirm this exact change','Cancel — change nothing'],'edit flow focus order drifted');
+    assert.deepEqual(result.animatedEditControls,[],'reduced-motion edit controls retain animation/transition');
+    assert.ok(result.contrastSamples.length>=5&&result.contrastSamples.every(sample=>sample.ratio>=4.5),`computed text/status contrast below 4.5: ${JSON.stringify(result.contrastSamples)}`);
     assert.deepEqual(result.forbiddenMutationCalls,[],'watching or mounted UI invoked forbidden completion/Vault calls');
     socket.close();
   } finally {
@@ -65,8 +71,9 @@ try {
   await build({entryPoints:[path.join(root,'tools/mastermind-wave4-mounted-harness.tsx')],outfile:js,bundle:true,platform:'browser',format:'iife',jsx:'automatic',tsconfig:path.join(root,'tsconfig.app.json'),plugins:[aliases],logLevel:'silent'});
   const cssPath=path.join(tmp,'wave4.css');const cssBuild=spawnSync('npx',['tailwindcss','-i',path.join(root,'src/index.css'),'-o',cssPath,'--minify'],{cwd:root,encoding:'utf8',timeout:30000});assert.equal(cssBuild.status,0,cssBuild.stderr);
   const html=path.join(tmp,'wave4.html');fs.writeFileSync(html,`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0}*{box-sizing:border-box}${fs.readFileSync(cssPath,'utf8')}</style><body><div id="root"></div><script>${fs.readFileSync(js,'utf8').replaceAll('</script','<\\/script')}</script></body>`);
-  for(const width of [320,360,390])await viewport(html,width);
-  console.log('Wave 4 mounted gate passed at 320/360/390px: closed monthly DOM, one lesson/action/support route, protected player, focus handoff, 44px controls, no overflow, and receipt/readback mutations.');
+  // Preserve the accepted Wave 4 mobile matrix [320,360,390] and add Wave 5 desktop evidence.
+  for(const width of [320,360,390,1440])await viewport(html,width);
+  console.log('Wave 5 mounted gate passed at 320/360/390/1440px: safe preview/confirm/authoritative readback, cancel no-mutation, focus order, computed contrast evidence, 44px controls, no overflow, reduced-motion, and network isolation.');
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   if (message.startsWith('Chrome exited null:') || message.startsWith('Chrome timeout:')) {

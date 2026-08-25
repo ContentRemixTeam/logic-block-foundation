@@ -24,7 +24,7 @@ const pkg = JSON.parse(read('package.json'));
 let checks = 0;
 const check = (condition, message) => { checks += 1; assert.ok(condition, `FAIL ${message}`); };
 
-check(fs.readdirSync(path.join(root, 'supabase/migrations')).filter((name) => name.endsWith('.sql')).length === 197, 'migration chronology must be exactly 197 files');
+check(fs.readdirSync(path.join(root, 'supabase/migrations')).filter((name) => name.endsWith('.sql')).length === 198, 'migration chronology must include the Wave 5 frontier');
 check(migration.includes('CREATE TABLE IF NOT EXISTS public.planner_learning_playback_authorizations'), 'authorization receipt table missing');
 check(migration.includes('append-only') && migration.includes('BEFORE UPDATE OR DELETE'), 'authorization audit is not append-only');
 check(migration.includes('evaluation_sequence bigint NOT NULL DEFAULT 1') && migration.includes('supersedes_authorization_receipt_id uuid'), 'sequential/superseding receipt history missing');
@@ -103,7 +103,9 @@ check(page.includes('setEvidenceRequestId(newStableRequestId())') && page.includ
 check(player.includes('controlsList="nodownload noremoteplayback"') && player.includes('playsInline'), 'protected HTML5 controls missing');
 check(player.includes('position.current') && player.includes('onLoadedMetadata'), 'refresh position preservation missing');
 check(player.includes('Back to my action') && page.includes('actionRef.current?.focus'), 'action focus handoff missing');
-check(!/on(TimeUpdate|Play|Pause)[\s\S]{0,200}(rpc|complete|evidence|milestone)/.test(player), 'watch telemetry can mutate Planner state');
+check(!/onTimeUpdate[^\n]+(rpc|recordEngagement|complete|evidence|milestone)/.test(player) &&
+  !['submit_my_success_path_evidence','evaluate_my_success_path_week','confirm_my_success_path_transition','tasks'].some((name)=>player.includes(name)),
+  'watch telemetry can mutate Planner/business state');
 check(page.includes('role="alert"') && page.includes('aria-live="polite"') && page.includes('min-h-11'), 'accessible failure/live/touch states missing');
 for (const state of ['loading','cannot verify access','90-day result comes first','recommendation needs confirmation','quick review','resource is not ready','temporarily unavailable','conflict','could not confirm','returning after time away']) check(`${page}\n${player}`.toLowerCase().includes(state), `honest mounted state missing: ${state}`);
 check(parser.includes('hasExactKeys(root, TOP_KEYS)') && parser.includes('hasExactKeys(slice, SLICE_KEYS)'), 'browser parser does not reject unknown fields');
@@ -112,7 +114,7 @@ check(postgres.includes('PostgreSQL 16') && postgres.includes('applies twice') &
 check(postgres.includes('annual received a different or Vault-expanded') && postgres.includes('QA drift did not fail immediately'), 'native persona/drift proof missing');
 check(postgres.includes('subprocess.Popen') && postgres.includes('concurrent exact allowed') && postgres.includes('concurrent exact denied') && postgres.includes('changed payload conflict racing exact payload'), 'true simultaneous PostgreSQL receipt probes missing');
 check(postgres.includes('"PUBLIC/default": "wave4_public_probe"') && postgres.includes('has_function_privilege') && postgres.includes('authenticated cross-owner helper call'), 'native exhaustive function ACL and cross-owner negative controls missing');
-check(chronology.includes('sorted(MIGRATIONS.glob("*.sql"))') && chronology.includes('len(migrations) != 197') && chronology.includes('for candidate in WAVE_CANDIDATES'), 'complete 197 chronology plus candidate double-apply verifier missing');
+check(chronology.includes('sorted(MIGRATIONS.glob("*.sql"))') && chronology.includes('len(migrations) != 198') && chronology.includes('for candidate in WAVE_CANDIDATES'), 'complete 198 chronology plus candidate double-apply verifier missing');
 check(types.includes('planner_learning_playback_authorizations: {') && types.includes('resolve_assigned_learning_playback: {') && types.includes('resolve_my_success_path_learning_slice: {'), 'generated contracts missing');
 for (const script of ['verify:mastermind-wave4-static','verify:mastermind-wave4-postgres','verify:mastermind-wave4-chronology','verify:mastermind-wave4-edge','verify:mastermind-wave4-mounted','verify:mastermind-wave4']) check(typeof pkg.scripts[script] === 'string', `package script missing ${script}`);
 

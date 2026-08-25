@@ -12,13 +12,17 @@ const task = '55555555-5555-4555-8555-555555555555';
 const item = '66666666-6666-4666-8666-666666666666';
 const evidence = '77777777-7777-4777-8777-777777777777';
 const checkin = '88888888-8888-4888-8888-888888888888';
+const proposal = '99999999-9999-4999-8999-999999999999';
+const newAction = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const transition = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const assignment = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
-const ready = (outcome: string | null = null) => ({
+const ready = (outcome: string | null = null, changed = false) => ({
   slice_state: 'ready', reason: 'assigned_learning_available', slice: {
-    cycle_id: cycle, path_id: path, path_version: 2, state_receipt_id: stateReceipt,
+    cycle_id: cycle, path_id: path, path_version: changed ? 3 : 2, state_receipt_id: stateReceipt,
     result_text: 'Validate one calm synthetic offer with three real buyer conversations', confirmed_stage: 'offer',
     milestone: { key: 'offer-foundation', title: 'Offer foundation' },
-    action: { action_id: action, task_id: task, text: 'Send one clear offer invitation', estimated_minutes: 30, completion_state: 'open' },
+    action: { action_id: changed ? newAction : action, task_id: task, text: changed ? 'Send two clear offer invitations' : 'Send one clear offer invitation', estimated_minutes: changed ? 20 : 30, completion_state: 'open' },
     learning: { assignment_item_id: item, title: 'Synthetic Offer Lesson', intended_output: 'One tested offer invitation',
       action_prompt: 'Draft the invitation before polishing it.', evidence_prompt: 'Record the buyer response.',
       teacher: 'Synthetic Teacher', attribution: 'Synthetic fixture only' },
@@ -44,6 +48,9 @@ const input = async (id: string, value: string) => {
   await act(async () => { setter?.call(node, value); node.dispatchEvent(new Event('input', { bubbles: true })); });
   await tick();
 };
+const rgb=(value:string)=>value.match(/[\d.]+/g)?.slice(0,3).map(Number)??[0,0,0];
+const luminance=(value:string)=>{const channels=rgb(value).map(v=>{const c=v/255;return c<=.03928?c/12.92:((c+.055)/1.055)**2.4});return .2126*channels[0]+.7152*channels[1]+.0722*channels[2];};
+const contrast=(node:HTMLElement)=>{const fg=getComputedStyle(node).color;let parent:HTMLElement|null=node;let bg='rgba(0, 0, 0, 0)';while(parent&&(/rgba?\(0, 0, 0, 0\)|transparent/.test(bg))){bg=getComputedStyle(parent).backgroundColor;parent=parent.parentElement;}const [a,b]=[luminance(fg),luminance(bg)].sort((x,y)=>y-x);return (a+.05)/(b+.05);};
 
 async function run() {
   __wave4Mock.reset();
@@ -79,6 +86,25 @@ async function run() {
   await click('continue');
   await waitFor(() => document.body.textContent?.includes('Evaluation saved and confirmed') ?? false, 'evaluation readback');
 
+  await click('Review or change my focus');
+  await input('edited-action','Canceled action');
+  const transitionCallsBeforeCancel=__wave4Mock.calls.filter((call)=>call.name.includes('success_path_transition')).length;
+  await click('Cancel — change nothing');
+  const cancelMutated=__wave4Mock.calls.filter((call)=>call.name.includes('success_path_transition')).length!==transitionCallsBeforeCancel;
+
+  await click('Review or change my focus');
+  await input('edited-action','Send two clear offer invitations');await input('edited-minutes','20');
+  __wave4Mock.enqueue('resolve_my_success_path_edit_context',{data:{state:'ready',reason:'current_reviewed_authority',context:{cycle_id:cycle,path_version:2,assignment_id:assignment,assignment_item_id:item,stage:'offer',milestone_key:'offer-foundation',milestone_title:'Offer foundation',move_key:'invite',action_id:action}},error:null});
+  const safeDiff={transition:{kind:'focus_change',reason_code:'member_requested'},stage:{old:'offer',new:'offer'},milestone:{old:{key:'offer-foundation',title:'Offer foundation'},new:{key:'offer-foundation',title:'Offer foundation'}},learning:{assignment_reroute:false,learning_item_changed:false},action:{old:{text:'Send one clear offer invitation',estimated_minutes:30},new:{text:'Send two clear offer invitations',estimated_minutes:20}},history:{prior_task_preserved:true,prior_task_completion_preserved:true,evidence_preserved:true,actions_preserved:true,checkins_preserved:true}};
+  __wave4Mock.enqueue('preview_my_success_path_transition_member',{data:{status:'pending',replayed:false,proposal_id:proposal,impact_diff:safeDiff,impact_diff_sha256:'a'.repeat(64)},error:null});
+  await click('Preview exact impact');await waitFor(()=>document.body.textContent?.includes('Send two clear offer invitations')??false,'safe transition preview');
+  const reviewCard=document.querySelector('[aria-labelledby="review-focus-title"]')!;
+  const focusOrder=[...reviewCard.querySelectorAll<HTMLElement>('input,button')].filter(node=>!node.hasAttribute('disabled')&&node.getBoundingClientRect().height>0).map(node=>node.id||node.textContent?.trim());
+  const animatedEditControls=[...reviewCard.querySelectorAll<HTMLElement>('button,input')].filter(node=>getComputedStyle(node).animationName!=='none').map(node=>node.id||node.textContent?.trim());
+  __wave4Mock.enqueue('confirm_my_success_path_transition_member',{data:{status:'saved',replayed:false,transition_id:transition,proposal_id:proposal,path_version:3,state_receipt_id:stateReceipt,action_id:newAction,prior_action_id:action},error:null});
+  __wave4Mock.enqueue('resolve_my_success_path_learning_slice',{data:ready('continue',true),error:null});
+  await click('Confirm this exact change');await waitFor(()=>document.body.textContent?.includes('Send two clear offer invitations')??false,'authoritative transition readback');
+
   const evidenceBodies = __wave4Mock.bodies('submit_my_success_path_evidence');
   const evaluationBodies = __wave4Mock.bodies('evaluate_my_success_path_week');
   const primaryControls = [...document.querySelectorAll<HTMLElement>('button,input,a')].filter((node) => {
@@ -102,6 +128,13 @@ async function run() {
     liveRegions: document.querySelectorAll('[aria-live]').length,
     evidenceRequestStable: evidenceBodies.length === 2 && evidenceBodies[0].p_request_id === evidenceBodies[1].p_request_id,
     evaluationRequestStable: evaluationBodies.length === 2 && evaluationBodies[0].p_request_id === evaluationBodies[1].p_request_id,
+    cancelMutated,
+    previewCalls:__wave4Mock.count('preview_my_success_path_transition_member'),confirmCalls:__wave4Mock.count('confirm_my_success_path_transition_member'),
+    rawTransitionCalls:__wave4Mock.calls.filter(call=>['preview_my_success_path_transition','confirm_my_success_path_transition'].includes(call.name)).length,
+    canonicalCurrentActions:[...document.querySelectorAll('*')].filter(node=>node.textContent?.trim()==='Send two clear offer invitations').length,
+    focusOrder,
+    contrastSamples:[...document.querySelectorAll<HTMLElement>('p,span,label')].filter(node=>node.getBoundingClientRect().height>0).slice(0,20).map(node=>({ratio:contrast(node),text:node.textContent?.trim().slice(0,30)})),
+    animatedEditControls,
     forbiddenMutationCalls: __wave4Mock.calls.filter((call) => /complete|milestone|task|vault|search|transcript|saved/i.test(call.name)).map((call) => call.name),
   };
   (window as unknown as { __wave4Result: typeof result }).__wave4Result = result;

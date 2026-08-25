@@ -280,3 +280,11 @@ Created `outputs/mastermind-success-path-overnight/final-private-preview-handoff
 ## Faith-only offline private preview — 2026-08-24
 
 Faith approved a clearly labeled fake lesson for a private test. Built a self-contained offline HTML preview from the accepted production Success Path page with isolated local Supabase/Layout fixtures. CSP blocks all network and media; mounted Chrome at 390/1440 px recorded zero external requests, zero overflow/clipped/sub-44px controls, required private/fake labeling, one lesson/action/support route, and honest fail-closed playback. TypeScript, focused lint, production build, production-bundle exclusion, and full `npm run verify` passed. Delivery: `~/Desktop/HERMES-FILES/mastermind-private-preview.html`. No real app, backend, curriculum, member, entitlement, or production state changed.
+
+## Wave 5 same-day private Success Path + engagement build — 2026-08-24
+
+Status: **SOURCE BUILT + LOCALLY VERIFIED — PRIVATE / UNAPPLIED / UNCOMMITTED / NOT LIVE**
+
+The protected Success Path now visibly centers member authority and supports a cancel-safe exact reviewed transition for current action text/minutes. One final-frontier migration adds caller-bound append-only assigned-learning engagement, bounded monotonic progress/heartbeat contracts, non-shaming member status, and a service-only review projection; the real player records only opened/actual play/actual ended and never changes business progress. The existing offline preview now covers authority controls and assigned/not-opened, watched/no-action, stalled, and returned states at 320/360/390/1440 with zero external requests.
+
+Final local gates passed: Wave 5 aggregate; targeted lint; TypeScript; production build; Waves 2–4; native PG16 full 198-migration chronology/double-apply, ACL/concurrency/append-only controls; edge 7/7; mounted mobile/accessibility; and mutation controls. Honest bounds: stage changes require a new reviewed recommendation, low-capacity text remains the existing evidence-gated Reduce path, no watch-progress timers were fabricated, and curriculum remains 24 mapped / 17 candidate / 7 gaps / 0 Ready. Canonical receipt: `outputs/mastermind-success-path-overnight/same-day-private-build-writer-receipt.md`.

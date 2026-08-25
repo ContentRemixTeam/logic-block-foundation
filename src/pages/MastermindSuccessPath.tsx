@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { AssignedLearningPlayer } from '@/components/mastermind/AssignedLearningPlayer';
 import { useSuccessPathLearningSlice } from '@/hooks/useSuccessPathLearningSlice';
 import { newStableRequestId, type SuccessPathLearningEmptyState } from '@/lib/successPathLearningSlice';
+import { parseEditContext, parseEngagementReceipt, parseTransitionConfirmation, parseTransitionPreview, type EngagementEvent, type TransitionPreview } from '@/lib/successPathMemberAuthority';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowRight, CheckCircle2, LifeBuoy, Loader2, RotateCcw } from 'lucide-react';
+import { ArrowRight, CheckCircle2, LifeBuoy, Loader2, Pencil, RotateCcw, X } from 'lucide-react';
 
 type SaveState = 'idle' | 'pending' | 'saved' | 'conflict' | 'ambiguous';
 type Outcome = 'continue' | 'improve' | 'reduce' | 'support';
@@ -20,7 +21,7 @@ const emptyCopy: Record<SuccessPathLearningEmptyState, { title: string; body: st
   no_plan: { title: 'Your 90-day result comes first', body: 'Save one 90-day result before opening this Success Path.', action: 'Build my 90-day plan' },
   unconfirmed: { title: 'Your recommendation needs confirmation', body: 'Confirm the recommended focus in the protected planning flow before a lesson is revealed.' },
   review_required: { title: 'Your plan needs a quick review', body: 'Something in the saved Planner receipt changed. Review the current plan before continuing.', action: 'Check again' },
-  resource_not_ready: { title: 'Your assigned resource is not ready', body: 'The current lesson is being checked. No lesson details are available yet.', action: 'Check again' },
+  resource_not_ready: { title: 'Your assigned resource is not ready', body: 'This resource is being prepared. Your plan has not changed.', action: 'Check again' },
 };
 
 function weekKey(now = new Date()) {
@@ -41,6 +42,7 @@ export default function MastermindSuccessPath() {
   const { cycleId } = useParams<{ cycleId: string }>();
   const { data, isLoading, error, refetch } = useSuccessPathLearningSlice(cycleId);
   const actionRef = useRef<HTMLElement>(null);
+  const actionOpenedRecorded = useRef(false);
   const evidenceStatusRef = useRef<HTMLDivElement>(null);
   const [evidenceNote, setEvidenceNote] = useState('');
   const [evidenceState, setEvidenceState] = useState<SaveState>('idle');
@@ -51,9 +53,82 @@ export default function MastermindSuccessPath() {
   const [reducedText, setReducedText] = useState('');
   const [absenceOpen, setAbsenceOpen] = useState(false);
   const [absenceRequestId, setAbsenceRequestId] = useState(newStableRequestId());
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [editedAction, setEditedAction] = useState('');
+  const [editedMinutes, setEditedMinutes] = useState(5);
+  const [editState, setEditState] = useState<SaveState>('idle');
+  const [preview, setPreview] = useState<TransitionPreview | null>(null);
+  const [previewRequestId, setPreviewRequestId] = useState(newStableRequestId());
+  const [confirmationRequestId, setConfirmationRequestId] = useState(newStableRequestId());
 
   const slice = data?.slice_state === 'ready' ? data.slice : null;
   const reducedMinutes = useMemo(() => slice ? Math.max(5, Math.min(slice.action.estimated_minutes - 1, Math.ceil(slice.action.estimated_minutes / 2))) : 5, [slice]);
+
+  useEffect(() => {
+    if (!slice || editedAction) return;
+    setEditedAction(slice.action.text);
+    setEditedMinutes(slice.action.estimated_minutes);
+  }, [editedAction, slice]);
+
+  const recordEngagement = async (event: EngagementEvent, actionId: string | null = null) => {
+    if (!slice) return;
+    const { data: receipt, error: receiptError } = await supabase.rpc('record_my_assigned_learning_engagement', {
+      p_cycle_id: slice.cycle_id, p_assignment_item_id: slice.learning.assignment_item_id,
+      p_action_id: actionId, p_request_id: newStableRequestId(), p_event_type: event, p_progress_basis_points: null,
+    });
+    if (receiptError) throw receiptError;
+    parseEngagementReceipt(receipt);
+  };
+
+  const openReview = () => {
+    if (!slice) return;
+    setEditedAction(slice.action.text); setEditedMinutes(slice.action.estimated_minutes);
+    setPreview(null); setEditState('idle'); setReviewOpen(true);
+  };
+
+  const cancelReview = () => {
+    if (!slice) return;
+    setEditedAction(slice.action.text); setEditedMinutes(slice.action.estimated_minutes);
+    setPreview(null); setReviewOpen(false); setEditState('idle');
+  };
+
+  const previewChange = async () => {
+    if (!slice || !editedAction.trim()) return;
+    setEditState('pending');
+    try {
+      const contextResponse = await supabase.rpc('resolve_my_success_path_edit_context', { p_cycle_id: slice.cycle_id });
+      if (contextResponse.error) throw contextResponse.error;
+      const context = parseEditContext(contextResponse.data);
+      if (context.path_version !== slice.path_version || context.action_id !== slice.action.action_id) throw new Error('Current action changed before review.');
+      const response = await supabase.rpc('preview_my_success_path_transition_member', {
+        p_cycle_id: context.cycle_id, p_request_id: previewRequestId, p_expected_path_version: context.path_version,
+        p_transition_kind: 'focus_change', p_reason_code: 'member_requested', p_evidence_receipt_id: null,
+        p_proposed_assignment_id: context.assignment_id, p_proposed_assignment_item_id: context.assignment_item_id,
+        p_proposed_stage: context.stage, p_proposed_milestone_key: context.milestone_key,
+        p_proposed_milestone_title: context.milestone_title, p_proposed_move_key: context.move_key,
+        p_proposed_action_text: editedAction.trim().slice(0,300), p_proposed_action_minutes: editedMinutes,
+      });
+      if (response.error) throw response.error;
+      setPreview(parseTransitionPreview(response.data)); setEditState('idle');
+    } catch (caught) { setEditState(mutationKind(caught)); }
+  };
+
+  const confirmChange = async () => {
+    if (!preview) return;
+    setEditState('pending');
+    try {
+      const response = await supabase.rpc('confirm_my_success_path_transition_member', {
+        p_proposal_id: preview.proposal_id, p_confirmation_request_id: confirmationRequestId,
+        p_expected_impact_diff: preview.impact_diff, p_expected_impact_diff_sha256: preview.impact_diff_sha256, p_confirm: true,
+      });
+      if (response.error) throw response.error;
+      const confirmed = parseTransitionConfirmation(response.data);
+      const refreshed = await refetch();
+      if (refreshed?.slice_state !== 'ready' || refreshed.slice.path_version !== confirmed.path_version || refreshed.slice.action.action_id !== confirmed.action_id) throw new Error('Confirmed action readback unavailable.');
+      setPreview(null); setReviewOpen(false); setEditState('saved');
+      setPreviewRequestId(newStableRequestId()); setConfirmationRequestId(newStableRequestId());
+    } catch (caught) { setEditState(mutationKind(caught)); }
+  };
 
   const focusAction = () => {
     actionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -86,6 +161,7 @@ export default function MastermindSuccessPath() {
         throw new Error('Evidence readback unavailable');
       }
       setEvidenceReceiptId(receipt.evidence_receipt_id);
+      await recordEngagement('evidence_submitted', slice.action.action_id).catch(() => undefined);
       setEvidenceState('saved');
       setEvidenceRequestId(newStableRequestId());
     } catch (caught) {
@@ -120,6 +196,7 @@ export default function MastermindSuccessPath() {
       const refreshed = await refetch();
       if (refreshed?.slice_state !== 'ready' || refreshed.slice.latest_evaluation_outcome !== outcome) throw new Error('Evaluation state readback unavailable');
       setEvaluationState('saved');
+      await recordEngagement(outcome === 'support' ? 'support_requested' : 'checkin_completed', slice.action.action_id).catch(() => undefined);
       setEvaluationRequestId(newStableRequestId());
     } catch (caught) {
       setEvaluationState(mutationKind(caught));
@@ -148,6 +225,7 @@ export default function MastermindSuccessPath() {
       setAbsenceRequestId(newStableRequestId());
       setAbsenceOpen(false);
       setEvaluationState('saved');
+      await recordEngagement('returned_after_absence', slice.action.action_id).catch(() => undefined);
     } catch (caught) { setEvaluationState(mutationKind(caught)); }
   };
 
@@ -163,12 +241,13 @@ export default function MastermindSuccessPath() {
       <main className="mx-auto w-full max-w-3xl min-w-0 space-y-5 overflow-x-hidden px-4 py-6 sm:py-8">
         <header className="space-y-2"><p className="text-sm font-medium text-primary">My 90-day Success Path</p><h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">One result. One next move.</h1><p className="text-muted-foreground">Watch only what supports the action in front of you, then record real-world evidence.</p></header>
         <Card><CardHeader><CardDescription>My saved 90-day result</CardDescription><CardTitle className="text-xl break-words">{slice.result_text}</CardTitle></CardHeader></Card>
-        <Card><CardHeader><CardDescription>Confirmed focus</CardDescription><CardTitle>{slice.confirmed_stage === 'offer' ? 'Offer' : slice.confirmed_stage}</CardTitle></CardHeader><CardContent><p className="font-medium break-words">{slice.milestone.title}</p></CardContent></Card>
+        <Card><CardHeader><CardDescription>Suggested for you</CardDescription><CardTitle>{slice.confirmed_stage === 'offer' ? 'Offer' : slice.confirmed_stage}</CardTitle></CardHeader><CardContent className="space-y-3"><p className="font-medium break-words">{slice.milestone.title}</p><p className="text-sm text-muted-foreground">Based on your saved 90-day plan, this looks like the most useful focus right now.</p><p className="font-medium">You are the boss. Change anything that does not fit.</p><Button variant="outline" className="min-h-11 w-full sm:w-auto" onClick={openReview}><Pencil className="mr-2 h-4 w-4" />Review or change my focus</Button></CardContent></Card>
+        {reviewOpen && <Card aria-labelledby="review-focus-title"><CardHeader><CardDescription>Review before anything changes</CardDescription><CardTitle id="review-focus-title">Adjust this one action</CardTitle><p className="text-sm text-muted-foreground">You can edit the action and time here. Choosing a different stage needs a new reviewed recommendation so the app does not silently reroute your plan.</p></CardHeader><CardContent className="space-y-4"><div className="space-y-2"><Label htmlFor="edited-action">Action</Label><Input id="edited-action" value={editedAction} maxLength={300} className="min-h-11" onChange={event=>{setEditedAction(event.target.value);setPreview(null);}} /></div><div className="space-y-2"><Label htmlFor="edited-minutes">Estimated minutes</Label><Input id="edited-minutes" type="number" min={5} max={240} value={editedMinutes} className="min-h-11" onChange={event=>{setEditedMinutes(Math.max(5,Math.min(240,Number(event.target.value)||5)));setPreview(null);}} /></div>{!preview?<div className="flex flex-col gap-2 sm:flex-row"><Button className="min-h-11" disabled={editState==='pending'||!editedAction.trim()} onClick={()=>void previewChange()}>{editState==='pending'?'Preparing exact preview…':'Preview exact impact'}</Button><Button variant="ghost" className="min-h-11" onClick={cancelReview}><X className="mr-2 h-4 w-4" />Cancel — change nothing</Button></div>:<div className="space-y-3 rounded-lg border p-4" role="status" aria-live="polite"><p className="font-medium">Exact impact preview</p><ul className="list-disc space-y-1 pl-5 text-sm"><li>Replace “{preview.impact_diff.action.old.text}” ({preview.impact_diff.action.old.estimated_minutes} minutes) with “{preview.impact_diff.action.new.text}” ({preview.impact_diff.action.new.estimated_minutes} minutes).</li><li>Stage: {preview.impact_diff.stage.old} → {preview.impact_diff.stage.new}; milestone: {preview.impact_diff.milestone.old.title} → {preview.impact_diff.milestone.new.title}.</li><li>{preview.impact_diff.learning.assignment_reroute?'The reviewed assignment changes.':'The reviewed assignment stays the same.'} {preview.impact_diff.learning.learning_item_changed?'The assigned lesson changes.':'The assigned lesson stays the same.'}</li><li>History preservation: prior task {preview.impact_diff.history.prior_task_preserved?'kept':'not kept'}, completion {preview.impact_diff.history.prior_task_completion_preserved?'kept':'not kept'}, evidence {preview.impact_diff.history.evidence_preserved?'kept':'not kept'}, actions {preview.impact_diff.history.actions_preserved?'kept':'not kept'}, check-ins {preview.impact_diff.history.checkins_preserved?'kept':'not kept'}.</li></ul><div className="flex flex-col gap-2 sm:flex-row"><Button className="min-h-11" disabled={editState==='pending'} onClick={()=>void confirmChange()}>{editState==='pending'?'Confirming and reading back…':'Confirm this exact change'}</Button><Button variant="ghost" className="min-h-11" onClick={cancelReview}>Cancel — change nothing</Button></div></div>}<div role={editState==='conflict'||editState==='ambiguous'?'alert':'status'} aria-live="polite" className="text-sm">{editState==='conflict'&&'Your current plan changed. Nothing was overwritten; reload before reviewing again.'}{editState==='ambiguous'&&'We could not verify this request. Nothing new will be attempted with different details under the same request.'}</div></CardContent></Card>}
         <Card>
           <CardHeader><CardDescription>Your one assigned lesson</CardDescription><CardTitle className="break-words">{slice.learning.title}</CardTitle><p className="text-sm text-muted-foreground">With {slice.learning.teacher} · {slice.learning.attribution}</p></CardHeader>
-        <CardContent className="space-y-4"><p className="break-words">{slice.learning.intended_output}</p>{slice.learning.action_prompt && <p className="rounded-md bg-muted p-3 text-sm break-words"><span className="font-medium">Listen for:</span> {slice.learning.action_prompt}</p>}<AssignedLearningPlayer key={slice.learning.assignment_item_id} cycleId={slice.cycle_id} assignmentItemId={slice.learning.assignment_item_id} title={slice.learning.title} onBackToAction={focusAction} /></CardContent>
+        <CardContent className="space-y-4"><p className="break-words">{slice.learning.intended_output}</p>{slice.learning.action_prompt && <p className="rounded-md bg-muted p-3 text-sm break-words"><span className="font-medium">Listen for:</span> {slice.learning.action_prompt}</p>}<AssignedLearningPlayer key={slice.learning.assignment_item_id} cycleId={slice.cycle_id} assignmentItemId={slice.learning.assignment_item_id} title={slice.learning.title} onOpened={()=>recordEngagement('assignment_opened')} onStarted={()=>recordEngagement('playback_started')} onCompleted={()=>recordEngagement('playback_completed')} onBackToAction={focusAction} /></CardContent>
         </Card>
-        <Card ref={actionRef as React.RefObject<HTMLDivElement>} tabIndex={-1} className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Card ref={actionRef as React.RefObject<HTMLDivElement>} tabIndex={-1} onFocus={()=>{if(!actionOpenedRecorded.current){actionOpenedRecorded.current=true;void recordEngagement('action_opened',slice.action.action_id).catch(()=>undefined);}}} className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <CardHeader><CardDescription>My one Planner action</CardDescription><CardTitle className="break-words">{slice.action.text}</CardTitle></CardHeader>
           <CardContent className="flex flex-wrap items-center gap-3"><span className="text-sm text-muted-foreground">About {slice.action.estimated_minutes} minutes</span><span className="text-sm">Planner task: {slice.action.completion_state === 'completed' ? 'completed' : 'open'}</span></CardContent>
         </Card>
