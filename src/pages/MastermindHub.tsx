@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
 import { SuccessPlanPreview } from '@/components/mastermind/SuccessPlanPreview';
 import { useMembership } from '@/hooks/useMembership';
@@ -25,6 +26,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+type MastermindResourceSection = 'learn' | 'coaching';
+
 interface MastermindResource {
   id: string;
   title: string;
@@ -33,6 +36,7 @@ interface MastermindResource {
   questIcon: string;
   url: string;
   isExternal: boolean;
+  section: MastermindResourceSection;
   requires?: 'mastermind' | 'vault';
 }
 
@@ -45,6 +49,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '⚡',
     url: '/onboarding',
     isExternal: false,
+    section: 'learn',
   },
   {
     id: 'ask-faith',
@@ -54,6 +59,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '🙋',
     url: 'https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462',
     isExternal: true,
+    section: 'coaching',
   },
   {
     id: 'coworking-room',
@@ -63,6 +69,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '👥',
     url: 'https://gobrunch.com/events/389643/589970',
     isExternal: true,
+    section: 'coaching',
   },
   {
     id: 'recent-replays',
@@ -72,6 +79,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '🎬',
     url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning?productId=8cd48d79-e6dd-4e11-9e4c-5d643703bad1',
     isExternal: true,
+    section: 'learn',
   },
   {
     id: 'replay-vault',
@@ -81,6 +89,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '🗄️',
     url: 'https://hub-3pwl3413w2.membership.io/',
     isExternal: true,
+    section: 'learn',
     requires: 'vault',
   },
   {
@@ -91,6 +100,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '📅',
     url: 'https://portal.faithmariah.com/communities/groups/mastermind/events',
     isExternal: true,
+    section: 'coaching',
   },
   {
     id: 'apply-events',
@@ -100,6 +110,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '🎟️',
     url: 'https://www.faithmariahevents.com/',
     isExternal: true,
+    section: 'coaching',
   },
   {
     id: 'community',
@@ -109,6 +120,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '💬',
     url: 'https://portal.faithmariah.com/communities/groups/mastermind/home',
     isExternal: true,
+    section: 'coaching',
   },
   {
     id: 'learning',
@@ -118,6 +130,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '📚',
     url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
     isExternal: true,
+    section: 'learn',
   },
 ];
 
@@ -127,6 +140,12 @@ export default function MastermindHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const { canUseReplayVault } = useMembership();
+
+  const availableResources = useMemo(() => {
+    return MASTERMIND_RESOURCES.filter(
+      (resource) => resource.requires !== 'vault' || canUseReplayVault
+    );
+  }, [canUseReplayVault]);
 
   // Load pinned resources from localStorage
   useEffect(() => {
@@ -155,23 +174,28 @@ export default function MastermindHub() {
   };
 
   const filteredResources = useMemo(() => {
-    const availableResources = MASTERMIND_RESOURCES.filter(
-      (resource) => resource.requires !== 'vault' || canUseReplayVault
-    );
     if (!searchQuery.trim()) return availableResources;
     const query = searchQuery.toLowerCase();
     return availableResources.filter(
       r => r.title.toLowerCase().includes(query) || r.description.toLowerCase().includes(query)
     );
-  }, [canUseReplayVault, searchQuery]);
+  }, [availableResources, searchQuery]);
 
   const pinnedResources = useMemo(() => {
-    return filteredResources.filter(r => pinnedIds.includes(r.id));
-  }, [filteredResources, pinnedIds]);
+    return availableResources.filter(r => pinnedIds.includes(r.id));
+  }, [availableResources, pinnedIds]);
 
   const unpinnedResources = useMemo(() => {
     return filteredResources.filter(r => !pinnedIds.includes(r.id));
   }, [filteredResources, pinnedIds]);
+
+  const learningResources = useMemo(() => {
+    return availableResources.filter((resource) => resource.section === 'learn');
+  }, [availableResources]);
+
+  const coachingResources = useMemo(() => {
+    return availableResources.filter((resource) => resource.section === 'coaching');
+  }, [availableResources]);
 
   const handleOpen = (resource: MastermindResource) => {
     if (resource.isExternal) {
@@ -191,78 +215,148 @@ export default function MastermindHub() {
           <p className="text-muted-foreground">Start from the plan, then pull in the right support</p>
         </div>
 
-        <SuccessPlanPreview />
+        <Tabs defaultValue="path" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="path">My Path</TabsTrigger>
+            <TabsTrigger value="learn">Learn</TabsTrigger>
+            <TabsTrigger value="coaching">Coaching</TabsTrigger>
+            <TabsTrigger value="all">All</TabsTrigger>
+          </TabsList>
 
-        {/* Search */}
-        <div className="relative max-w-md mx-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search resources..."
-            className="pl-10"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-              onClick={() => setSearchQuery('')}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+          <TabsContent value="path" className="space-y-4">
+            <SuccessPlanPreview />
+          </TabsContent>
 
-        {/* Pinned Section */}
-        {pinnedResources.length > 0 && !searchQuery && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Pin className="h-4 w-4 text-primary" />
-              <h2 className="font-semibold text-sm">Pinned</h2>
-              <Badge variant="secondary" className="text-xs">{pinnedResources.length}/3</Badge>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {pinnedResources.map((resource) => (
-                <ResourceCard
-                  key={resource.id}
-                  resource={resource}
-                  isPinned={true}
-                  onTogglePin={() => togglePin(resource.id)}
-                  onOpen={() => handleOpen(resource)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+          <TabsContent value="learn" className="space-y-4">
+            <SectionHeader
+              title="Learn"
+              description="Use the current curriculum and replay collection after your plan tells you what matters now."
+            />
+            <ResourceGrid
+              resources={learningResources}
+              pinnedIds={pinnedIds}
+              canPin={pinnedIds.length < 3}
+              onTogglePin={togglePin}
+              onOpen={handleOpen}
+            />
+          </TabsContent>
 
-        {/* All Resources */}
-        <div className="space-y-3">
-          {!searchQuery && pinnedResources.length > 0 && (
-            <h2 className="font-semibold text-sm">All Resources</h2>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(searchQuery ? filteredResources : unpinnedResources).map((resource) => (
-              <ResourceCard
-                key={resource.id}
-                resource={resource}
-                isPinned={pinnedIds.includes(resource.id)}
-                canPin={pinnedIds.length < 3}
-                onTogglePin={() => togglePin(resource.id)}
-                onOpen={() => handleOpen(resource)}
+          <TabsContent value="coaching" className="space-y-4">
+            <SectionHeader
+              title="Coaching & Community"
+              description="Bring the real plan, the real question, and the next decision you need help making."
+            />
+            <ResourceGrid
+              resources={coachingResources}
+              pinnedIds={pinnedIds}
+              canPin={pinnedIds.length < 3}
+              onTogglePin={togglePin}
+              onOpen={handleOpen}
+            />
+          </TabsContent>
+
+          <TabsContent value="all" className="space-y-5">
+            {/* Search */}
+            <div className="relative max-w-md mx-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search resources..."
+                className="pl-10"
               />
-            ))}
-          </div>
-          
-          {filteredResources.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No resources found matching "{searchQuery}"</p>
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Pinned Section */}
+            {pinnedResources.length > 0 && !searchQuery && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Pin className="h-4 w-4 text-primary" />
+                  <h2 className="font-semibold text-sm">Pinned</h2>
+                  <Badge variant="secondary" className="text-xs">{pinnedResources.length}/3</Badge>
+                </div>
+                <ResourceGrid
+                  resources={pinnedResources}
+                  pinnedIds={pinnedIds}
+                  canPin={pinnedIds.length < 3}
+                  onTogglePin={togglePin}
+                  onOpen={handleOpen}
+                />
+              </div>
+            )}
+
+            {/* All Resources */}
+            <div className="space-y-3">
+              {!searchQuery && pinnedResources.length > 0 && (
+                <h2 className="font-semibold text-sm">All Resources</h2>
+              )}
+              <ResourceGrid
+                resources={searchQuery ? filteredResources : unpinnedResources}
+                pinnedIds={pinnedIds}
+                canPin={pinnedIds.length < 3}
+                onTogglePin={togglePin}
+                onOpen={handleOpen}
+              />
+
+              {filteredResources.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No resources found matching "{searchQuery}"</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
         </div>
       </MastermindGate>
     </Layout>
+  );
+}
+
+function SectionHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="space-y-1">
+      <h2 className="text-xl font-semibold">{title}</h2>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function ResourceGrid({
+  resources,
+  pinnedIds,
+  canPin,
+  onTogglePin,
+  onOpen,
+}: {
+  resources: MastermindResource[];
+  pinnedIds: string[];
+  canPin: boolean;
+  onTogglePin: (id: string) => void;
+  onOpen: (resource: MastermindResource) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {resources.map((resource) => (
+        <ResourceCard
+          key={resource.id}
+          resource={resource}
+          isPinned={pinnedIds.includes(resource.id)}
+          canPin={canPin}
+          onTogglePin={() => onTogglePin(resource.id)}
+          onOpen={() => onOpen(resource)}
+        />
+      ))}
+    </div>
   );
 }
 

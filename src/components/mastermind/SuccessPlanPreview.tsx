@@ -98,6 +98,28 @@ export function SuccessPlanPreview() {
           </div>
         </div>
 
+        <div className="rounded-lg border bg-background/80 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">Recommended Support</p>
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{stage.recommendedSupport.title}:</span>{' '}
+                {stage.recommendedSupport.description}
+              </p>
+            </div>
+            <Button variant="secondary" asChild className="w-full gap-2 sm:w-auto">
+              {stage.recommendedSupport.isExternal ? (
+                <a href={stage.recommendedSupport.href} target="_blank" rel="noopener noreferrer">
+                  {stage.recommendedSupport.actionLabel}
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              ) : (
+                <Link to={stage.recommendedSupport.href}>{stage.recommendedSupport.actionLabel}</Link>
+              )}
+            </Button>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button asChild className="gap-2">
             <Link to="/weekly-plan">
