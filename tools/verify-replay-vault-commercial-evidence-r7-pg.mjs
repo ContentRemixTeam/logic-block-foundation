@@ -14,10 +14,16 @@ const migrations=names.map(name=>path.join(root,"supabase/migrations",name));
 for(const file of migrations) if(!existsSync(file)) throw new Error(`missing migration ${file}`);
 if([...names].sort().join("|")!==names.join("|")) throw new Error("migration order is not exact");
 console.log(`MIGRATION_ORDER ${names.map(name=>name.slice(8,14)).join("→")}`);
-const base="b5b80651d410f89ffdd20dc2cf846aa184974a03";
+const acceptedBaseByName={
+  "20260809130000_replay_vault_deterministic_ingestion.sql":
+    process.env.REPLAY_VAULT_COMMERCIAL_INGESTION_COMMIT || "d36e1544d513aa7b10ddd431d1344504b21c5199",
+  "20260809140000_replay_vault_access_hardening.sql":
+    process.env.REPLAY_VAULT_COMMERCIAL_ACCESS_COMMIT || "88b1b4f15401406110e4780b81bbd58133a78fc2",
+};
 for(const name of names.slice(0,2)) {
-  const committed=spawnSync("git",["show",`${base}:supabase/migrations/${name}`],{cwd:root,encoding:"utf8"});
-  if(committed.status!==0) throw new Error(`cannot read accepted base ${name}`);
+  const acceptedBase=acceptedBaseByName[name];
+  const committed=spawnSync("git",["show",`${acceptedBase}:supabase/migrations/${name}`],{cwd:root,encoding:"utf8"});
+  if(committed.status!==0) throw new Error(`cannot read accepted base ${name} at ${acceptedBase}`);
   const actual=readFileSync(path.join(root,"supabase/migrations",name));
   const expected=Buffer.from(committed.stdout);
   const hash=value=>createHash("sha256").update(value).digest("hex");

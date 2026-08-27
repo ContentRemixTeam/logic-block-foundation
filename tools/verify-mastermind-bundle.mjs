@@ -69,15 +69,25 @@ const forbiddenGroups = [
 ];
 
 const requiredMastermindHubStrings = [
+  'Resource Hub',
+  'Planner first',
+  'Your plan stays in the Planner.',
+  'Open 90-Day Planner',
+  'Core Curriculum Links',
+  'Calls & Support',
+  'Enable Faith AI',
+  'curriculum and replays stay in the member portal',
+];
+
+const forbiddenMastermindHubStrings = [
   'Success Path',
+  'My Success Plan',
   'Resource finder',
   'Visible resources',
   'Indexed now',
   'Access labels',
-  'Choose the smallest useful next resource',
-  'Bonus and vault items stay out of this finder',
-  'Clear resource search',
-  'Enable Faith AI',
+  'Build My Success Plan',
+  'Your 90-day focus',
 ];
 
 function walkFiles(directory) {
@@ -161,6 +171,12 @@ for (const requiredString of requiredMastermindHubStrings) {
   assert.ok(
     mastermindHubText.includes(requiredString),
     `MastermindHub bundle missing expected member-facing string: ${requiredString}`
+  );
+}
+for (const forbiddenString of forbiddenMastermindHubStrings) {
+  assert.ok(
+    !mastermindHubText.includes(forbiddenString),
+    `MastermindHub bundle contains removed app-native curriculum string: ${forbiddenString}`
   );
 }
 

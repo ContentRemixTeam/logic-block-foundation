@@ -60,35 +60,35 @@ const scenarios = [
     name: 'saved-cycle-desktop',
     viewport: { width: 1280, height: 900, mobile: false, deviceScaleFactor: 1 },
     cycle: savedCycle,
-    checks: ['savedCyclePath'],
+    checks: ['resourceHub'],
   },
   {
     name: 'saved-cycle-ios-safari-mobile-resources',
     viewport: { width: 390, height: 844, mobile: true, deviceScaleFactor: 2 },
     browserProfile: browserProfiles.iosSafari,
     cycle: savedCycle,
-    checks: ['savedCyclePath', 'resourceFinder'],
+    checks: ['resourceHub'],
   },
   {
     name: 'saved-cycle-android-chrome-narrow-resources',
     viewport: { width: 360, height: 740, mobile: true, deviceScaleFactor: 3 },
     browserProfile: browserProfiles.androidChrome,
     cycle: savedCycle,
-    checks: ['savedCyclePath', 'resourceFinder'],
+    checks: ['resourceHub'],
   },
   {
     name: 'no-cycle-desktop-firefox-profile',
     viewport: { width: 1366, height: 900, mobile: false, deviceScaleFactor: 1 },
     browserProfile: browserProfiles.desktopFirefox,
     cycle: null,
-    checks: ['noCyclePrompt'],
+    checks: ['resourceHub'],
   },
   {
     name: 'no-cycle-ios-safari-mobile',
     viewport: { width: 390, height: 844, mobile: true, deviceScaleFactor: 2 },
     browserProfile: browserProfiles.iosSafari,
     cycle: null,
-    checks: ['noCyclePrompt'],
+    checks: ['resourceHub'],
   },
 ];
 
@@ -564,89 +564,33 @@ async function saveScreenshot(client, scenario, passNumber) {
 }
 
 async function runChecks(client, checks, label) {
-  await waitFor(client, 'document.body && document.body.innerText.includes("My Success Plan")', `${label} Mastermind shell`);
+  await waitFor(client, 'document.body && document.body.innerText.includes("Resource Hub")', `${label} Mastermind Resource Hub shell`);
   await assertNoText(client, 'Video Search');
+  await assertNoText(client, 'Success Path');
+  await assertNoText(client, 'My Success Plan');
+  await assertNoText(client, 'Your 90-day focus');
+  await assertNoText(client, 'Build My Success Plan');
+  await assertNoText(client, 'Resource finder');
+  await assertNoText(client, 'Visible resources');
+  await assertNoText(client, 'Indexed now');
+  await assertNoText(client, 'Access labels');
   await assertNoHorizontalOverflow(client, `${label} initial view`);
 
-  if (checks.includes('savedCyclePath')) {
-    await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} saved-cycle path`);
-    await assertText(client, 'Your 90-day focus');
-    await assertText(client, 'Run one complete sales cycle with follow-up and a real debrief.');
-    await assertText(client, 'Your next three moves');
-    await assertText(client, 'Name the warmest 10 people, segments, or audience signals available right now.');
-    await assertText(client, 'Ask Faith');
-    await clickText(client, 'Get Support');
-    await waitFor(client, 'document.body.innerText.includes("Enable Faith AI")', `${label} support tab`);
+  if (checks.includes('resourceHub')) {
+    await assertText(client, 'Planner first');
+    await assertText(client, 'Your plan stays in the Planner.');
+    await assertText(client, 'Open 90-Day Planner');
+    await assertText(client, 'Weekly Check-In');
+    await assertText(client, 'Core Curriculum Links');
+    await assertText(client, 'Calls & Support');
     await assertText(client, 'Enable Faith AI');
-    await clickText(client, 'Success Path');
-    await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} return to Success Path`);
-    await assertNoHorizontalOverflow(client, `${label} Success Path`);
-
-    await assertText(client, 'Open My Starting Resource');
-    await clickText(client, 'Resources');
-    await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} resources tab`);
     await assertText(client, 'Sales & Marketing');
-    await assertText(client, 'Sell path');
+    await assertText(client, 'Current Call Replays');
+    await assertText(client, 'Ask Faith');
+    await assertText(client, 'Open Events');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} resources tab`);
-  }
-
-  if (checks.includes('noCyclePrompt')) {
-    await waitFor(client, 'document.body.innerText.includes("Choose one result for the next 90 days.")', `${label} no-cycle prompt`);
-    await assertText(client, 'Build My Success Plan');
-    await assertNoText(client, 'Your 90-day focus');
-    await assertNoHorizontalOverflow(client, `${label} no-cycle state`);
-  }
-
-  if (checks.includes('resourceFinder')) {
-    await clickText(client, 'Resources');
-    await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} Resource Finder`);
-    await assertText(client, 'Portal map');
-    await assertText(client, 'Visible resources');
-    await assertText(client, 'Indexed now');
-    await assertText(client, 'Access labels');
-    await assertText(client, 'Sell path');
-    await assertText(client, 'Bonus and vault items stay out of this finder');
-    await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} Resource Finder default`);
-
-    await clickText(client, 'Sell path');
-    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} Sell path filter`);
-    await assertNoText(client, 'Grow Your Email List');
-    await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} Sell path filter`);
-
-    await clickText(client, '30-day');
-    await waitFor(client, 'document.body.innerText.includes("Current Call Replays")', `${label} 30-day filter`);
-    await assertNoText(client, 'Sales & Marketing');
-    await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} 30-day filter`);
-
-    await clickText(client, 'Indexed now');
-    await waitFor(client, 'document.body.innerText.includes("Success Plan")', `${label} indexed filter`);
-    await assertNoText(client, 'Products & Offers');
-    await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} indexed filter`);
-
-    await clickText(client, 'All');
-    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} All filter reset`);
-
-    await setSearch(client, 'sales page');
-    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} sales page search`);
-    await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} sales page search`);
-
-    await setSearch(client, 'email list');
-    await waitFor(client, 'document.body.innerText.includes("Grow Your Email List")', `${label} email list search`);
-    await assertNoHorizontalOverflow(client, `${label} email list search`);
-
-    await setSearch(client, 'AI');
-    await waitFor(client, 'document.body.innerText.includes("Faith AI")', `${label} AI search`);
-    await assertNoHorizontalOverflow(client, `${label} AI search`);
-
-    await setSearch(client, 'zzzxqvblormp qyprandleston');
-    await waitFor(client, 'document.body.innerText.includes("No resources found matching")', `${label} no-result search`);
-    await assertNoHorizontalOverflow(client, `${label} no-result search`);
+    await assertNoText(client, 'Replay Vault');
+    await assertNoHorizontalOverflow(client, `${label} Resource Hub`);
   }
 }
 

@@ -12,7 +12,6 @@ const entryPath = path.join(tempDir, 'entry.ts');
 const outputPath = path.join(tempDir, 'entry.mjs');
 const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.tsx');
 const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermindPortalResources.ts');
-const successPathPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/SuccessPathPlanCard.tsx');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -254,61 +253,46 @@ try {
 
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
-  const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
-  assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
-  assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
-  assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
-  assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main Success Plan card');
-  assert.ok(mastermindHubSource.includes('Does this focus feel right?'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
-  assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');
-  assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
-  assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
-  assert.ok(successPathPlanCardSource.includes('Your next three moves'), 'The Success Plan should turn the recommendation into three concrete moves');
-  assert.ok(successPathPlanCardSource.includes('Update My 90-Day Plan'), 'The Success Plan needs an honest direct plan-editing action');
-  assert.ok(successPathPlanCardSource.includes('Open My Starting Resource'), 'The Success Plan should include a direct supporting-resource action');
+  assert.ok(mastermindHubSource.includes('Resource Hub'), 'MastermindHub should be a links-only Resource Hub');
+  assert.ok(mastermindHubSource.includes('Planner first'), 'Resource Hub should lead with the planner');
+  assert.ok(mastermindHubSource.includes('Open 90-Day Planner'), 'Resource Hub should point members back to the planner');
+  assert.ok(mastermindHubSource.includes('Core Curriculum Links'), 'Resource Hub should link to existing curriculum without rebuilding it');
+  assert.ok(mastermindHubSource.includes('Calls & Support'), 'Resource Hub should include support links');
+  assert.ok(mastermindHubSource.includes('curriculum and replays stay in the member portal'), 'Resource Hub should preserve the course portal boundary');
+  assert.ok(mastermindHubSource.includes('MASTERMIND_PORTAL_RESOURCES'), 'Resource Hub should still use the vetted resource map');
+  assert.ok(!mastermindHubSource.includes('useMastermindSuccessPath'), 'Resource Hub must not load the app-native Success Path hook');
+  assert.ok(!mastermindHubSource.includes('SuccessPathPlanCard'), 'Resource Hub must not mount the app-native Success Path card');
+  assert.ok(!mastermindHubSource.includes('MASTERMIND_SUCCESS_STAGES'), 'Resource Hub must not expose app-native curriculum stages');
+  assert.ok(!mastermindHubSource.includes('TabsTrigger'), 'Resource Hub must not expose tabs for app-native curriculum');
+  assert.ok(!mastermindHubSource.includes('Resource finder'), 'Resource Hub must remain links-only until search is intentionally launched');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
-  for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {
+  for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'Indexed now']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
   }
   for (const hiddenSourceLabel of ['MASTERMIND_PORTAL_AUDIT', 'crdbDropboxRows', 'coachingRowsWithDropboxPaths', 'Content Repurpose', 'Dropbox', 'dropbox.com', 'bunny_video_id']) {
     assert.ok(!mastermindResourcesSource.includes(hiddenSourceLabel), 'Frontend resource data should not include private source/audit label: ' + hiddenSourceLabel);
   }
-  assert.ok(mastermindHubSource.includes('className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"'), 'Primary Mastermind actions should stack cleanly on mobile');
-  assert.ok(!mastermindHubSource.includes("navigate('/mastermind/replay-vault')"), 'Success Path must keep the Replay Vault hidden until launch is enabled');
+  assert.ok(mastermindHubSource.includes('className="flex flex-col gap-2 sm:flex-row"'), 'Primary Resource Hub actions should stack cleanly on mobile');
+  assert.ok(!mastermindHubSource.includes("navigate('/mastermind/replay-vault')"), 'Resource Hub must keep the Replay Vault hidden until launch is enabled');
   assert.ok(!mastermindHubSource.includes('VITE_ENABLE_MASTERMIND_VIDEO_SEARCH'), 'MastermindHub must not retain the static video-search feature flag');
   assert.ok(!mastermindHubSource.includes('MastermindVideoSearch'), 'MastermindHub must not mount the static Replay Vault pilot');
 
   const requiredMastermindHubLayoutGuards = [
-    'className="grid w-full grid-cols-3 sm:max-w-lg"',
-    'className="pl-10 pr-10"',
-    'className="min-h-9 whitespace-normal text-left leading-tight"',
+    'className="mx-auto w-full max-w-6xl space-y-6"',
+    'className="max-w-3xl text-muted-foreground"',
+    'className="flex flex-col gap-2 sm:flex-row"',
     'className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"',
-    'className="break-words text-muted-foreground">No resources found matching',
-    'className="min-w-0 flex-1 break-words leading-snug"',
-    'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
+    'className="min-w-0 flex-1"',
+    'className="break-words text-base leading-snug"',
+    'className="min-h-11 w-full justify-between gap-2 whitespace-normal text-left"',
+    'className="min-w-0 break-words"',
   ];
   for (const guard of requiredMastermindHubLayoutGuards) {
     assert.ok(mastermindHubSource.includes(guard), 'MastermindHub is missing responsive/accessibility guard: ' + guard);
   }
 
-  const requiredSuccessPathLayoutGuards = [
-    'className="max-w-3xl"',
-    'className="mt-3 grid gap-3 md:grid-cols-3"',
-    'className="flex gap-3 rounded-xl border bg-background p-4"',
-    'className="flex flex-col gap-2 sm:flex-row"',
-    'className="border-t bg-background/60 px-6 py-4 md:px-8"',
-  ];
-  for (const guard of requiredSuccessPathLayoutGuards) {
-    assert.ok(successPathPlanCardSource.includes(guard), 'SuccessPathPlanCard is missing responsive layout guard: ' + guard);
-  }
-
-  for (const [sourceName, source] of [
-    ['MastermindHub', mastermindHubSource],
-    ['SuccessPathPlanCard', successPathPlanCardSource],
-  ]) {
-    for (const riskyClass of ['whitespace-nowrap', 'text-nowrap', 'w-[', 'min-w-[']) {
-      assert.ok(!source.includes(riskyClass), sourceName + ' should not use layout class that risks mobile overflow: ' + riskyClass);
-    }
+  for (const riskyClass of ['whitespace-nowrap', 'text-nowrap', 'w-[', 'min-w-[']) {
+    assert.ok(!mastermindHubSource.includes(riskyClass), 'MastermindHub should not use layout class that risks mobile overflow: ' + riskyClass);
   }
 } finally {
   rmSync(tempDir, { recursive: true, force: true });

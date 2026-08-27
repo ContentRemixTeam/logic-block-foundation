@@ -63,8 +63,8 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
   {
     id: 'ninety-day-planning',
     title: '90-Day Planning',
-    description: 'The planning workflow that feeds the Success Path recommendation and keeps the quarter focused on one result.',
-    memberJob: 'Use this before sending someone into content, selling, or vault resources.',
+    description: 'The planning workflow that keeps the quarter focused on one result and turns the work into weekly action.',
+    memberJob: 'Use this before sending someone into content, selling, or extra resources.',
     access: 'core',
     accessLabel: 'Core',
     type: 'planner',
@@ -73,7 +73,7 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     portalPath: 'Planner -> Build 90-Day Plan + Learning -> 90 DAY PLANNING - Clone',
     transcriptStatus: 'transcript_ready',
     transcriptLabel: 'Planner indexed',
-    sourceStatus: 'Use this to save a focused quarter and power the Success Path recommendation.',
+    sourceStatus: 'Use this to save a focused quarter and choose the next practical action.',
     url: '/cycle-setup',
     isExternal: false,
     primaryAction: 'Build Plan',
@@ -99,7 +99,7 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
   {
     id: 'faith-ai',
     title: 'Faith AI',
-    description: 'Optional bring-your-own-key AI support for brain dumps, coaching prep, messy action, and pathway routing.',
+    description: 'Optional bring-your-own-key AI support for brain dumps, coaching prep, messy action, and finding the right resource.',
     memberJob: 'Use when a member needs help turning messy thoughts into a smaller next action.',
     access: 'core',
     accessLabel: 'Core / BYO key',
