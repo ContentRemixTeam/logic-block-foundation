@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MastermindGate } from '@/components/membership/MastermindGate';
+import { SuccessPlanPreview } from '@/components/mastermind/SuccessPlanPreview';
+import { useMembership } from '@/hooks/useMembership';
 import { 
   Search, 
   ExternalLink, 
@@ -31,6 +33,7 @@ interface MastermindResource {
   questIcon: string;
   url: string;
   isExternal: boolean;
+  requires?: 'mastermind' | 'vault';
 }
 
 const MASTERMIND_RESOURCES: MastermindResource[] = [
@@ -64,7 +67,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
   {
     id: 'recent-replays',
     title: 'Recent Call Replays',
-    description: 'Watch the latest mastermind call recordings',
+    description: 'Watch the current member replay collection',
     icon: <Video className="h-6 w-6" />,
     questIcon: '🎬',
     url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning?productId=8cd48d79-e6dd-4e11-9e4c-5d643703bad1',
@@ -78,6 +81,7 @@ const MASTERMIND_RESOURCES: MastermindResource[] = [
     questIcon: '🗄️',
     url: 'https://hub-3pwl3413w2.membership.io/',
     isExternal: true,
+    requires: 'vault',
   },
   {
     id: 'events',
@@ -122,6 +126,7 @@ const STORAGE_KEY = 'mastermind-pinned-resources';
 export default function MastermindHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
+  const { canUseReplayVault } = useMembership();
 
   // Load pinned resources from localStorage
   useEffect(() => {
@@ -150,16 +155,19 @@ export default function MastermindHub() {
   };
 
   const filteredResources = useMemo(() => {
-    if (!searchQuery.trim()) return MASTERMIND_RESOURCES;
+    const availableResources = MASTERMIND_RESOURCES.filter(
+      (resource) => resource.requires !== 'vault' || canUseReplayVault
+    );
+    if (!searchQuery.trim()) return availableResources;
     const query = searchQuery.toLowerCase();
-    return MASTERMIND_RESOURCES.filter(
+    return availableResources.filter(
       r => r.title.toLowerCase().includes(query) || r.description.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [canUseReplayVault, searchQuery]);
 
   const pinnedResources = useMemo(() => {
-    return MASTERMIND_RESOURCES.filter(r => pinnedIds.includes(r.id));
-  }, [pinnedIds]);
+    return filteredResources.filter(r => pinnedIds.includes(r.id));
+  }, [filteredResources, pinnedIds]);
 
   const unpinnedResources = useMemo(() => {
     return filteredResources.filter(r => !pinnedIds.includes(r.id));
@@ -180,8 +188,10 @@ export default function MastermindHub() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Mastermind Hub</h1>
-          <p className="text-muted-foreground">Everything you need in one place</p>
+          <p className="text-muted-foreground">Start from the plan, then pull in the right support</p>
         </div>
+
+        <SuccessPlanPreview />
 
         {/* Search */}
         <div className="relative max-w-md mx-auto">

@@ -42,6 +42,11 @@ async function decryptAPIKey(encryptedKey: string, userId: string): Promise<stri
 
 interface ChatMessage { role: "system" | "user" | "assistant"; content: string }
 
+function tierHasMastermindAccess(tier: string | null | undefined) {
+  const normalized = tier?.toLowerCase() || "";
+  return normalized === "mastermind" || normalized.includes("mastermind") || normalized.includes("vault");
+}
+
 async function callOpenAI(apiKey: string, messages: ChatMessage[], temperature: number, max_tokens: number) {
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -108,6 +113,36 @@ serve(async (req) => {
       });
     }
     const userId = userData.user.id;
+    const userEmail = userData.user.email?.toLowerCase();
+
+    if (!userEmail) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: hasMastermindAccess, error: entitlementError } = await supabase
+      .rpc("check_mastermind_entitlement", { user_email: userEmail });
+
+    const { data: entitlementRows, error: entitlementDetailsError } = await supabase
+      .rpc("get_user_entitlement", { user_email: userEmail });
+
+    if (entitlementError) {
+      console.error("Error checking mastermind entitlement:", entitlementError);
+    }
+
+    if (entitlementDetailsError) {
+      console.error("Error loading entitlement details:", entitlementDetailsError);
+    }
+
+    const entitlement = Array.isArray(entitlementRows) ? entitlementRows[0] : null;
+    const canUseMastermindAI = hasMastermindAccess === true || tierHasMastermindAccess(entitlement?.tier);
+
+    if (!canUseMastermindAI) {
+      return new Response(JSON.stringify({ error: "Mastermind AI is available to active Mastermind members." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const body = await req.json().catch(() => ({}));
     const messages: ChatMessage[] = body.messages;

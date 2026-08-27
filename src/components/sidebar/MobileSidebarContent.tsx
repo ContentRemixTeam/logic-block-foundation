@@ -36,6 +36,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useMembership } from '@/hooks/useMembership';
 import { useProjects } from '@/hooks/useProjects';
 import { XPDisplay } from '@/components/quest/XPDisplay';
 import { StreakDisplay } from '@/components/quest/StreakDisplay';
@@ -100,6 +101,7 @@ export function MobileSidebarContent() {
   const { openQuickCapture } = useQuickCapture();
   const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const { settings: userSettings } = useUserSettings();
+  const { canUseMastermind } = useMembership();
   const { data: projects = [] } = useProjects();
   const [isAdmin, setIsAdmin] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -231,7 +233,7 @@ export function MobileSidebarContent() {
             >
               {isQuestMode ? 'Boss Quest' : 'Boss Planner'}
             </span>
-            <span className="text-[10px] text-muted-foreground">Mastermind</span>
+            <span className="text-[10px] text-muted-foreground">{canUseMastermind ? 'Mastermind' : 'Planner'}</span>
           </div>
         </div>
 
@@ -320,7 +322,7 @@ export function MobileSidebarContent() {
         <NavSection label="Organize" items={ORGANIZE_NAV} />
         <NavSection label="Review" items={REVIEW_NAV} />
         <NavSection label="Mindset" items={MINDSET_NAV} />
-        <NavSection label="Community" items={COMMUNITY_NAV} />
+        {canUseMastermind && <NavSection label="Community" items={COMMUNITY_NAV} />}
         
         {/* Focus Mode */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && (

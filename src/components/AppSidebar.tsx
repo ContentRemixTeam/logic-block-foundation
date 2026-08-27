@@ -44,6 +44,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useMembership } from '@/hooks/useMembership';
 import {
   Sidebar,
   SidebarContent,
@@ -131,6 +132,7 @@ export function AppSidebar() {
   const { openQuickCapture } = useQuickCapture();
   const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const { settings: userSettings } = useUserSettings();
+  const { canUseMastermind } = useMembership();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -278,7 +280,7 @@ export function AppSidebar() {
                 >
                   {isQuestMode ? 'Boss Quest' : 'Boss Planner'}
                 </span>
-                <span className="text-[10px] text-muted-foreground">Mastermind</span>
+                <span className="text-[10px] text-muted-foreground">{canUseMastermind ? 'Mastermind' : 'Planner'}</span>
               </div>
             )}
           </div>
@@ -340,7 +342,7 @@ export function AppSidebar() {
           <NavSection label="More" items={ADVANCED_NAV} />
         )}
         
-        <NavSection label="Community" items={COMMUNITY_NAV} />
+        {canUseMastermind && <NavSection label="Community" items={COMMUNITY_NAV} />}
         
         {/* Focus Mode - Only visible when arcade is enabled */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && (
