@@ -34,19 +34,20 @@ import LoginHelp from "./pages/LoginHelp";
 import NotFound from "./pages/NotFound";
 
 // Retry function for lazy imports that handles stale chunk errors
-function lazyWithRetry<T extends ComponentType<any>>(
+function lazyWithRetry<T extends ComponentType<unknown>>(
   componentImport: () => Promise<{ default: T }>
 ) {
   return lazy(async () => {
     try {
       return await componentImport();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       // Check if it's a chunk loading error
       const isChunkError = 
-        error?.message?.includes('Failed to fetch dynamically imported module') ||
-        error?.message?.includes('Importing a module script failed') ||
-        error?.message?.includes('Load failed') ||
-        error?.message?.includes('dynamically imported module');
+        errorMessage.includes('Failed to fetch dynamically imported module') ||
+        errorMessage.includes('Importing a module script failed') ||
+        errorMessage.includes('Load failed') ||
+        errorMessage.includes('dynamically imported module');
       
       if (isChunkError) {
         // Clear service worker and caches, then reload
@@ -292,7 +293,7 @@ const App = () => (
                       <Route path="/courses" element={<ProtectedRoute><PageSuspense><Courses /></PageSuspense></ProtectedRoute>} />
                       <Route path="/courses/:id" element={<ProtectedRoute><PageSuspense><CourseDetail /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards" element={<ProtectedRoute><PageSuspense><Wizards /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/cycle-wizard" element={<ProtectedRoute><PageSuspense><CycleWizard /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/cycle-wizard" element={<ProtectedRoute><PageSuspense><CycleSetup /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/launch" element={<ProtectedRoute><PageSuspense><LaunchWizardV2Page /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/launch-v1" element={<ProtectedRoute><PageSuspense><LaunchWizardPage /></PageSuspense></ProtectedRoute>} />
                       <Route path="/wizards/habits" element={<ProtectedRoute><PageSuspense><HabitWizardPage /></PageSuspense></ProtectedRoute>} />

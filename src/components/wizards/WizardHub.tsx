@@ -110,7 +110,7 @@ export default function WizardHub() {
 
   const handleStart = (templateName: string) => {
     if (templateName === 'cycle-90-day') {
-      navigate('/cycle-wizard');
+      navigate('/cycle-setup');
     } else if (templateName === 'launch-planner') {
       navigate('/wizards/launch');
     } else if (templateName === 'habit-planner') {

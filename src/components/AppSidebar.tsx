@@ -40,10 +40,12 @@ import {
   ClipboardCheck,
   Package,
   LifeBuoy,
+  type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useMembership } from '@/hooks/useMembership';
 import {
   Sidebar,
   SidebarContent,
@@ -122,25 +124,38 @@ const SETTINGS_NAV = [
   { name: 'Support', href: '/support', icon: HelpCircle, questIcon: '❓' },
 ];
 
+type SidebarNavItem = {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  questIcon: string;
+  isExternal?: boolean;
+  isActiveCheck?: (path: string) => boolean;
+  settingsKey?: string;
+  dataTour?: string;
+};
+
 export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const userId = user?.id;
   const { open: sidebarOpen, toggleSidebar } = useSidebar();
   const { isQuestMode, themeLoaded, level, currentLevelXP, xpToNextLevel, levelTitle } = useTheme();
   const { openQuickCapture } = useQuickCapture();
   const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const { settings: userSettings } = useUserSettings();
+  const { canUseMastermind } = useMembership();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
-      if (!user) {
+      if (!userId) {
         setIsAdmin(false);
         return;
       }
       
       // Check cache first to avoid redundant RPC calls
-      const cacheKey = `admin_${user.id}`;
+      const cacheKey = `admin_${userId}`;
       const cachedAdmin = sessionStorage.getItem(cacheKey);
       if (cachedAdmin !== null) {
         setIsAdmin(cachedAdmin === 'true');
@@ -149,7 +164,7 @@ export function AppSidebar() {
       
       // Use the is_admin function which has SECURITY DEFINER
       const { data, error } = await supabase
-        .rpc('is_admin', { check_user_id: user.id });
+        .rpc('is_admin', { check_user_id: userId });
       
       if (error) {
         console.error('Error checking admin status:', error);
@@ -163,7 +178,7 @@ export function AppSidebar() {
     };
     
     checkAdmin();
-  }, [user?.id]);
+  }, [userId]);
 
   const isActive = (item: { href: string; isActiveCheck?: (path: string) => boolean }) => {
     if (item.isActiveCheck) {
@@ -180,7 +195,7 @@ export function AppSidebar() {
     showLabel = true,
   }: { 
     label?: string; 
-    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; dataTour?: string }>;
+    items: SidebarNavItem[];
     showLabel?: boolean;
   }) => {
     // Filter items based on user settings
@@ -277,7 +292,7 @@ export function AppSidebar() {
                 >
                   {isQuestMode ? 'Boss Quest' : 'Boss Planner'}
                 </span>
-                <span className="text-[10px] text-muted-foreground">Mastermind</span>
+                <span className="text-[10px] text-muted-foreground">{canUseMastermind ? 'Mastermind' : 'Planner'}</span>
               </div>
             )}
           </div>
@@ -339,7 +354,7 @@ export function AppSidebar() {
           <NavSection label="More" items={ADVANCED_NAV} />
         )}
         
-        <NavSection label="Community" items={COMMUNITY_NAV} />
+        {canUseMastermind && <NavSection label="Community" items={COMMUNITY_NAV} />}
         
         {/* Focus Mode - Only visible when arcade is enabled */}
         {!arcadeLoading && arcadeSettings.arcade_enabled && (

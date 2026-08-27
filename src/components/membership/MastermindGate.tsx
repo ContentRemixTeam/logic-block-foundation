@@ -10,13 +10,13 @@ interface MastermindGateProps {
 }
 
 export function MastermindGate({ children, fallback }: MastermindGateProps) {
-  const { isMastermind, loading } = useMembership();
+  const { canUseMastermind, loading } = useMembership();
 
   if (loading) {
     return <LoadingState message="Checking access..." />;
   }
 
-  if (!isMastermind) {
+  if (!canUseMastermind) {
     return fallback || <MastermindUpgradeMessage />;
   }
 

@@ -7,7 +7,7 @@ import { spawn, spawnSync } from "node:child_process";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const ingestionRoot=root;
-const ingestionCommit="5ddac1453a5cc0c16094a6eb4ca07dd821cb0cf8";
+const ingestionCommit=process.env.REPLAY_VAULT_INGESTION_COMMIT || "2b14e1283d4eb07e442a6220b337b5a41532e90e";
 const ingestionRelative="supabase/migrations/20260809130000_replay_vault_deterministic_ingestion.sql";
 const accessMigration=path.join(root,"supabase/migrations/20260809140000_replay_vault_access_hardening.sql");
 if (!existsSync(accessMigration)) throw new Error(`access migration missing: ${accessMigration}`);
