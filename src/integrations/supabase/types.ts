@@ -4615,83 +4615,154 @@ export type Database = {
       mastermind_portal_resources: {
         Row: {
           access_scope: string
+          active_playback_attempt_id: string | null
+          active_transcript_version_id: string | null
+          approved_access_scope: string | null
           available_until: string | null
+          canonical_resource_key: string
           category_id: string | null
           category_title: string | null
           created_at: string
+          editorial_approved_at: string | null
+          editorial_approved_by: string | null
           id: string
           ingestion_status: string
           is_current_replay: boolean
           lesson_id: string | null
+          media_state: string
           member_visible_default: boolean
           metadata_search_vector: unknown
+          pairing_state: string
           portal_path: string
           portal_resource_id: string
+          privacy_state: string
           product_id: string | null
           product_title: string
+          publication_state: string
+          published_at: string | null
           replay_date: string | null
           resource_type: string
+          revoked_at: string | null
           search_summary: string | null
           stages: string[]
           success_paths: string[]
+          superseded_by: string | null
           title: string
           transcript_evidence: string
+          transcript_state: string
           updated_at: string
           video_source_type: string
         }
         Insert: {
           access_scope?: string
+          active_playback_attempt_id?: string | null
+          active_transcript_version_id?: string | null
+          approved_access_scope?: string | null
           available_until?: string | null
+          canonical_resource_key?: string
           category_id?: string | null
           category_title?: string | null
           created_at?: string
+          editorial_approved_at?: string | null
+          editorial_approved_by?: string | null
           id?: string
           ingestion_status?: string
           is_current_replay?: boolean
           lesson_id?: string | null
+          media_state?: string
           member_visible_default?: boolean
           metadata_search_vector?: unknown
+          pairing_state?: string
           portal_path: string
           portal_resource_id: string
+          privacy_state?: string
           product_id?: string | null
           product_title: string
+          publication_state?: string
+          published_at?: string | null
           replay_date?: string | null
           resource_type?: string
+          revoked_at?: string | null
           search_summary?: string | null
           stages?: string[]
           success_paths?: string[]
+          superseded_by?: string | null
           title: string
           transcript_evidence?: string
+          transcript_state?: string
           updated_at?: string
           video_source_type?: string
         }
         Update: {
           access_scope?: string
+          active_playback_attempt_id?: string | null
+          active_transcript_version_id?: string | null
+          approved_access_scope?: string | null
           available_until?: string | null
+          canonical_resource_key?: string
           category_id?: string | null
           category_title?: string | null
           created_at?: string
+          editorial_approved_at?: string | null
+          editorial_approved_by?: string | null
           id?: string
           ingestion_status?: string
           is_current_replay?: boolean
           lesson_id?: string | null
+          media_state?: string
           member_visible_default?: boolean
           metadata_search_vector?: unknown
+          pairing_state?: string
           portal_path?: string
           portal_resource_id?: string
+          privacy_state?: string
           product_id?: string | null
           product_title?: string
+          publication_state?: string
+          published_at?: string | null
           replay_date?: string | null
           resource_type?: string
+          revoked_at?: string | null
           search_summary?: string | null
           stages?: string[]
           success_paths?: string[]
+          superseded_by?: string | null
           title?: string
           transcript_evidence?: string
+          transcript_state?: string
           updated_at?: string
           video_source_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mastermind_portal_resources_active_playback_attempt_id_fkey"
+            columns: ["active_playback_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mastermind_portal_resources_active_transcript_version_id_fkey"
+            columns: ["active_transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mastermind_portal_resources_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mastermind_portal_resources_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mastermind_portal_search_events: {
         Row: {
@@ -4789,6 +4860,13 @@ export type Database = {
             referencedRelation: "mastermind_portal_resources"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mastermind_portal_source_evidence_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
         ]
       }
       mastermind_portal_transcript_segments: {
@@ -4834,6 +4912,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mastermind_portal_transcript_segments_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
             referencedColumns: ["id"]
           },
           {
@@ -6029,6 +6114,1110 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      replay_answers: {
+        Row: {
+          answer_end_ms: number
+          answer_start_ms: number
+          answerer_attribution: string
+          av_quality_score: number | null
+          content_sha256: string | null
+          created_at: string
+          current_alignment_score: number | null
+          editorial_approval: string
+          editorial_reviewed_at: string | null
+          editorial_reviewer: string | null
+          id: string
+          is_best_answer: boolean
+          member_question: string
+          playback_attempt_id: string
+          privacy_approval: string
+          privacy_reviewed_at: string | null
+          privacy_reviewer: string | null
+          privacy_score: number | null
+          publication_state: string
+          published_at: string | null
+          quality_score: number | null
+          question_candidate_id: string
+          question_cluster_id: string
+          question_start_ms: number
+          related_answer_rank: number | null
+          resource_id: string
+          review_version: string | null
+          revoked_at: string | null
+          safe_answer_summary: string
+          safe_excerpt: string | null
+          seek_approval: string
+          seek_reviewed_at: string | null
+          seek_reviewer: string | null
+          situation_context_safe: string | null
+          specificity_score: number | null
+          supersedes_answer_id: string | null
+          transcript_version_id: string
+          usefulness_score: number | null
+          visibility_scope: string
+        }
+        Insert: {
+          answer_end_ms: number
+          answer_start_ms: number
+          answerer_attribution: string
+          av_quality_score?: number | null
+          content_sha256?: string | null
+          created_at?: string
+          current_alignment_score?: number | null
+          editorial_approval?: string
+          editorial_reviewed_at?: string | null
+          editorial_reviewer?: string | null
+          id?: string
+          is_best_answer?: boolean
+          member_question: string
+          playback_attempt_id: string
+          privacy_approval?: string
+          privacy_reviewed_at?: string | null
+          privacy_reviewer?: string | null
+          privacy_score?: number | null
+          publication_state?: string
+          published_at?: string | null
+          quality_score?: number | null
+          question_candidate_id: string
+          question_cluster_id: string
+          question_start_ms: number
+          related_answer_rank?: number | null
+          resource_id: string
+          review_version?: string | null
+          revoked_at?: string | null
+          safe_answer_summary: string
+          safe_excerpt?: string | null
+          seek_approval?: string
+          seek_reviewed_at?: string | null
+          seek_reviewer?: string | null
+          situation_context_safe?: string | null
+          specificity_score?: number | null
+          supersedes_answer_id?: string | null
+          transcript_version_id: string
+          usefulness_score?: number | null
+          visibility_scope: string
+        }
+        Update: {
+          answer_end_ms?: number
+          answer_start_ms?: number
+          answerer_attribution?: string
+          av_quality_score?: number | null
+          content_sha256?: string | null
+          created_at?: string
+          current_alignment_score?: number | null
+          editorial_approval?: string
+          editorial_reviewed_at?: string | null
+          editorial_reviewer?: string | null
+          id?: string
+          is_best_answer?: boolean
+          member_question?: string
+          playback_attempt_id?: string
+          privacy_approval?: string
+          privacy_reviewed_at?: string | null
+          privacy_reviewer?: string | null
+          privacy_score?: number | null
+          publication_state?: string
+          published_at?: string | null
+          quality_score?: number | null
+          question_candidate_id?: string
+          question_cluster_id?: string
+          question_start_ms?: number
+          related_answer_rank?: number | null
+          resource_id?: string
+          review_version?: string | null
+          revoked_at?: string | null
+          safe_answer_summary?: string
+          safe_excerpt?: string | null
+          seek_approval?: string
+          seek_reviewed_at?: string | null
+          seek_reviewer?: string | null
+          situation_context_safe?: string | null
+          specificity_score?: number | null
+          supersedes_answer_id?: string | null
+          transcript_version_id?: string
+          usefulness_score?: number | null
+          visibility_scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_answers_playback_attempt_id_fkey"
+            columns: ["playback_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_question_candidate_id_fkey"
+            columns: ["question_candidate_id"]
+            isOneToOne: true
+            referencedRelation: "replay_question_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_question_cluster_id_fkey"
+            columns: ["question_cluster_id"]
+            isOneToOne: false
+            referencedRelation: "replay_question_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_supersedes_answer_id_fkey"
+            columns: ["supersedes_answer_id"]
+            isOneToOne: false
+            referencedRelation: "replay_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_supersedes_answer_id_fkey"
+            columns: ["supersedes_answer_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_answers_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_editorial_review_events: {
+        Row: {
+          actor: string
+          after_sha256: string
+          before_sha256: string
+          created_at: string
+          decision: string
+          id: string
+          reason: string
+          review_checklist_version: string
+          subject_id: string
+          subject_type: string
+        }
+        Insert: {
+          actor: string
+          after_sha256: string
+          before_sha256: string
+          created_at?: string
+          decision: string
+          id?: string
+          reason: string
+          review_checklist_version: string
+          subject_id: string
+          subject_type: string
+        }
+        Update: {
+          actor?: string
+          after_sha256?: string
+          before_sha256?: string
+          created_at?: string
+          decision?: string
+          id?: string
+          reason?: string
+          review_checklist_version?: string
+          subject_id?: string
+          subject_type?: string
+        }
+        Relationships: []
+      }
+      replay_ingestion_runs: {
+        Row: {
+          collector_version_sha256: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          error_class: string | null
+          id: string
+          package_sha256: string | null
+          parent_run_id: string | null
+          record_count: number
+          record_manifest_sha256: string
+          report_path_private: string | null
+          run_kind: string
+          source_snapshot_sha256: string
+          source_system: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          collector_version_sha256: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          error_class?: string | null
+          id?: string
+          package_sha256?: string | null
+          parent_run_id?: string | null
+          record_count: number
+          record_manifest_sha256: string
+          report_path_private?: string | null
+          run_kind: string
+          source_snapshot_sha256: string
+          source_system: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          collector_version_sha256?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          error_class?: string | null
+          id?: string
+          package_sha256?: string | null
+          parent_run_id?: string | null
+          record_count?: number
+          record_manifest_sha256?: string
+          report_path_private?: string | null
+          run_kind?: string
+          source_snapshot_sha256?: string
+          source_system?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_ingestion_runs_parent_run_id_fkey"
+            columns: ["parent_run_id"]
+            isOneToOne: false
+            referencedRelation: "replay_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_media_migration_attempts: {
+        Row: {
+          attempt_number: number
+          audio_stream_ok: boolean | null
+          codecs: Json
+          completed_at: string | null
+          container: string | null
+          created_at: string
+          destination_policy_version: string
+          dropbox_content_hash: string | null
+          dropbox_file_id: string | null
+          dropbox_path_private: string | null
+          duration_ms: number | null
+          error_class: string | null
+          full_decode_ok: boolean | null
+          id: string
+          manifest_sha256: string
+          next_retry_at: string | null
+          prior_attempt_id: string | null
+          range_request_ok: boolean | null
+          receipt_sha256: string
+          run_id: string
+          run_sha256: string
+          sample_seek_ok: boolean | null
+          size_bytes: number | null
+          source_asset_id: string
+          source_metadata_sha256: string
+          source_native_id: string
+          source_url_fingerprint: string
+          stable_destination_key: string
+          started_at: string
+          status: string
+          verification_evidence_sha256: string | null
+          video_stream_ok: boolean | null
+          worker_sha256: string
+        }
+        Insert: {
+          attempt_number: number
+          audio_stream_ok?: boolean | null
+          codecs?: Json
+          completed_at?: string | null
+          container?: string | null
+          created_at?: string
+          destination_policy_version: string
+          dropbox_content_hash?: string | null
+          dropbox_file_id?: string | null
+          dropbox_path_private?: string | null
+          duration_ms?: number | null
+          error_class?: string | null
+          full_decode_ok?: boolean | null
+          id?: string
+          manifest_sha256: string
+          next_retry_at?: string | null
+          prior_attempt_id?: string | null
+          range_request_ok?: boolean | null
+          receipt_sha256: string
+          run_id: string
+          run_sha256: string
+          sample_seek_ok?: boolean | null
+          size_bytes?: number | null
+          source_asset_id: string
+          source_metadata_sha256: string
+          source_native_id: string
+          source_url_fingerprint: string
+          stable_destination_key: string
+          started_at: string
+          status: string
+          verification_evidence_sha256?: string | null
+          video_stream_ok?: boolean | null
+          worker_sha256: string
+        }
+        Update: {
+          attempt_number?: number
+          audio_stream_ok?: boolean | null
+          codecs?: Json
+          completed_at?: string | null
+          container?: string | null
+          created_at?: string
+          destination_policy_version?: string
+          dropbox_content_hash?: string | null
+          dropbox_file_id?: string | null
+          dropbox_path_private?: string | null
+          duration_ms?: number | null
+          error_class?: string | null
+          full_decode_ok?: boolean | null
+          id?: string
+          manifest_sha256?: string
+          next_retry_at?: string | null
+          prior_attempt_id?: string | null
+          range_request_ok?: boolean | null
+          receipt_sha256?: string
+          run_id?: string
+          run_sha256?: string
+          sample_seek_ok?: boolean | null
+          size_bytes?: number | null
+          source_asset_id?: string
+          source_metadata_sha256?: string
+          source_native_id?: string
+          source_url_fingerprint?: string
+          stable_destination_key?: string
+          started_at?: string
+          status?: string
+          verification_evidence_sha256?: string | null
+          video_stream_ok?: boolean | null
+          worker_sha256?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_media_migration_attempts_prior_attempt_id_fkey"
+            columns: ["prior_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_media_migration_attempts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "replay_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_media_migration_attempts_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "replay_source_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_pairing_candidates: {
+        Row: {
+          binding_sha256: string | null
+          candidate_count_at_key: number
+          candidate_rank: number
+          created_at: string
+          decision: string
+          decision_reason: string
+          duration_delta_ms: number | null
+          duration_delta_percent: number | null
+          event_date_exact: boolean | null
+          id: string
+          media_asset_id: string
+          media_duration_ms: number | null
+          resource_id: string
+          reviewed_at: string | null
+          reviewer: string | null
+          rule_version: string
+          run_id: string
+          score_components: Json
+          source_placement_ids: Json
+          stable_bridge_exact: boolean
+          stable_bridge_id: string | null
+          title_token_digest: string | null
+          transcript_asset_id: string
+          transcript_coverage_ratio: number | null
+          transcript_version_id: string
+        }
+        Insert: {
+          binding_sha256?: string | null
+          candidate_count_at_key: number
+          candidate_rank: number
+          created_at?: string
+          decision?: string
+          decision_reason: string
+          duration_delta_ms?: number | null
+          duration_delta_percent?: number | null
+          event_date_exact?: boolean | null
+          id?: string
+          media_asset_id: string
+          media_duration_ms?: number | null
+          resource_id: string
+          reviewed_at?: string | null
+          reviewer?: string | null
+          rule_version: string
+          run_id: string
+          score_components?: Json
+          source_placement_ids?: Json
+          stable_bridge_exact?: boolean
+          stable_bridge_id?: string | null
+          title_token_digest?: string | null
+          transcript_asset_id: string
+          transcript_coverage_ratio?: number | null
+          transcript_version_id: string
+        }
+        Update: {
+          binding_sha256?: string | null
+          candidate_count_at_key?: number
+          candidate_rank?: number
+          created_at?: string
+          decision?: string
+          decision_reason?: string
+          duration_delta_ms?: number | null
+          duration_delta_percent?: number | null
+          event_date_exact?: boolean | null
+          id?: string
+          media_asset_id?: string
+          media_duration_ms?: number | null
+          resource_id?: string
+          reviewed_at?: string | null
+          reviewer?: string | null
+          rule_version?: string
+          run_id?: string
+          score_components?: Json
+          source_placement_ids?: Json
+          stable_bridge_exact?: boolean
+          stable_bridge_id?: string | null
+          title_token_digest?: string | null
+          transcript_asset_id?: string
+          transcript_coverage_ratio?: number | null
+          transcript_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_pairing_candidates_media_asset_id_fkey"
+            columns: ["media_asset_id"]
+            isOneToOne: false
+            referencedRelation: "replay_source_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_pairing_candidates_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_pairing_candidates_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_pairing_candidates_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "replay_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_pairing_candidates_transcript_asset_id_fkey"
+            columns: ["transcript_asset_id"]
+            isOneToOne: false
+            referencedRelation: "replay_source_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_pairing_candidates_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_publication_authority: {
+        Row: {
+          approval_review_version: string | null
+          approval_reviewer: string | null
+          approved_at: string | null
+          created_at: string
+          media_evidence_sha256: string
+          media_source_asset_id: string
+          package_sha256: string
+          pairing_candidate_id: string
+          playback_attempt_id: string
+          published_at: string | null
+          published_by: string | null
+          ready_at: string | null
+          ready_review_version: string | null
+          ready_reviewer: string | null
+          resource_id: string
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          run_id: string
+          source_identity_sha256: string
+          state: string
+          transcript_content_sha256: string
+          transcript_source_asset_id: string
+          transcript_version_id: string
+          updated_at: string
+        }
+        Insert: {
+          approval_review_version?: string | null
+          approval_reviewer?: string | null
+          approved_at?: string | null
+          created_at?: string
+          media_evidence_sha256: string
+          media_source_asset_id: string
+          package_sha256: string
+          pairing_candidate_id: string
+          playback_attempt_id: string
+          published_at?: string | null
+          published_by?: string | null
+          ready_at?: string | null
+          ready_review_version?: string | null
+          ready_reviewer?: string | null
+          resource_id: string
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          run_id: string
+          source_identity_sha256: string
+          state?: string
+          transcript_content_sha256: string
+          transcript_source_asset_id: string
+          transcript_version_id: string
+          updated_at?: string
+        }
+        Update: {
+          approval_review_version?: string | null
+          approval_reviewer?: string | null
+          approved_at?: string | null
+          created_at?: string
+          media_evidence_sha256?: string
+          media_source_asset_id?: string
+          package_sha256?: string
+          pairing_candidate_id?: string
+          playback_attempt_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          ready_at?: string | null
+          ready_review_version?: string | null
+          ready_reviewer?: string | null
+          resource_id?: string
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          run_id?: string
+          source_identity_sha256?: string
+          state?: string
+          transcript_content_sha256?: string
+          transcript_source_asset_id?: string
+          transcript_version_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_publication_authority_media_source_asset_id_fkey"
+            columns: ["media_source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "replay_source_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_pairing_candidate_id_fkey"
+            columns: ["pairing_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "replay_pairing_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_playback_attempt_id_fkey"
+            columns: ["playback_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: true
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: true
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "replay_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_transcript_source_asset_id_fkey"
+            columns: ["transcript_source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "replay_source_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_publication_controls: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          publication_enabled: boolean
+          singleton: boolean
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string
+          publication_enabled?: boolean
+          singleton?: boolean
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          publication_enabled?: boolean
+          singleton?: boolean
+        }
+        Relationships: []
+      }
+      replay_question_candidates: {
+        Row: {
+          answer_end_ms: number
+          answer_start_ms: number
+          answerer_hint_private: string | null
+          content_sha256: string | null
+          created_at: string
+          duplicate_cluster_candidate_id: string | null
+          evidence_features: Json
+          extractor_version: string
+          id: string
+          origin: string
+          proposed_action_private: string | null
+          proposed_question_private: string
+          proposed_summary_private: string | null
+          proposed_tags_private: string[]
+          question_segment_index: number
+          question_start_ms: number
+          raw_excerpt_private: string | null
+          raw_excerpt_sha256: string
+          resource_id: string
+          sensitivity_findings: Json
+          source_privacy_flag: string
+          state: string
+          transcript_version_id: string
+        }
+        Insert: {
+          answer_end_ms: number
+          answer_start_ms: number
+          answerer_hint_private?: string | null
+          content_sha256?: string | null
+          created_at?: string
+          duplicate_cluster_candidate_id?: string | null
+          evidence_features?: Json
+          extractor_version: string
+          id?: string
+          origin?: string
+          proposed_action_private?: string | null
+          proposed_question_private: string
+          proposed_summary_private?: string | null
+          proposed_tags_private?: string[]
+          question_segment_index: number
+          question_start_ms: number
+          raw_excerpt_private?: string | null
+          raw_excerpt_sha256: string
+          resource_id: string
+          sensitivity_findings?: Json
+          source_privacy_flag?: string
+          state?: string
+          transcript_version_id: string
+        }
+        Update: {
+          answer_end_ms?: number
+          answer_start_ms?: number
+          answerer_hint_private?: string | null
+          content_sha256?: string | null
+          created_at?: string
+          duplicate_cluster_candidate_id?: string | null
+          evidence_features?: Json
+          extractor_version?: string
+          id?: string
+          origin?: string
+          proposed_action_private?: string | null
+          proposed_question_private?: string
+          proposed_summary_private?: string | null
+          proposed_tags_private?: string[]
+          question_segment_index?: number
+          question_start_ms?: number
+          raw_excerpt_private?: string | null
+          raw_excerpt_sha256?: string
+          resource_id?: string
+          sensitivity_findings?: Json
+          source_privacy_flag?: string
+          state?: string
+          transcript_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_question_candidates_duplicate_cluster_candidate_id_fkey"
+            columns: ["duplicate_cluster_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "replay_question_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_question_candidates_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_question_candidates_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_question_candidates_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_question_clusters: {
+        Row: {
+          canonical_answer_id: string | null
+          common_question_evidence_count: number
+          created_at: string
+          editorial_status: string
+          freshness_review_date: string | null
+          id: string
+          milestones: string[]
+          normalized_question_member_safe: string
+          stages: string[]
+          topics: string[]
+          updated_at: string
+        }
+        Insert: {
+          canonical_answer_id?: string | null
+          common_question_evidence_count?: number
+          created_at?: string
+          editorial_status?: string
+          freshness_review_date?: string | null
+          id?: string
+          milestones?: string[]
+          normalized_question_member_safe: string
+          stages?: string[]
+          topics?: string[]
+          updated_at?: string
+        }
+        Update: {
+          canonical_answer_id?: string | null
+          common_question_evidence_count?: number
+          created_at?: string
+          editorial_status?: string
+          freshness_review_date?: string | null
+          id?: string
+          milestones?: string[]
+          normalized_question_member_safe?: string
+          stages?: string[]
+          topics?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_question_clusters_canonical_answer_fk"
+            columns: ["canonical_answer_id"]
+            isOneToOne: false
+            referencedRelation: "replay_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_question_clusters_canonical_answer_fk"
+            columns: ["canonical_answer_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_answers_projection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_source_assets: {
+        Row: {
+          asset_role: string
+          byte_sha256: string | null
+          created_at: string
+          created_at_source: string | null
+          dropbox_content_hash: string | null
+          duration_ms: number | null
+          event_date: string | null
+          first_seen_run_id: string
+          id: string
+          last_seen_run_id: string
+          metadata_sha256: string
+          mime_type: string | null
+          removed_at_source: string | null
+          size_bytes: number | null
+          source_locator_private: string | null
+          source_native_id: string
+          source_native_id_normalized: string | null
+          source_privacy_flag: string
+          source_system: string
+          source_system_normalized: string | null
+          source_version: string
+          speaker_hints_private: Json
+          title_normalized: string | null
+          title_raw: string | null
+        }
+        Insert: {
+          asset_role: string
+          byte_sha256?: string | null
+          created_at?: string
+          created_at_source?: string | null
+          dropbox_content_hash?: string | null
+          duration_ms?: number | null
+          event_date?: string | null
+          first_seen_run_id: string
+          id?: string
+          last_seen_run_id: string
+          metadata_sha256: string
+          mime_type?: string | null
+          removed_at_source?: string | null
+          size_bytes?: number | null
+          source_locator_private?: string | null
+          source_native_id: string
+          source_native_id_normalized?: string | null
+          source_privacy_flag?: string
+          source_system: string
+          source_system_normalized?: string | null
+          source_version: string
+          speaker_hints_private?: Json
+          title_normalized?: string | null
+          title_raw?: string | null
+        }
+        Update: {
+          asset_role?: string
+          byte_sha256?: string | null
+          created_at?: string
+          created_at_source?: string | null
+          dropbox_content_hash?: string | null
+          duration_ms?: number | null
+          event_date?: string | null
+          first_seen_run_id?: string
+          id?: string
+          last_seen_run_id?: string
+          metadata_sha256?: string
+          mime_type?: string | null
+          removed_at_source?: string | null
+          size_bytes?: number | null
+          source_locator_private?: string | null
+          source_native_id?: string
+          source_native_id_normalized?: string | null
+          source_privacy_flag?: string
+          source_system?: string
+          source_system_normalized?: string | null
+          source_version?: string
+          speaker_hints_private?: Json
+          title_normalized?: string | null
+          title_raw?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_source_assets_first_seen_run_id_fkey"
+            columns: ["first_seen_run_id"]
+            isOneToOne: false
+            referencedRelation: "replay_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_source_assets_last_seen_run_id_fkey"
+            columns: ["last_seen_run_id"]
+            isOneToOne: false
+            referencedRelation: "replay_ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_transcript_segments: {
+        Row: {
+          created_at: string
+          ends_at_ms: number
+          id: string
+          search_vector: unknown
+          segment_index: number
+          speaker_private: string | null
+          starts_at_ms: number
+          transcript_text_private: string
+          transcript_version_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at_ms: number
+          id?: string
+          search_vector?: unknown
+          segment_index: number
+          speaker_private?: string | null
+          starts_at_ms: number
+          transcript_text_private: string
+          transcript_version_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at_ms?: number
+          id?: string
+          search_vector?: unknown
+          segment_index?: number
+          speaker_private?: string | null
+          starts_at_ms?: number
+          transcript_text_private?: string
+          transcript_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_transcript_segments_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_transcript_versions: {
+        Row: {
+          activated_at: string | null
+          authority: string
+          coverage_ratio: number | null
+          created_at: string
+          cue_count: number
+          first_ms: number | null
+          id: string
+          is_active: boolean
+          last_ms: number | null
+          normalized_sha256: string
+          normalizer_version: string
+          privacy_status: string
+          quality_report: Json
+          quality_status: string
+          raw_sha256: string
+          resource_id: string
+          review_status: string
+          source_asset_id: string
+          source_record_id: string
+          source_version: string
+          text_chars: number
+        }
+        Insert: {
+          activated_at?: string | null
+          authority: string
+          coverage_ratio?: number | null
+          created_at?: string
+          cue_count: number
+          first_ms?: number | null
+          id?: string
+          is_active?: boolean
+          last_ms?: number | null
+          normalized_sha256: string
+          normalizer_version: string
+          privacy_status?: string
+          quality_report?: Json
+          quality_status?: string
+          raw_sha256: string
+          resource_id: string
+          review_status?: string
+          source_asset_id: string
+          source_record_id: string
+          source_version: string
+          text_chars: number
+        }
+        Update: {
+          activated_at?: string | null
+          authority?: string
+          coverage_ratio?: number | null
+          created_at?: string
+          cue_count?: number
+          first_ms?: number | null
+          id?: string
+          is_active?: boolean
+          last_ms?: number | null
+          normalized_sha256?: string
+          normalizer_version?: string
+          privacy_status?: string
+          quality_report?: Json
+          quality_status?: string
+          raw_sha256?: string
+          resource_id?: string
+          review_status?: string
+          source_asset_id?: string
+          source_record_id?: string
+          source_version?: string
+          text_chars?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_transcript_versions_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_transcript_versions_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_transcript_versions_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "replay_source_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       revenue_sprints: {
         Row: {
@@ -8906,6 +10095,84 @@ export type Database = {
           },
         ]
       }
+      replay_published_answers_projection: {
+        Row: {
+          answer_end_ms: number | null
+          answer_start_ms: number | null
+          answerer_attribution: string | null
+          id: string | null
+          is_best_answer: boolean | null
+          member_question: string | null
+          question_cluster_id: string | null
+          question_start_ms: number | null
+          related_answer_rank: number | null
+          resource_id: string | null
+          safe_answer_summary: string | null
+          safe_excerpt: string | null
+          situation_context_safe: string | null
+          visibility_scope: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_answers_question_cluster_id_fkey"
+            columns: ["question_cluster_id"]
+            isOneToOne: false
+            referencedRelation: "replay_question_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_published_resource_projection: {
+        Row: {
+          approved_access_scope: string | null
+          category_title: string | null
+          dropbox_content_hash: string | null
+          dropbox_file_id: string | null
+          duration_ms: number | null
+          id: string | null
+          playback_attempt_id: string | null
+          portal_path: string | null
+          portal_resource_id: string | null
+          product_title: string | null
+          resource_type: string | null
+          size_bytes: number | null
+          stages: string[] | null
+          success_paths: string[] | null
+          title: string | null
+          transcript_sha256: string | null
+          transcript_version_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_publication_authority_playback_attempt_id_fkey"
+            columns: ["playback_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       auto_archive_old_notes: { Args: never; Returns: number }
@@ -9013,6 +10280,67 @@ export type Database = {
       register_low_battery_workshop: {
         Args: { p_email: string; p_first_name: string }
         Returns: Json
+      }
+      replay_approve_resource: {
+        Args: { actor: string; rid: string; rv: string }
+        Returns: undefined
+      }
+      replay_assert_actor: { Args: { a: string }; Returns: undefined }
+      replay_assert_release_evidence: {
+        Args: { rid: string }
+        Returns: {
+          approval_review_version: string | null
+          approval_reviewer: string | null
+          approved_at: string | null
+          created_at: string
+          media_evidence_sha256: string
+          media_source_asset_id: string
+          package_sha256: string
+          pairing_candidate_id: string
+          playback_attempt_id: string
+          published_at: string | null
+          published_by: string | null
+          ready_at: string | null
+          ready_review_version: string | null
+          ready_reviewer: string | null
+          resource_id: string
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          run_id: string
+          source_identity_sha256: string
+          state: string
+          transcript_content_sha256: string
+          transcript_source_asset_id: string
+          transcript_version_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "replay_publication_authority"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      replay_import_content_package: {
+        Args: { actor: string; j: Json }
+        Returns: string
+      }
+      replay_mark_resource_ready: {
+        Args: { actor: string; rid: string; rv: string }
+        Returns: undefined
+      }
+      replay_publish_resource: {
+        Args: { actor: string; rid: string }
+        Returns: undefined
+      }
+      replay_revoke_resource: {
+        Args: { actor: string; reason: string; rid: string }
+        Returns: undefined
+      }
+      replay_transcript_content_hash: {
+        Args: { p_version: string }
+        Returns: string
       }
       save_low_battery_workshop_answers: {
         Args: {
