@@ -143,18 +143,14 @@ export function SuccessPathPlanCard({
             />
           </div>
 
-          <div>
-            <p className="text-sm font-semibold">If you need more structure</p>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {stage.messyActionSprint.map((step, index) => (
-                <div key={step} className="flex gap-3 rounded-xl border bg-background p-4">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                    {index + 1}
-                  </div>
-                  <p className="text-sm leading-relaxed">{step}</p>
-                </div>
-              ))}
-            </div>
+          <div className="rounded-xl border bg-background p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+              <PlayCircle className="h-4 w-4 text-primary" />
+              Training Library
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This is where the videos live. Your 90-day plan pulls the few trainings to watch now; the full library holds core curriculum, current replays, and Vault depth only when access includes it.
+            </p>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">

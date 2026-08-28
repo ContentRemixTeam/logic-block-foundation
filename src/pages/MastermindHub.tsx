@@ -203,7 +203,7 @@ export default function MastermindHub() {
             <TabsList className="grid w-full grid-cols-3 sm:max-w-lg">
               <TabsTrigger value="path">90-Day Plan</TabsTrigger>
               <TabsTrigger value="support">Get Support</TabsTrigger>
-              <TabsTrigger value="resources">Resources</TabsTrigger>
+              <TabsTrigger value="resources">Training Library</TabsTrigger>
             </TabsList>
 
             <TabsContent value="path" className="space-y-4">
@@ -308,9 +308,9 @@ export default function MastermindHub() {
                 <Card>
                   <CardHeader>
                     <Badge variant="outline" className="mb-2 w-fit">{selectedStage.label} support</Badge>
-                    <CardTitle>Learn only when the next move needs help.</CardTitle>
+                    <CardTitle>Videos for this focus.</CardTitle>
                     <CardDescription>
-                      Start with one resource. The plan is the work — the curriculum supports it.
+                      The Training Library is the video home. Start with one resource; the plan is the work and the curriculum supports it.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -396,20 +396,20 @@ export default function MastermindHub() {
                 <CardHeader>
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <Badge variant="secondary" className="mb-2 w-fit">Portal map</Badge>
-                      <CardTitle>Core focus areas, current replays, and vault access stay separated.</CardTitle>
+                      <Badge variant="secondary" className="mb-2 w-fit">Training Library</Badge>
+                      <CardTitle>This is where the videos live.</CardTitle>
                       <CardDescription>
-                        Choose the smallest useful next resource. Bonus and vault items stay out of this finder until access is verified.
+                        Core curriculum videos and current 30-day replays live here. Your 90-day plan recommends what to watch first; older Vault depth stays separate behind access.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="w-fit">
-                      {filteredResources.length} matching resources
+                      {filteredResources.length} matching trainings
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <AuditMetric title="Focus areas" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
-                  <AuditMetric title="Visible resources" value={visibleResources.length.toLocaleString()} />
+                  <AuditMetric title="Visible trainings" value={visibleResources.length.toLocaleString()} />
                   <AuditMetric title="Indexed now" value={indexedResourceCount.toLocaleString()} />
                   <AuditMetric title="Access labels" value={accessRailCount.toLocaleString()} />
                 </CardContent>
@@ -419,10 +419,10 @@ export default function MastermindHub() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Search className="h-4 w-4 text-primary" />
-                    Resource finder
+                    Training finder
                   </CardTitle>
                   <CardDescription>
-                    Monthly access is core curriculum plus current 30-day replays. Vault records stay marked separately.
+                    Monthly access is core curriculum videos plus current 30-day replays. Vault records stay marked separately.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -440,7 +440,7 @@ export default function MastermindHub() {
                         size="icon"
                         className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
                         onClick={() => setSearchQuery('')}
-                        aria-label="Clear resource search"
+                        aria-label="Clear training search"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -487,7 +487,7 @@ export default function MastermindHub() {
 
               <div className="space-y-3">
                 {!searchQuery && resourceFilter === 'all' && pinnedResources.length > 0 && (
-                  <h2 className="text-sm font-semibold">All Resources</h2>
+                  <h2 className="text-sm font-semibold">All Trainings</h2>
                 )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {(searchQuery || resourceFilter !== 'all' ? filteredResources : unpinnedResources).map((resource) => (
@@ -504,7 +504,7 @@ export default function MastermindHub() {
 
                 {filteredResources.length === 0 && (
                   <div className="py-12 text-center">
-                    <p className="break-words text-muted-foreground">No resources found matching "{searchQuery}"</p>
+                    <p className="break-words text-muted-foreground">No trainings found matching "{searchQuery}"</p>
                   </div>
                 )}
               </div>

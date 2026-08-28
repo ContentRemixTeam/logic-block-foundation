@@ -255,13 +255,14 @@ try {
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
-  assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
-  assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
-  assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
+  assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Training Library filter should use clear member-facing indexed language');
+  assert.ok(mastermindHubSource.includes('This is where the videos live.'), 'Training Library should explicitly answer where the videos live');
+  assert.ok(mastermindHubSource.includes('Core curriculum videos and current 30-day replays live here.'), 'Training Library should separate core videos and current replays from Vault depth');
+  assert.ok(mastermindHubSource.includes('older Vault depth stays separate behind access'), 'Training Library should state restricted Vault depth stays access-gated');
   assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main 90-Day Plan card');
   assert.ok(mastermindHubSource.includes('Does this focus feel right?'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
   assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), '90-Day Plan resources should open mapped resources directly');
-  assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
+  assert.ok(mastermindHubSource.includes('aria-label="Clear training search"'), 'Clear search icon button needs an accessible label');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
   assert.ok(successPathPlanCardSource.includes('Quick Win Generator'), 'The 90-Day Plan should surface one quick win before extra curriculum');
   assert.ok(successPathPlanCardSource.includes('Fundamentals'), 'The 90-Day Plan should include the shared fundamentals playlist');
@@ -269,6 +270,7 @@ try {
   assert.ok(successPathPlanCardSource.includes('After watching'), 'Playlist items should point back to implementation');
   assert.ok(successPathPlanCardSource.includes('Update My 90-Day Plan'), 'The 90-Day Plan needs an honest direct plan-editing action');
   assert.ok(successPathPlanCardSource.includes('Open Starting Resource'), 'The 90-Day Plan should include a direct supporting-resource action');
+  assert.ok(successPathPlanCardSource.includes('Training Library'), 'The 90-Day Plan should point to the video home');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
@@ -286,7 +288,7 @@ try {
     'className="pl-10 pr-10"',
     'className="min-h-9 whitespace-normal text-left leading-tight"',
     'className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"',
-    'className="break-words text-muted-foreground">No resources found matching',
+    'className="break-words text-muted-foreground">No trainings found matching',
     'className="min-w-0 flex-1 break-words leading-snug"',
     'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
   ];
@@ -296,8 +298,8 @@ try {
 
   const requiredSuccessPathLayoutGuards = [
     'className="max-w-3xl"',
-    'className="mt-3 grid gap-3 md:grid-cols-3"',
-    'className="flex gap-3 rounded-xl border bg-background p-4"',
+    'className="grid gap-3 lg:grid-cols-2"',
+    'className="rounded-xl border bg-background p-4"',
     'className="flex flex-col gap-2 sm:flex-row"',
     'className="border-t bg-background/60 px-6 py-4 md:px-8"',
   ];

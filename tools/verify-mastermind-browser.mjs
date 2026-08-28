@@ -585,12 +585,13 @@ async function runChecks(client, checks, label) {
     await assertNoHorizontalOverflow(client, `${label} 90-Day Plan`);
 
     await assertText(client, 'Open Starting Resource');
-    await clickText(client, 'Resources');
-    await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} resources tab`);
+    await clickText(client, 'Training Library');
+    await waitFor(client, 'document.body.innerText.includes("Training finder")', `${label} training library tab`);
+    await assertText(client, 'This is where the videos live.');
     await assertText(client, 'Sales & Marketing');
     await assertText(client, 'Sell focus');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} resources tab`);
+    await assertNoHorizontalOverflow(client, `${label} training library tab`);
   }
 
   if (checks.includes('noCyclePrompt')) {
@@ -601,16 +602,16 @@ async function runChecks(client, checks, label) {
   }
 
   if (checks.includes('resourceFinder')) {
-    await clickText(client, 'Resources');
-    await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} Resource Finder`);
-    await assertText(client, 'Portal map');
-    await assertText(client, 'Visible resources');
+    await clickText(client, 'Training Library');
+    await waitFor(client, 'document.body.innerText.includes("Training finder")', `${label} Training Library`);
+    await assertText(client, 'This is where the videos live.');
+    await assertText(client, 'Visible trainings');
     await assertText(client, 'Indexed now');
     await assertText(client, 'Access labels');
     await assertText(client, 'Sell focus');
-    await assertText(client, 'Bonus and vault items stay out of this finder');
+    await assertText(client, 'Core curriculum videos and current 30-day replays live here.');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} Resource Finder default`);
+    await assertNoHorizontalOverflow(client, `${label} Training Library default`);
 
     await clickText(client, 'Sell focus');
     await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} Sell focus filter`);
@@ -647,7 +648,7 @@ async function runChecks(client, checks, label) {
     await assertNoHorizontalOverflow(client, `${label} AI search`);
 
     await setSearch(client, 'zzzxqvblormp qyprandleston');
-    await waitFor(client, 'document.body.innerText.includes("No resources found matching")', `${label} no-result search`);
+    await waitFor(client, 'document.body.innerText.includes("No trainings found matching")', `${label} no-result search`);
     await assertNoHorizontalOverflow(client, `${label} no-result search`);
   }
 }

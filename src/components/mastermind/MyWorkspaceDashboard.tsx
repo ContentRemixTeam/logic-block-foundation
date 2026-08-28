@@ -1,4 +1,4 @@
-import { Bot, CalendarDays, CheckCircle2, ClipboardCheck, FileText, Lock, PlayCircle, Sparkles, Target } from 'lucide-react';
+import { Archive, Bot, CheckCircle2, ClipboardCheck, FileText, Lock, PlayCircle, Sparkles, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,11 +79,11 @@ export function MyWorkspaceDashboard({
         />
 
         <ActionPanel
-          icon={CalendarDays}
-          title="Monthly Messy Action Sprint"
-          badge="Live implementation"
-          description={capabilities.mastermindCoreAccess ? draft.messyActionSprintPlan.prepMove : 'Planner-only users do not see Mastermind sprint prep.'}
-          buttonLabel={capabilities.mastermindCoreAccess ? 'Prep for sprint' : 'Not included'}
+          icon={PlayCircle}
+          title={draft.trainingLibrary.title}
+          badge={capabilities.mastermindCoreAccess ? 'Video home' : 'Mastermind only'}
+          description={capabilities.mastermindCoreAccess ? draft.trainingLibrary.relationship : draft.trainingLibrary.coreCurriculum}
+          buttonLabel={capabilities.mastermindCoreAccess ? 'Open videos' : 'Not included'}
           locked={!capabilities.mastermindCoreAccess}
           onClick={capabilities.mastermindCoreAccess ? onOpenSuccessPath : undefined}
         />
@@ -100,7 +100,7 @@ export function MyWorkspaceDashboard({
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.75fr)]">
         <ActionPanel
-          icon={PlayCircle}
+          icon={Archive}
           title="Vault and replays"
           badge={capabilities.replayVaultAccess ? 'Annual gate' : capabilities.recentReplayAccess ? '30-day only' : 'Not included'}
           description={
@@ -119,7 +119,7 @@ export function MyWorkspaceDashboard({
           <CardHeader>
             <CardTitle className="text-base">What guidance should feel like</CardTitle>
             <CardDescription>
-              The member should not have to decide between the Planner, a lesson library, live sprint, and Ask Faith. This surface points all four at the same weekly move.
+              The member should not have to decide between the Planner, Training Library, replays, and Ask Faith. This surface points the right support at the same weekly move.
             </CardDescription>
           </CardHeader>
         </Card>

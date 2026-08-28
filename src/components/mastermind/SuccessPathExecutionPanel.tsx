@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, CheckCircle2, ClipboardCheck, Clock, HelpCircle, PlayCircle, Sparkles, Target } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ClipboardCheck, Clock, HelpCircle, PlayCircle, Sparkles, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,6 @@ interface SuccessPathExecutionPanelProps {
 export function SuccessPathExecutionPanel({ draft, onAskFaith, onBuildAI }: SuccessPathExecutionPanelProps) {
   const stage = draft.currentStage;
   const primaryResource = stage.resources[0];
-  const sprint = draft.messyActionSprintPlan;
   const quickWin = draft.quickWin;
 
   if (!draft.capabilities.mastermindCoreAccess) {
@@ -86,19 +85,16 @@ export function SuccessPathExecutionPanel({ draft, onAskFaith, onBuildAI }: Succ
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              {sprint.title}
+              <PlayCircle className="h-4 w-4 text-primary" />
+              {draft.trainingLibrary.title}
             </CardTitle>
-            <CardDescription>{sprint.relationship}</CardDescription>
+            <CardDescription>{draft.trainingLibrary.relationship}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <SprintStep number="1" title="Before the live sprint" value={sprint.prepMove} />
-            <SprintStep number="2" title="In the room" value={sprint.liveRoomFocus} />
-            <SprintStep number="3" title="After the sprint" value={sprint.afterSprintProof} />
-            <div className="rounded-lg border border-dashed bg-muted/30 p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">If there is no live sprint this week</p>
-              <p className="mt-1 text-sm font-medium leading-snug">{sprint.ifNoLiveSprint}</p>
-            </div>
+            <LibraryLane title="Core curriculum videos" value={draft.trainingLibrary.coreCurriculum} />
+            <LibraryLane title="Recommended for this 90-day plan" value={draft.trainingLibrary.planPlaylist} />
+            <LibraryLane title="Current 30-day replays" value={draft.trainingLibrary.currentReplays} />
+            <LibraryLane title="Vault boundary" value={draft.trainingLibrary.vaultBoundary} />
           </CardContent>
         </Card>
 
@@ -221,11 +217,11 @@ function LoopStep({ title, value }: { title: string; value: string }) {
   );
 }
 
-function SprintStep({ number, title, value }: { number: string; title: string; value: string }) {
+function LibraryLane({ title, value }: { title: string; value: string }) {
   return (
     <div className="flex gap-3 rounded-lg border bg-background/85 p-3">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-        {number}
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <CheckCircle2 className="h-4 w-4" />
       </div>
       <div className="min-w-0">
         <p className="break-words text-sm font-semibold">{title}</p>
