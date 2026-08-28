@@ -7298,6 +7298,71 @@ export type Database = {
           },
         ]
       }
+      replay_vault_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          playback_attempt_id: string
+          publication_sha256: string
+          resource_id: string
+          target_id: string
+          target_kind: string
+          transcript_version_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          playback_attempt_id: string
+          publication_sha256: string
+          resource_id: string
+          target_id: string
+          target_kind: string
+          transcript_version_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          playback_attempt_id?: string
+          publication_sha256?: string
+          resource_id?: string
+          target_id?: string
+          target_kind?: string
+          transcript_version_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_bookmarks_playback_attempt_id_fkey"
+            columns: ["playback_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_bookmarks_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_bookmarks_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_bookmarks_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replay_vault_entitlements: {
         Row: {
           access_expires_at: string | null
@@ -7370,6 +7435,117 @@ export type Database = {
         }
         Relationships: []
       }
+      replay_vault_media_events: {
+        Row: {
+          created_at: string
+          credited_ms: number
+          event_id: string
+          event_type: string
+          payload_sha256: string
+          position_ms: number
+          receipt: Json
+          sequence_no: number
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credited_ms?: number
+          event_id: string
+          event_type: string
+          payload_sha256: string
+          position_ms: number
+          receipt: Json
+          sequence_no: number
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credited_ms?: number
+          event_id?: string
+          event_type?: string
+          payload_sha256?: string
+          position_ms?: number
+          receipt?: Json
+          sequence_no?: number
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_media_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "replay_vault_playback_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_vault_note_backlinks: {
+        Row: {
+          client_request_id: string
+          created_at: string
+          id: string
+          journal_page_id: string
+          payload_sha256: string
+          playback_attempt_id: string
+          resource_id: string
+          target_id: string
+          target_kind: string
+          transcript_version_id: string
+          user_id: string
+        }
+        Insert: {
+          client_request_id: string
+          created_at?: string
+          id?: string
+          journal_page_id: string
+          payload_sha256: string
+          playback_attempt_id: string
+          resource_id: string
+          target_id: string
+          target_kind: string
+          transcript_version_id: string
+          user_id: string
+        }
+        Update: {
+          client_request_id?: string
+          created_at?: string
+          id?: string
+          journal_page_id?: string
+          payload_sha256?: string
+          playback_attempt_id?: string
+          resource_id?: string
+          target_id?: string
+          target_kind?: string
+          transcript_version_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_note_same_owner_fk"
+            columns: ["journal_page_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "journal_pages"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "replay_vault_note_backlinks_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_note_backlinks_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replay_vault_pilot_subjects: {
         Row: {
           auth_user_id: string
@@ -7436,6 +7612,82 @@ export type Database = {
           },
         ]
       }
+      replay_vault_playback_sessions: {
+        Row: {
+          active: boolean
+          duration_ms: number
+          expires_at: string
+          id: string
+          issued_at: string
+          last_event_at: string
+          last_position_ms: number
+          last_sequence: number
+          playback_attempt_id: string
+          publication_sha256: string
+          resource_id: string
+          target_id: string
+          target_kind: string
+          transcript_version_id: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          duration_ms: number
+          expires_at: string
+          id?: string
+          issued_at?: string
+          last_event_at?: string
+          last_position_ms?: number
+          last_sequence?: number
+          playback_attempt_id: string
+          publication_sha256: string
+          resource_id: string
+          target_id: string
+          target_kind: string
+          transcript_version_id: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          duration_ms?: number
+          expires_at?: string
+          id?: string
+          issued_at?: string
+          last_event_at?: string
+          last_position_ms?: number
+          last_sequence?: number
+          playback_attempt_id?: string
+          publication_sha256?: string
+          resource_id?: string
+          target_id?: string
+          target_kind?: string
+          transcript_version_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_playback_session_user_id_resource_id_target_k_fkey"
+            columns: [
+              "user_id",
+              "resource_id",
+              "target_kind",
+              "target_id",
+              "transcript_version_id",
+              "playback_attempt_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "replay_vault_watch_state"
+            referencedColumns: [
+              "user_id",
+              "resource_id",
+              "target_kind",
+              "target_id",
+              "transcript_version_id",
+              "playback_attempt_id",
+            ]
+          },
+        ]
+      }
       replay_vault_provider_product_mappings: {
         Row: {
           active: boolean
@@ -7474,6 +7726,101 @@ export type Database = {
           provider?: string
         }
         Relationships: []
+      }
+      replay_vault_rate_windows: {
+        Row: {
+          action: string
+          request_count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          action: string
+          request_count: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          action?: string
+          request_count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      replay_vault_watch_state: {
+        Row: {
+          completed_at: string | null
+          duration_ms: number
+          last_position_ms: number
+          playback_attempt_id: string
+          publication_sha256: string
+          resource_id: string
+          target_id: string
+          target_kind: string
+          transcript_version_id: string
+          updated_at: string
+          user_id: string
+          watched_ranges: unknown
+        }
+        Insert: {
+          completed_at?: string | null
+          duration_ms: number
+          last_position_ms?: number
+          playback_attempt_id: string
+          publication_sha256: string
+          resource_id: string
+          target_id: string
+          target_kind: string
+          transcript_version_id: string
+          updated_at?: string
+          user_id: string
+          watched_ranges?: unknown
+        }
+        Update: {
+          completed_at?: string | null
+          duration_ms?: number
+          last_position_ms?: number
+          playback_attempt_id?: string
+          publication_sha256?: string
+          resource_id?: string
+          target_id?: string
+          target_kind?: string
+          transcript_version_id?: string
+          updated_at?: string
+          user_id?: string
+          watched_ranges?: unknown
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_watch_state_playback_attempt_id_fkey"
+            columns: ["playback_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_watch_state_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_watch_state_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_watch_state_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       replay_vault_webhook_events: {
         Row: {
@@ -10908,6 +11255,87 @@ export type Database = {
         }
         Returns: Json
       }
+      replay_vault_begin_session: {
+        Args: {
+          p_email: string
+          p_portal_resource_id: string
+          p_target_id: string
+          p_target_kind: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      replay_vault_create_note: {
+        Args: {
+          p_client_request_id: string
+          p_email: string
+          p_portal_resource_id: string
+          p_position_ms: number
+          p_target_id: string
+          p_target_kind: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      replay_vault_delete_bookmark_by_id: {
+        Args: { p_bookmark_id: string; p_user_id: string }
+        Returns: Json
+      }
+      replay_vault_get_interaction: {
+        Args: {
+          p_email: string
+          p_portal_resource_id: string
+          p_target_id: string
+          p_target_kind: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      replay_vault_interaction_binding: {
+        Args: {
+          p_as_of?: string
+          p_email: string
+          p_portal_resource_id: string
+          p_target_id: string
+          p_target_kind: string
+          p_user_id: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["replay_vault_target_binding"]
+        SetofOptions: {
+          from: "*"
+          to: "replay_vault_target_binding"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      replay_vault_rate_limit: {
+        Args: { p_action: string; p_limit: number; p_user_id: string }
+        Returns: undefined
+      }
+      replay_vault_record_media_event: {
+        Args: {
+          p_client_duration_ms?: number
+          p_email: string
+          p_event_id: string
+          p_event_type: string
+          p_position_ms: number
+          p_sequence: number
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      replay_vault_set_bookmark: {
+        Args: {
+          p_email: string
+          p_portal_resource_id: string
+          p_saved: boolean
+          p_target_id: string
+          p_target_kind: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       resolve_replay_vault_playback: {
         Args: {
           p_as_of?: string
@@ -10980,7 +11408,19 @@ export type Database = {
         | "mindset"
     }
     CompositeTypes: {
-      [_ in never]: never
+      replay_vault_target_binding: {
+        resource_id: string | null
+        portal_resource_id: string | null
+        target_kind: string | null
+        target_id: string | null
+        transcript_version_id: string | null
+        playback_attempt_id: string | null
+        publication_sha256: string | null
+        duration_ms: number | null
+        canonical_start_ms: number | null
+        canonical_end_ms: number | null
+        title: string | null
+      }
     }
   }
 }
