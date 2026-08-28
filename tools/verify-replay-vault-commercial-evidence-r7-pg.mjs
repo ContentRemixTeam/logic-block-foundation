@@ -14,7 +14,9 @@ const migrations=names.map(name=>path.join(root,"supabase/migrations",name));
 for(const file of migrations) if(!existsSync(file)) throw new Error(`missing migration ${file}`);
 if([...names].sort().join("|")!==names.join("|")) throw new Error("migration order is not exact");
 console.log(`MIGRATION_ORDER ${names.map(name=>name.slice(8,14)).join("→")}`);
-const base="b5b80651d410f89ffdd20dc2cf846aa184974a03";
+// Re-baselined after the reviewed production compatibility correction schema-qualified
+// pgcrypto calls as extensions.digest while preserving each restricted search_path.
+const base="1795ba231f4db576d9142fef12811da8b22b770d";
 for(const name of names.slice(0,2)) {
   const committed=spawnSync("git",["show",`${base}:supabase/migrations/${name}`],{cwd:root,encoding:"utf8"});
   if(committed.status!==0) throw new Error(`cannot read accepted base ${name}`);
@@ -37,6 +39,9 @@ function cluster(label) {
   function start(){run("/opt/homebrew/bin/initdb",["-D",data,"--auth=trust","--no-instructions"]);
     run("/opt/homebrew/bin/pg_ctl",["-D",data,"-l",path.join(data,"postgres.log"),"-o",`-p ${port} -k ${socket} -c max_connections=180`,"-w","start"]);started=true;
     run("/opt/homebrew/bin/createdb",[db]);
+    // Supabase installs pgcrypto in the extensions schema. Mirror that layout so
+    // schema-qualified digest calls are exercised exactly as they run in production.
+    psql(["-c","CREATE SCHEMA IF NOT EXISTS extensions; CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;"]);
     psql(["-f",path.join(root,"tools/replay-vault-access-fixtures/mock-base.sql")]);
     psql(["-c",`CREATE TABLE auth.users(id uuid PRIMARY KEY,email text);
       CREATE FUNCTION public.update_updated_at_column()RETURNS trigger LANGUAGE plpgsql AS $$BEGIN NEW.updated_at=now();RETURN NEW;END$$;
