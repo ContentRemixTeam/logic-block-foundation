@@ -2035,6 +2035,65 @@ export type Database = {
           },
         ]
       }
+      cycle_success_path_snapshots: {
+        Row: {
+          capacity_mode: string | null
+          confirmed_at: string
+          confirmed_stage: string
+          created_at: string
+          current_milestone_id: string | null
+          current_milestone_title: string | null
+          curriculum_version: string
+          cycle_id: string
+          recommendation_evidence: string | null
+          recommendation_reason: string | null
+          recommended_stage: string
+          snapshot_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          capacity_mode?: string | null
+          confirmed_at?: string
+          confirmed_stage: string
+          created_at?: string
+          current_milestone_id?: string | null
+          current_milestone_title?: string | null
+          curriculum_version?: string
+          cycle_id: string
+          recommendation_evidence?: string | null
+          recommendation_reason?: string | null
+          recommended_stage: string
+          snapshot_id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          capacity_mode?: string | null
+          confirmed_at?: string
+          confirmed_stage?: string
+          created_at?: string
+          current_milestone_id?: string | null
+          current_milestone_title?: string | null
+          curriculum_version?: string
+          cycle_id?: string
+          recommendation_evidence?: string | null
+          recommendation_reason?: string | null
+          recommended_stage?: string
+          snapshot_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cycle_success_path_snapshots_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       cycle_weekly_tactics: {
         Row: {
           created_at: string
@@ -4552,6 +4611,239 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      mastermind_portal_resources: {
+        Row: {
+          access_scope: string
+          available_until: string | null
+          category_id: string | null
+          category_title: string | null
+          created_at: string
+          id: string
+          ingestion_status: string
+          is_current_replay: boolean
+          lesson_id: string | null
+          member_visible_default: boolean
+          metadata_search_vector: unknown
+          portal_path: string
+          portal_resource_id: string
+          product_id: string | null
+          product_title: string
+          replay_date: string | null
+          resource_type: string
+          search_summary: string | null
+          stages: string[]
+          success_paths: string[]
+          title: string
+          transcript_evidence: string
+          updated_at: string
+          video_source_type: string
+        }
+        Insert: {
+          access_scope?: string
+          available_until?: string | null
+          category_id?: string | null
+          category_title?: string | null
+          created_at?: string
+          id?: string
+          ingestion_status?: string
+          is_current_replay?: boolean
+          lesson_id?: string | null
+          member_visible_default?: boolean
+          metadata_search_vector?: unknown
+          portal_path: string
+          portal_resource_id: string
+          product_id?: string | null
+          product_title: string
+          replay_date?: string | null
+          resource_type?: string
+          search_summary?: string | null
+          stages?: string[]
+          success_paths?: string[]
+          title: string
+          transcript_evidence?: string
+          updated_at?: string
+          video_source_type?: string
+        }
+        Update: {
+          access_scope?: string
+          available_until?: string | null
+          category_id?: string | null
+          category_title?: string | null
+          created_at?: string
+          id?: string
+          ingestion_status?: string
+          is_current_replay?: boolean
+          lesson_id?: string | null
+          member_visible_default?: boolean
+          metadata_search_vector?: unknown
+          portal_path?: string
+          portal_resource_id?: string
+          product_id?: string | null
+          product_title?: string
+          replay_date?: string | null
+          resource_type?: string
+          search_summary?: string | null
+          stages?: string[]
+          success_paths?: string[]
+          title?: string
+          transcript_evidence?: string
+          updated_at?: string
+          video_source_type?: string
+        }
+        Relationships: []
+      }
+      mastermind_portal_search_events: {
+        Row: {
+          access_scope_counts: Json
+          created_at: string
+          id: string
+          query_hash: string
+          result_count: number
+          user_id: string
+        }
+        Insert: {
+          access_scope_counts?: Json
+          created_at?: string
+          id?: string
+          query_hash: string
+          result_count?: number
+          user_id: string
+        }
+        Update: {
+          access_scope_counts?: Json
+          created_at?: string
+          id?: string
+          query_hash?: string
+          result_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mastermind_portal_source_evidence: {
+        Row: {
+          bunny_video_id: string | null
+          created_at: string
+          dropbox_path: string | null
+          ghl_video_url: string | null
+          id: string
+          match_confidence: string | null
+          match_score: number | null
+          notes: string | null
+          resource_id: string
+          review_status: string
+          source_fingerprint: string
+          source_ref: string | null
+          source_system: string
+          source_url: string | null
+          transcript_path: string | null
+          transcript_source: string | null
+          updated_at: string
+          youtube_video_id: string | null
+        }
+        Insert: {
+          bunny_video_id?: string | null
+          created_at?: string
+          dropbox_path?: string | null
+          ghl_video_url?: string | null
+          id?: string
+          match_confidence?: string | null
+          match_score?: number | null
+          notes?: string | null
+          resource_id: string
+          review_status?: string
+          source_fingerprint: string
+          source_ref?: string | null
+          source_system: string
+          source_url?: string | null
+          transcript_path?: string | null
+          transcript_source?: string | null
+          updated_at?: string
+          youtube_video_id?: string | null
+        }
+        Update: {
+          bunny_video_id?: string | null
+          created_at?: string
+          dropbox_path?: string | null
+          ghl_video_url?: string | null
+          id?: string
+          match_confidence?: string | null
+          match_score?: number | null
+          notes?: string | null
+          resource_id?: string
+          review_status?: string
+          source_fingerprint?: string
+          source_ref?: string | null
+          source_system?: string
+          source_url?: string | null
+          transcript_path?: string | null
+          transcript_source?: string | null
+          updated_at?: string
+          youtube_video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mastermind_portal_source_evidence_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mastermind_portal_transcript_segments: {
+        Row: {
+          created_at: string
+          ends_at_seconds: number | null
+          id: string
+          resource_id: string
+          search_vector: unknown
+          segment_index: number
+          source_evidence_id: string | null
+          speaker: string | null
+          starts_at_seconds: number | null
+          transcript_text: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at_seconds?: number | null
+          id?: string
+          resource_id: string
+          search_vector?: unknown
+          segment_index: number
+          source_evidence_id?: string | null
+          speaker?: string | null
+          starts_at_seconds?: number | null
+          transcript_text: string
+        }
+        Update: {
+          created_at?: string
+          ends_at_seconds?: number | null
+          id?: string
+          resource_id?: string
+          search_vector?: unknown
+          segment_index?: number
+          source_evidence_id?: string | null
+          speaker?: string | null
+          starts_at_seconds?: number | null
+          transcript_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mastermind_portal_transcript_segments_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mastermind_portal_transcript_segments_source_evidence_id_fkey"
+            columns: ["source_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_source_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       member_access: {
         Row: {
@@ -8693,6 +8985,10 @@ export type Database = {
         Args: { p_user_id: string; p_week_id: string }
         Returns: Json
       }
+      get_mastermind_portal_access_scopes: {
+        Args: { user_email: string }
+        Returns: string[]
+      }
       get_monthly_challenge_progress: {
         Args: { p_user_challenge_id: string }
         Returns: Json
@@ -8727,6 +9023,29 @@ export type Database = {
           p_submission_token: string
         }
         Returns: boolean
+      }
+      search_mastermind_portal_resources: {
+        Args: {
+          p_allowed_access: string[]
+          p_include_metadata_fallback?: boolean
+          p_limit?: number
+          p_query: string
+          p_stage?: string
+        }
+        Returns: {
+          access_scope: string
+          category_title: string
+          portal_path: string
+          portal_resource_id: string
+          product_title: string
+          rank: number
+          reason: string
+          resource_type: string
+          snippet: string
+          stages: string[]
+          starts_at_seconds: number
+          title: string
+        }[]
       }
       toggle_habit: {
         Args: { p_date: string; p_habit_id: string; p_user_id: string }
