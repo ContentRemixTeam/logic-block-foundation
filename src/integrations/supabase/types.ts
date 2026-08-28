@@ -8985,6 +8985,10 @@ export type Database = {
         Args: { p_user_id: string; p_week_id: string }
         Returns: Json
       }
+      get_mastermind_portal_access_scopes: {
+        Args: { user_email: string }
+        Returns: string[]
+      }
       get_monthly_challenge_progress: {
         Args: { p_user_challenge_id: string }
         Returns: Json
