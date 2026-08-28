@@ -93,7 +93,7 @@ export function MyWorkspaceDashboard({
           title="AI workspace"
           badge={draft.aiWorkflow.employeeName}
           description={draft.aiWorkflow.outcome}
-          buttonLabel="Build AI support"
+          buttonLabel="Create AI workspace"
           onClick={onBuildAI}
         />
       </section>

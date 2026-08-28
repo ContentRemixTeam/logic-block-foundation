@@ -71,6 +71,13 @@ assert.ok(!successPathPlanCard.includes('replayVaultAccess: false'), '90-day pla
 assert.ok(mastermindHub.includes('mastermindCoreAccess: isMastermind'), 'Mastermind page must derive core access from the membership authority');
 assert.ok(mastermindHub.includes('replayVaultAccess: false'), 'Mastermind page must fail closed instead of inferring annual Vault access');
 assert.ok(aiBuilder.includes('Current 90-day focus'), 'AI builder must reference the current 90-day focus instead of member-facing Success Path language');
+assert.ok(aiBuilder.includes('Create My AI Workspace'), 'AI builder must use the workspace/setup-packet member promise');
+assert.ok(aiBuilder.includes('AI Business Profile'), 'AI builder must center the reusable AI Business Profile');
+assert.ok(aiBuilder.includes('Generated setup packet'), 'AI builder must show generated setup packet files');
+assert.ok(aiBuilder.includes('INSTALL-GUIDE.md'), 'AI builder must include install guide output');
+assert.ok(aiBuilder.includes('FIRST-TEST-PROMPT.md'), 'AI builder must include a first supervised test prompt');
+assert.ok(aiBuilder.includes('No-key template or BYO key'), 'AI builder must preserve low-cost no-key/BYO-key behavior');
+assert.ok(aiBuilder.includes('Claude') && aiBuilder.includes('ChatGPT') && aiBuilder.includes('Codex') && aiBuilder.includes('Zapier') && aiBuilder.includes('n8n'), 'AI builder must show supported setup targets');
 assert.ok(aiBuilder.includes('data-ai-workflow-builder-preview'), 'AI workflow builder marker is missing');
 assert.ok(vault.includes('data-vault-hidden-readiness'), 'Vault hidden readiness marker is missing');
 

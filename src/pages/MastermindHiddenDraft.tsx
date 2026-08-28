@@ -96,7 +96,7 @@ export default function MastermindHiddenDraft() {
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="workspace">My Workspace</TabsTrigger>
             <TabsTrigger value="success-path">90-Day Plan</TabsTrigger>
-            <TabsTrigger value="ai-builder">Build AI Support</TabsTrigger>
+            <TabsTrigger value="ai-builder">AI Workspace</TabsTrigger>
             <TabsTrigger value="vault-readiness">Vault QA</TabsTrigger>
           </TabsList>
 
