@@ -11265,6 +11265,31 @@ export type Database = {
         }
         Returns: Json
       }
+      replay_vault_browse_member: {
+        Args: {
+          p_category?: string
+          p_cursor?: string
+          p_limit?: number
+          p_user_id: string
+        }
+        Returns: {
+          category: string
+          duration_seconds: number
+          portal_resource_id: string
+          published_at: string
+          question_count: number
+          row_cursor: string
+          title: string
+        }[]
+      }
+      replay_vault_categories_member: {
+        Args: { p_cursor?: string; p_limit?: number; p_user_id: string }
+        Returns: {
+          category: string
+          resource_count: number
+          row_cursor: string
+        }[]
+      }
       replay_vault_create_note: {
         Args: {
           p_client_request_id: string
@@ -11308,6 +11333,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      replay_vault_member_can_read: {
+        Args: { p_portal_resource_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      replay_vault_member_email: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      replay_vault_questions_member: {
+        Args: {
+          p_cursor?: string
+          p_limit?: number
+          p_portal_resource_id?: string
+          p_user_id: string
+        }
+        Returns: {
+          answer_summary: string
+          answerer: string
+          category: string
+          end_seconds: number
+          portal_resource_id: string
+          question: string
+          question_id: string
+          row_cursor: string
+          start_seconds: number
+          title: string
+        }[]
+      }
       replay_vault_rate_limit: {
         Args: { p_action: string; p_limit: number; p_user_id: string }
         Returns: undefined
@@ -11325,6 +11378,26 @@ export type Database = {
         }
         Returns: Json
       }
+      replay_vault_saved_member: {
+        Args: {
+          p_cursor?: string
+          p_filter?: string
+          p_limit?: number
+          p_user_id: string
+        }
+        Returns: {
+          bookmark_id: string
+          category: string
+          cue_seconds: number
+          label: string
+          portal_resource_id: string
+          row_cursor: string
+          saved_at: string
+          target_id: string
+          target_kind: string
+          title: string
+        }[]
+      }
       replay_vault_set_bookmark: {
         Args: {
           p_email: string
@@ -11335,6 +11408,22 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      replay_vault_transcript_member: {
+        Args: {
+          p_after_index?: number
+          p_limit?: number
+          p_portal_resource_id: string
+          p_user_id: string
+        }
+        Returns: {
+          cue_id: string
+          cue_index: number
+          cue_text: string
+          end_seconds: number
+          row_cursor: string
+          start_seconds: number
+        }[]
       }
       resolve_replay_vault_playback: {
         Args: {
