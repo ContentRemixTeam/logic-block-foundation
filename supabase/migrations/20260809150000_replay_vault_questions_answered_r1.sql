@@ -103,7 +103,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.replay_questions_candidate_hash(p_candidate_id uuid)
 RETURNS text LANGUAGE sql STABLE SET search_path = pg_catalog, public AS $$
-  SELECT encode(digest(jsonb_build_object(
+  SELECT encode(extensions.digest(jsonb_build_object(
     'id',q.id,'resource_id',q.resource_id,'transcript_version_id',q.transcript_version_id,
     'playback_attempt_id',q.playback_attempt_id,'question_segment_index',q.question_segment_index,
     'question_start_ms',q.question_start_ms,'answer_start_ms',q.answer_start_ms,'answer_end_ms',q.answer_end_ms,
@@ -119,7 +119,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.replay_questions_answer_hash(p_answer_id uuid)
 RETURNS text LANGUAGE sql STABLE SET search_path = pg_catalog, public AS $$
-  SELECT encode(digest(jsonb_build_object(
+  SELECT encode(extensions.digest(jsonb_build_object(
     'id',a.id,'question_cluster_id',a.question_cluster_id,'question_candidate_id',a.question_candidate_id,
     'resource_id',a.resource_id,'transcript_version_id',a.transcript_version_id,
     'playback_attempt_id',a.playback_attempt_id,'question_start_ms',a.question_start_ms,
@@ -162,7 +162,7 @@ BEGIN
         AND q.question_start_ms>=s.starts_at_ms AND q.question_start_ms<s.ends_at_ms)
   THEN RAISE EXCEPTION 'question workflow denied'; END IF;
   exact_excerpt:=public.replay_questions_excerpt(q.transcript_version_id,q.question_start_ms,q.answer_end_ms);
-  IF exact_excerpt IS NULL OR encode(digest(exact_excerpt,'sha256'),'hex')<>q.raw_excerpt_sha256
+  IF exact_excerpt IS NULL OR encode(extensions.digest(exact_excerpt,'sha256'),'hex')<>q.raw_excerpt_sha256
     OR public.replay_questions_candidate_hash(q.id)<>q.content_sha256
   THEN RAISE EXCEPTION 'question workflow denied'; END IF;
   RETURN q;
@@ -178,8 +178,8 @@ BEGIN
     subject_type,subject_id,before_sha256,after_sha256,actor,decision,reason,review_checklist_version
   ) VALUES (
     p_subject_type,p_subject_id,
-    encode(digest(p_content_sha256||':'||p_before_state,'sha256'),'hex'),
-    encode(digest(p_content_sha256||':'||p_after_state,'sha256'),'hex'),
+    encode(extensions.digest(p_content_sha256||':'||p_before_state,'sha256'),'hex'),
+    encode(extensions.digest(p_content_sha256||':'||p_after_state,'sha256'),'hex'),
     public.replay_questions_actor(p_actor),public.replay_questions_required(p_decision),
     public.replay_questions_required(p_reason),public.replay_questions_required(p_checklist)
   );
@@ -221,7 +221,7 @@ BEGIN
     extractor_version,proposed_question_private,state,origin,transcript_snapshot_sha256,media_snapshot_sha256
   ) VALUES (
     p_resource_id,v.id,m.id,p_question_segment_index,p_question_start_ms,p_answer_start_ms,p_answer_end_ms,
-    excerpt,encode(digest(excerpt,'sha256'),'hex'),public.replay_questions_required(p_extractor_version),
+    excerpt,encode(extensions.digest(excerpt,'sha256'),'hex'),public.replay_questions_required(p_extractor_version),
     public.replay_questions_required(p_proposed_question_private),'extracted_private','generated',
     a.transcript_content_sha256,a.media_evidence_sha256
   ) RETURNING id INTO qid;

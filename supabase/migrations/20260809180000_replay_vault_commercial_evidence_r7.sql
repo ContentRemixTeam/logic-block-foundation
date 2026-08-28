@@ -156,7 +156,7 @@ END $$;
 -- cannot be distinguished from redelivery and are quarantined, never guessed.
 INSERT INTO public.replay_vault_commercial_quarantine(provider,order_id,legacy_event_ids,reason,evidence_sha256)
 SELECT provider,order_id,array_agg(id ORDER BY received_at,id),'ambiguous_legacy_same_order_purchase',
-  encode(digest(provider||'|'||order_id||'|'||array_to_string(array_agg(id ORDER BY received_at,id),','),'sha256'),'hex')
+  encode(extensions.digest(provider||'|'||order_id||'|'||array_to_string(array_agg(id ORDER BY received_at,id),','),'sha256'),'hex')
 FROM public.replay_vault_webhook_events
 WHERE status='applied' AND event_type IN ('grant','renewal')
 GROUP BY provider,order_id HAVING count(*)>1
@@ -440,7 +440,7 @@ BEGIN
   END IF;
   result:=public.apply_replay_vault_commercial_event_r7(d.provider,'reconcile:'||d.id::text,d.order_id,d.transaction_id,
     d.lifecycle_parent_order_id,d.lifecycle_parent_transaction_id,d.normalized_email,d.event_type,d.product_id,d.price_id,
-    d.payload_sha256,coalesce(d.signature_sha256,encode(digest(d.payload_sha256,'sha256'),'hex')),
+    d.payload_sha256,coalesce(d.signature_sha256,encode(extensions.digest(d.payload_sha256,'sha256'),'hex')),
     coalesce(d.signature_timestamp,floor(extract(epoch from d.received_at))::bigint),d.effective_at,d.requested_expires_at);
   SELECT id INTO replay_id FROM public.replay_vault_commercial_deliveries
     WHERE provider=d.provider AND provider_delivery_id='reconcile:'||d.id::text;
