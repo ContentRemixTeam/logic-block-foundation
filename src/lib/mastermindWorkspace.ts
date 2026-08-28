@@ -307,7 +307,10 @@ export function getRecommendedPlaylist(
   return stage.resources
     .filter((resource) => resource.access !== 'Vault' || capabilities.replayVaultAccess)
     .filter((resource) => resource.access !== '30-day replays' || capabilities.recentReplayAccess)
-    .slice(0, 3)
+    // The member gets one primary lesson for the active move. The broader
+    // resource map remains available to editorial/admin tooling, not as a
+    // competing watch list on the 90-day plan.
+    .slice(0, 1)
     .map((resource, index) => ({
       resourceId: resource.resourceId,
       title: resource.title,

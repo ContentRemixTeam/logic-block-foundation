@@ -179,7 +179,7 @@ assert.ok(!transcriptReadyIds.includes('replay-vault'), 'transcript-ready filter
 for (const stage of MASTERMIND_SUCCESS_STAGES) {
   assert.ok(stageIdSet.has(stage.id), 'unknown stage id: ' + stage.id);
   assert.equal(stage.resources.length, 3, stage.label + ' should recommend exactly three starting resources');
-  assert.equal(stage.messyActionSprint.length, 3, stage.label + ' should have exactly three messy action sprint steps');
+  assert.equal(stage.implementationSteps.length, 3, stage.label + ' should have exactly three implementation steps');
   assert.ok(stage.nextMoneyMove.trim(), stage.label + ' is missing a next money move');
   assert.ok(stage.supportPrompt.trim(), stage.label + ' is missing an Ask Faith prompt');
 

@@ -22,6 +22,7 @@ interface SuccessPathPlanCardProps {
   successPath: MastermindSuccessPathOutput | null | undefined;
   selectedStageId: MastermindStageId;
   isLoading: boolean;
+  capabilities: WorkspaceCapabilities;
   onBuildPlan: () => void;
   onOpenResource: (resource: MastermindResourceRecommendation) => void;
   onAddToPlan: () => void;
@@ -41,6 +42,7 @@ export function SuccessPathPlanCard({
   successPath,
   selectedStageId,
   isLoading,
+  capabilities,
   onBuildPlan,
   onOpenResource,
   onAddToPlan,
@@ -79,14 +81,6 @@ export function SuccessPathPlanCard({
   const stage = getMastermindStage(selectedStageId);
   const realGoal = getRealGoal(cycle.goal);
   const firstResource = stage.resources[0];
-  const capabilities: WorkspaceCapabilities = {
-    plannerAccess: true,
-    mastermindCoreAccess: true,
-    recentReplayAccess: true,
-    replayVaultAccess: false,
-    mastermindAIAccess: true,
-    adminPreview: false,
-  };
   const quickWin = getQuickWinRecommendation(selectedStageId);
   const fundamentalsPlaylist = getFundamentalsPlaylist();
   const recommendedPlaylist = getRecommendedPlaylist(stage, capabilities);

@@ -14,6 +14,8 @@ import {
   type MastermindPortalResource,
 } from '@/data/mastermindPortalResources';
 import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
+import { useMembership } from '@/hooks/useMembership';
+import type { WorkspaceCapabilities } from '@/lib/mastermindWorkspace';
 import {
   MASTERMIND_SUCCESS_STAGES,
   type MastermindResourceRecommendation,
@@ -42,6 +44,7 @@ type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'indexed';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
+  const { isMastermind, loading: membershipLoading } = useMembership();
   const { cycleId } = useParams<{ cycleId?: string }>();
   const {
     data: successPathData,
@@ -56,6 +59,16 @@ export default function MastermindHub() {
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
   const [activeTab, setActiveTab] = useState('path');
   const [showMilestones, setShowMilestones] = useState(false);
+  const memberCapabilities = useMemo<WorkspaceCapabilities>(() => ({
+    plannerAccess: true,
+    mastermindCoreAccess: isMastermind,
+    recentReplayAccess: isMastermind,
+    // The annual/lifetime Vault decision is resolved independently by the
+    // protected Vault API. This page must never infer it from broad membership.
+    replayVaultAccess: false,
+    mastermindAIAccess: isMastermind,
+    adminPreview: false,
+  }), [isMastermind]);
 
   useEffect(() => {
     const stored = getStorageItem(STORAGE_KEY);
@@ -211,7 +224,8 @@ export default function MastermindHub() {
                 cycle={successPathData?.cycle}
                 successPath={successPathData?.successPath}
                 selectedStageId={selectedStageId}
-                isLoading={successPathLoading}
+                isLoading={successPathLoading || membershipLoading}
+                capabilities={memberCapabilities}
                 onBuildPlan={() => navigate('/cycle-setup')}
                 onOpenResource={handleOpenRecommendedResource}
                 onAddToPlan={() => {

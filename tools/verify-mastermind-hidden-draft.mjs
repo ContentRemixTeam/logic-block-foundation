@@ -13,6 +13,8 @@ const hiddenDraft = read('src/pages/MastermindHiddenDraft.tsx');
 const aiBuilder = read('src/components/mastermind/AIWorkflowBuilderPreview.tsx');
 const dashboard = read('src/components/mastermind/MyWorkspaceDashboard.tsx');
 const successPath = read('src/components/mastermind/SuccessPathExecutionPanel.tsx');
+const successPathPlanCard = read('src/components/mastermind/SuccessPathPlanCard.tsx');
+const mastermindHub = read('src/pages/MastermindHub.tsx');
 const vault = read('src/components/mastermind/VaultReadinessPanel.tsx');
 const packageJson = read('package.json');
 
@@ -34,6 +36,7 @@ assert.ok(workspace.includes("getRecommendedAIWorkflow"), 'stage-aware AI workfl
 assert.ok(workspace.includes("getQuickWinRecommendation"), 'stage-aware quick win helper is missing');
 assert.ok(workspace.includes("getFundamentalsPlaylist"), 'fundamentals playlist helper is missing');
 assert.ok(workspace.includes("getRecommendedPlaylist"), 'recommended playlist helper is missing');
+assert.ok(workspace.includes('.slice(0, 1)'), 'member 90-day plan must recommend only one primary lesson');
 assert.ok(workspace.includes("TrainingLibrarySummary"), 'Training Library summary contract is missing');
 assert.ok(workspace.includes("This is where the videos live"), 'Training Library must be the explicit curriculum video home');
 assert.ok(workspace.includes("Core curriculum videos are included"), 'Training Library must separate core curriculum videos');
@@ -62,6 +65,11 @@ assert.ok(successPath.includes('Core curriculum videos'), '90-day guidance must 
 assert.ok(successPath.includes('Current 30-day replays'), '90-day guidance must separate current replay access from Vault');
 assert.ok(!successPath.includes('Before the live sprint'), '90-day guidance must not include live sprint prep as an app module');
 assert.ok(!successPath.includes('If there is no live sprint this week'), '90-day guidance must not include a no-live-sprint prep fallback');
+assert.ok(successPathPlanCard.includes('capabilities: WorkspaceCapabilities'), '90-day plan card must consume capability input');
+assert.ok(!successPathPlanCard.includes('mastermindCoreAccess: true'), '90-day plan card must not hardcode Mastermind access');
+assert.ok(!successPathPlanCard.includes('replayVaultAccess: false'), '90-day plan card must not hardcode Vault access');
+assert.ok(mastermindHub.includes('mastermindCoreAccess: isMastermind'), 'Mastermind page must derive core access from the membership authority');
+assert.ok(mastermindHub.includes('replayVaultAccess: false'), 'Mastermind page must fail closed instead of inferring annual Vault access');
 assert.ok(aiBuilder.includes('Current 90-day focus'), 'AI builder must reference the current 90-day focus instead of member-facing Success Path language');
 assert.ok(aiBuilder.includes('data-ai-workflow-builder-preview'), 'AI workflow builder marker is missing');
 assert.ok(vault.includes('data-vault-hidden-readiness'), 'Vault hidden readiness marker is missing');

@@ -26,7 +26,7 @@ export interface MastermindRoadmapStage {
   resources: MastermindResourceRecommendation[];
   supportPrompt: string;
   nextMoneyMove: string;
-  messyActionSprint: string[];
+  implementationSteps: string[];
 }
 
 export interface MastermindPlanCycle {
@@ -121,7 +121,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     ],
     supportPrompt: 'What part of this offer is still private theory instead of market evidence?',
     nextMoneyMove: 'Turn the offer into one clear invitation and put it in front of real people before you polish another backend piece.',
-    messyActionSprint: [
+    implementationSteps: [
       'Write the offer in one sentence: who it helps, what changes, and how they get it.',
       'Name 5 real people or audience segments who could validate it this week.',
       'Make one simple invitation or validation ask and record what happens.',
@@ -147,7 +147,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     ],
     supportPrompt: 'Where are qualified people already close enough to notice your work this quarter?',
     nextMoneyMove: 'Choose one discovery channel and publish or pitch one specific piece that helps the right person recognize themselves.',
-    messyActionSprint: [
+    implementationSteps: [
       'Pick one discovery channel for this week.',
       'Create one piece around the exact problem your offer solves.',
       'Add one clear bridge into email, a call, a reply, or the next step.',
@@ -173,7 +173,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     ],
     supportPrompt: 'What does your audience need to believe, understand, or trust before the offer makes sense?',
     nextMoneyMove: 'Send one nurture asset that moves people closer to the offer instead of creating more general content.',
-    messyActionSprint: [
+    implementationSteps: [
       'Pick one belief your buyer needs before the offer makes sense.',
       'Write one email, post, or story that teaches that belief with a real example.',
       'Invite replies, clicks, or a tiny next step so you can see who is warming up.',
@@ -199,7 +199,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     ],
     supportPrompt: 'Where is the sales process incomplete: invitation, follow-up, volume, belief, or conversion?',
     nextMoneyMove: 'Make the offer to the warmest people and schedule the follow-up before deciding the offer is broken.',
-    messyActionSprint: [
+    implementationSteps: [
       'Name the warmest 10 people, segments, or audience signals available right now.',
       'Send one direct invitation or sales email tied to your current offer.',
       'Schedule one follow-up and one debrief point before changing the strategy.',
@@ -225,7 +225,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     ],
     supportPrompt: 'Where does a customer most need support between buying and getting the promised result?',
     nextMoneyMove: 'Improve the first customer win so delivery creates proof, retention, referrals, and cleaner future sales.',
-    messyActionSprint: [
+    implementationSteps: [
       'Define the first meaningful customer win in one sentence.',
       'Find the moment where customers currently slow down, disappear, or need extra help.',
       'Improve one onboarding, check-in, or proof-collection step this week.',
@@ -251,7 +251,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     ],
     supportPrompt: 'What is already proven enough to simplify, automate, delegate, or remove?',
     nextMoneyMove: 'Simplify one proven money workflow so the business stops depending on your best-energy version to keep moving.',
-    messyActionSprint: [
+    implementationSteps: [
       'Choose one repeated task connected to sales, delivery, or retention.',
       'Write the current steps as they actually happen.',
       'Remove, simplify, automate, or delegate one step before adding a new system.',
