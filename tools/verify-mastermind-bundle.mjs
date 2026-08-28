@@ -69,7 +69,10 @@ const forbiddenGroups = [
 ];
 
 const requiredMastermindHubStrings = [
-  'Success Path',
+  'My 90-Day Plan',
+  'Quick Win Generator',
+  'Fundamentals',
+  'Recommended for this 90-day plan',
   'Resource finder',
   'Visible resources',
   'Indexed now',

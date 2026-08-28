@@ -43,6 +43,24 @@ export interface SuccessPathGuidance {
   askFaithWhen: string;
 }
 
+export interface QuickWinRecommendation {
+  title: string;
+  action: string;
+  timeBox: string;
+  evidence: string;
+  lowEnergyVersion: string;
+}
+
+export interface CurriculumPlaylistItem {
+  resourceId: string;
+  title: string;
+  label: 'Fundamental' | 'Recommended';
+  useWhen: string;
+  afterWatching: string;
+  access: 'Core' | '30-day replays' | 'Vault' | 'Access review';
+  portalPath?: string;
+}
+
 export interface MessyActionSprintPlan {
   title: string;
   relationship: string;
@@ -70,6 +88,9 @@ export interface MastermindWorkspaceDraft {
   evidenceTarget: string;
   primaryResource: string;
   successPathGuidance: SuccessPathGuidance;
+  quickWin: QuickWinRecommendation;
+  fundamentalsPlaylist: CurriculumPlaylistItem[];
+  recommendedPlaylist: CurriculumPlaylistItem[];
   messyActionSprintPlan: MessyActionSprintPlan;
   artifacts: WorkspaceArtifact[];
   aiWorkflow: AIWorkflowRecommendation;
@@ -179,6 +200,90 @@ const AI_WORKFLOW_BY_STAGE: Record<MastermindStageId, AIWorkflowRecommendation> 
   },
 };
 
+const QUICK_WIN_BY_STAGE: Record<MastermindStageId, QuickWinRecommendation> = {
+  offer: {
+    title: 'Ask one real person to react',
+    action: 'Send your rough offer sentence to one qualified person and ask what is clear, confusing, or worth paying for.',
+    timeBox: '20 minutes',
+    evidence: 'Exact reply, question, objection, yes, no, or no-response after the follow-up window.',
+    lowEnergyVersion: 'Send the question to one person or record the offer out loud and mark the confusing sentence.',
+  },
+  find: {
+    title: 'Publish one discovery signal',
+    action: 'Post or send one specific piece that helps the right person recognize the problem your offer solves.',
+    timeBox: '30 minutes',
+    evidence: 'Reach, reply, opt-in, click, save, DM, or a clear lack of signal.',
+    lowEnergyVersion: 'Turn one sentence from your offer into one short post or one direct message.',
+  },
+  nurture: {
+    title: 'Send one warm-up message',
+    action: 'Send one email, post, or story that shifts one belief your buyer needs before the offer makes sense.',
+    timeBox: '30 minutes',
+    evidence: 'Replies, clicks, questions, saves, DMs, or the belief gap that still did not move.',
+    lowEnergyVersion: 'Send one honest note to your warmest segment and ask for a reply.',
+  },
+  sell: {
+    title: 'Send one invitation and schedule the follow-up',
+    action: 'Send one direct invitation or sales email to a warm lead, then put the follow-up on your calendar.',
+    timeBox: '25 minutes',
+    evidence: 'Invitation sent, follow-up scheduled, and the reply or silence logged.',
+    lowEnergyVersion: 'Send the cleanest invitation to one person instead of rewriting the whole sales asset.',
+  },
+  deliver: {
+    title: 'Improve one first-win step',
+    action: 'Choose the first win your customer needs and improve one onboarding, check-in, or support step.',
+    timeBox: '30 minutes',
+    evidence: 'Customer completion, feedback, stuck point, testimonial language, or one delivery fix chosen.',
+    lowEnergyVersion: 'Ask one current or past customer where they needed the most support after buying.',
+  },
+  leverage: {
+    title: 'Simplify one repeated workflow',
+    action: 'Write the real steps for one repeated task and remove, clarify, or document one friction point.',
+    timeBox: '30 minutes',
+    evidence: 'One simpler workflow, one saved step, one clearer handoff, or one tested SOP update.',
+    lowEnergyVersion: 'List the messy steps as they actually happen. Do not automate yet.',
+  },
+};
+
+const FUNDAMENTALS_PLAYLIST: CurriculumPlaylistItem[] = [
+  {
+    resourceId: 'success-plan-module-one',
+    title: 'Mastermind Success Plan Module One',
+    label: 'Fundamental',
+    useWhen: 'Start here so the program feels like a supported results system, not a library to finish.',
+    afterWatching: 'Confirm the one result you are using the Mastermind to create this quarter.',
+    access: 'Core',
+    portalPath: 'Start Here -> Mastermind Success Plan',
+  },
+  {
+    resourceId: 'ninety-day-planning-workshop',
+    title: '90-Day Goal Setting Workshop and Planner',
+    label: 'Fundamental',
+    useWhen: 'Use this to set or repair the plan before choosing more trainings.',
+    afterWatching: 'Save the current 90-day result, weekly rhythm, and next evidence move.',
+    access: 'Core',
+    portalPath: 'Planner -> Build 90-Day Plan',
+  },
+  {
+    resourceId: 'messy-action-foundation',
+    title: 'Messy Action Sprints',
+    label: 'Fundamental',
+    useWhen: 'Use this when the member is waiting to feel ready before taking market-facing action.',
+    afterWatching: 'Choose the smallest live action to bring to the next sprint or run in 48 hours.',
+    access: 'Core',
+    portalPath: 'Learning -> Messy Action Sprints',
+  },
+  {
+    resourceId: 'evaluate-without-shame',
+    title: 'Evaluate Without Beating Yourself Up',
+    label: 'Fundamental',
+    useWhen: 'Use this when a check-in turns into shame, overthinking, or starting over.',
+    afterWatching: 'Record one neutral keep, change, or test-next decision.',
+    access: 'Core',
+    portalPath: 'Learning -> Mindset and Evaluation',
+  },
+];
+
 const MESSY_ACTION_LIVE_PLAN_BY_STAGE: Record<MastermindStageId, Omit<MessyActionSprintPlan, 'title' | 'relationship'>> = {
   offer: {
     prepMove: 'Bring one rough offer sentence and the names of 3-5 real people who could react to it.',
@@ -234,6 +339,35 @@ export function getMessyActionSprintPlan(stageId: MastermindStageId): MessyActio
   };
 }
 
+export function getQuickWinRecommendation(stageId: MastermindStageId): QuickWinRecommendation {
+  return QUICK_WIN_BY_STAGE[stageId];
+}
+
+export function getFundamentalsPlaylist(): CurriculumPlaylistItem[] {
+  return FUNDAMENTALS_PLAYLIST;
+}
+
+export function getRecommendedPlaylist(
+  stage: MastermindRoadmapStage,
+  capabilities: WorkspaceCapabilities,
+): CurriculumPlaylistItem[] {
+  return stage.resources
+    .filter((resource) => resource.access !== 'Vault' || capabilities.replayVaultAccess)
+    .filter((resource) => resource.access !== '30-day replays' || capabilities.recentReplayAccess)
+    .slice(0, 3)
+    .map((resource, index) => ({
+      resourceId: resource.resourceId,
+      title: resource.title,
+      label: 'Recommended' as const,
+      useWhen: resource.useWhen,
+      afterWatching: index === 0
+        ? 'Do the quick win before opening another training.'
+        : 'Use only if this directly removes friction from the quick win.',
+      access: resource.access,
+      portalPath: resource.portalPath,
+    }));
+}
+
 export function getMastermindWorkspaceDraft(
   persona: WorkspacePersona,
   stageId: MastermindStageId = 'offer',
@@ -255,6 +389,9 @@ export function getMastermindWorkspaceDraft(
     evidenceTarget: currentStage.definitionOfDone[0] ?? 'One observable signal from the real world.',
     primaryResource,
     successPathGuidance: makeSuccessPathGuidance(currentStage),
+    quickWin: getQuickWinRecommendation(stageId),
+    fundamentalsPlaylist: getFundamentalsPlaylist(),
+    recommendedPlaylist: getRecommendedPlaylist(currentStage, capabilities),
     messyActionSprintPlan: getMessyActionSprintPlan(stageId),
     artifacts: makeArtifacts(capabilities, currentStage),
     aiWorkflow: getRecommendedAIWorkflow(stageId),

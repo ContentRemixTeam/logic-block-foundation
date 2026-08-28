@@ -564,7 +564,7 @@ async function saveScreenshot(client, scenario, passNumber) {
 }
 
 async function runChecks(client, checks, label) {
-  await waitFor(client, 'document.body && document.body.innerText.includes("My Success Plan")', `${label} Mastermind shell`);
+  await waitFor(client, 'document.body && document.body.innerText.includes("My 90-Day Plan")', `${label} Mastermind shell`);
   await assertNoText(client, 'Video Search');
   await assertNoHorizontalOverflow(client, `${label} initial view`);
 
@@ -572,28 +572,30 @@ async function runChecks(client, checks, label) {
     await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} saved-cycle path`);
     await assertText(client, 'Your 90-day focus');
     await assertText(client, 'Run one complete sales cycle with follow-up and a real debrief.');
-    await assertText(client, 'Your next three moves');
-    await assertText(client, 'Name the warmest 10 people, segments, or audience signals available right now.');
+    await assertText(client, 'Quick Win Generator');
+    await assertText(client, 'Send one direct invitation or sales email to a warm lead');
+    await assertText(client, 'Fundamentals');
+    await assertText(client, 'Recommended for this 90-day plan');
     await assertText(client, 'Ask Faith');
     await clickText(client, 'Get Support');
     await waitFor(client, 'document.body.innerText.includes("Enable Faith AI")', `${label} support tab`);
     await assertText(client, 'Enable Faith AI');
-    await clickText(client, 'Success Path');
-    await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} return to Success Path`);
-    await assertNoHorizontalOverflow(client, `${label} Success Path`);
+    await clickText(client, '90-Day Plan');
+    await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} return to 90-Day Plan`);
+    await assertNoHorizontalOverflow(client, `${label} 90-Day Plan`);
 
-    await assertText(client, 'Open My Starting Resource');
+    await assertText(client, 'Open Starting Resource');
     await clickText(client, 'Resources');
     await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} resources tab`);
     await assertText(client, 'Sales & Marketing');
-    await assertText(client, 'Sell path');
+    await assertText(client, 'Sell focus');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} resources tab`);
   }
 
   if (checks.includes('noCyclePrompt')) {
     await waitFor(client, 'document.body.innerText.includes("Choose one result for the next 90 days.")', `${label} no-cycle prompt`);
-    await assertText(client, 'Build My Success Plan');
+    await assertText(client, 'Build My 90-Day Plan');
     await assertNoText(client, 'Your 90-day focus');
     await assertNoHorizontalOverflow(client, `${label} no-cycle state`);
   }
@@ -605,16 +607,16 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Visible resources');
     await assertText(client, 'Indexed now');
     await assertText(client, 'Access labels');
-    await assertText(client, 'Sell path');
+    await assertText(client, 'Sell focus');
     await assertText(client, 'Bonus and vault items stay out of this finder');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} Resource Finder default`);
 
-    await clickText(client, 'Sell path');
-    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} Sell path filter`);
+    await clickText(client, 'Sell focus');
+    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} Sell focus filter`);
     await assertNoText(client, 'Grow Your Email List');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} Sell path filter`);
+    await assertNoHorizontalOverflow(client, `${label} Sell focus filter`);
 
     await clickText(client, '30-day');
     await waitFor(client, 'document.body.innerText.includes("Current Call Replays")', `${label} 30-day filter`);

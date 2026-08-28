@@ -1,8 +1,8 @@
-import { ArrowRight, CalendarDays, CheckCircle2, ClipboardCheck, HelpCircle, Sparkles, Target } from 'lucide-react';
+import { ArrowRight, CalendarDays, CheckCircle2, ClipboardCheck, Clock, HelpCircle, PlayCircle, Sparkles, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { MastermindWorkspaceDraft } from '@/lib/mastermindWorkspace';
+import type { CurriculumPlaylistItem, MastermindWorkspaceDraft } from '@/lib/mastermindWorkspace';
 
 interface SuccessPathExecutionPanelProps {
   draft: MastermindWorkspaceDraft;
@@ -12,9 +12,9 @@ interface SuccessPathExecutionPanelProps {
 
 export function SuccessPathExecutionPanel({ draft, onAskFaith, onBuildAI }: SuccessPathExecutionPanelProps) {
   const stage = draft.currentStage;
-  const firstMilestone = stage.milestones[0];
   const primaryResource = stage.resources[0];
   const sprint = draft.messyActionSprintPlan;
+  const quickWin = draft.quickWin;
 
   if (!draft.capabilities.mastermindCoreAccess) {
     return (
@@ -41,18 +41,46 @@ export function SuccessPathExecutionPanel({ draft, onAskFaith, onBuildAI }: Succ
             <Badge variant="secondary" className="text-[11px]">Based on your 90-day plan</Badge>
             <Badge variant="outline" className="text-[11px]">{stage.label}</Badge>
           </div>
-          <CardTitle className="text-2xl leading-tight">Your next useful move: {firstMilestone?.label ?? stage.milestone}</CardTitle>
+          <CardTitle className="text-2xl leading-tight">Start here: {quickWin.title}</CardTitle>
           <CardDescription>
-            This is not a second planner or a giant curriculum map. It makes the saved 90-day plan more directive: one weekly move, one evidence target, and one support route.
+            Do this before opening another training. The playlist below exists to support this move, not to create more homework.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <LoopStep title="Why this path" value={draft.successPathGuidance.pathDecision} />
-          <LoopStep title="This week's move" value={draft.successPathGuidance.thisWeekMove} />
-          <LoopStep title="Done enough" value={draft.successPathGuidance.doneEnough} />
-          <LoopStep title="Bring back" value={draft.successPathGuidance.bringBack} />
+        <CardContent className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
+          <div className="rounded-lg border bg-background/85 p-4">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="text-[11px]">Quick Win Generator</Badge>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                {quickWin.timeBox}
+              </span>
+            </div>
+            <p className="text-sm font-semibold leading-snug">{quickWin.action}</p>
+            <p className="mt-3 text-sm text-muted-foreground">Low-energy version: {quickWin.lowEnergyVersion}</p>
+            <Button type="button" className="mt-4">
+              Review quick win
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <LoopStep title="Why this focus" value={draft.successPathGuidance.pathDecision} />
+            <LoopStep title="Done enough" value={draft.successPathGuidance.doneEnough} />
+            <LoopStep title="Bring back" value={quickWin.evidence} />
+          </div>
         </CardContent>
       </Card>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <PlaylistCard
+          title="Fundamentals"
+          description="The short operating-system playlist everyone should understand before trying to use the whole portal."
+          items={draft.fundamentalsPlaylist}
+        />
+        <PlaylistCard
+          title="Recommended for this 90-day plan"
+          description={`A short ${stage.label} playlist chosen because of the current bottleneck and quick win.`}
+          items={draft.recommendedPlaylist}
+        />
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
@@ -80,7 +108,7 @@ export function SuccessPathExecutionPanel({ draft, onAskFaith, onBuildAI }: Succ
               <Target className="h-4 w-4 text-primary" />
               Primary resource
             </CardTitle>
-            <CardDescription>Use the smallest relevant lesson before the live work, not the whole library.</CardDescription>
+            <CardDescription>Use this first if you need help doing the quick win.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="rounded-lg border bg-background/85 p-3">
@@ -139,6 +167,47 @@ export function SuccessPathExecutionPanel({ draft, onAskFaith, onBuildAI }: Succ
         </Card>
       </section>
     </div>
+  );
+}
+
+function PlaylistCard({
+  title,
+  description,
+  items,
+}: {
+  title: string;
+  description: string;
+  items: CurriculumPlaylistItem[];
+}) {
+  return (
+    <Card data-guidance-playlist>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <PlayCircle className="h-4 w-4 text-primary" />
+          {title}
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {items.map((item, index) => (
+          <div key={item.resourceId} className="rounded-lg border bg-background/85 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">{String(index + 1).padStart(2, '0')}</span>
+              <Badge variant={item.label === 'Fundamental' ? 'secondary' : 'outline'} className="text-[11px]">
+                {item.label}
+              </Badge>
+              <Badge variant="outline" className="text-[11px]">{item.access}</Badge>
+            </div>
+            <p className="mt-2 text-sm font-semibold leading-snug">{item.title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{item.useWhen}</p>
+            <p className="mt-2 text-xs font-medium leading-snug">After watching: {item.afterWatching}</p>
+          </div>
+        ))}
+        <Button type="button" variant="outline" className="w-full">
+          Open playlist
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

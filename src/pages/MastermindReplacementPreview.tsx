@@ -59,8 +59,8 @@ export default function MastermindReplacementPreview() {
         <header className="space-y-2">
           <Badge variant="secondary">Becoming Boss Mastermind</Badge>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Success Plan</h1>
-            <p className="text-muted-foreground">One quarter. One result. One clear path.</p>
+            <h1 className="text-3xl font-bold tracking-tight">My 90-Day Plan</h1>
+            <p className="text-muted-foreground">One quarter. One result. One quick win.</p>
           </div>
         </header>
 

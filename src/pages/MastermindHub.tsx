@@ -113,7 +113,7 @@ export default function MastermindHub() {
   const resourceFilters = useMemo(() => (
     [
       { id: 'all' as const, label: 'All' },
-      { id: 'path' as const, label: `${selectedStage.label} path` },
+      { id: 'path' as const, label: `${selectedStage.label} focus` },
       { id: 'core' as const, label: 'Core' },
       { id: 'current_replay' as const, label: '30-day' },
       { id: 'indexed' as const, label: 'Indexed now' },
@@ -185,9 +185,9 @@ export default function MastermindHub() {
             <div className="space-y-2">
               <Badge variant="secondary" className="w-fit">Becoming Boss Mastermind</Badge>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">My Success Plan</h1>
+                <h1 className="text-3xl font-bold tracking-tight">My 90-Day Plan</h1>
                 <p className="text-muted-foreground">
-                  One goal. One focus. The next three moves that matter.
+                  One goal, one quick win, and the trainings that help you do it.
                 </p>
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function MastermindHub() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-3 sm:max-w-lg">
-              <TabsTrigger value="path">Success Path</TabsTrigger>
+              <TabsTrigger value="path">90-Day Plan</TabsTrigger>
               <TabsTrigger value="support">Get Support</TabsTrigger>
               <TabsTrigger value="resources">Resources</TabsTrigger>
             </TabsList>
@@ -397,7 +397,7 @@ export default function MastermindHub() {
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                       <Badge variant="secondary" className="mb-2 w-fit">Portal map</Badge>
-                      <CardTitle>Core paths, current replays, and vault access stay separated.</CardTitle>
+                      <CardTitle>Core focus areas, current replays, and vault access stay separated.</CardTitle>
                       <CardDescription>
                         Choose the smallest useful next resource. Bonus and vault items stay out of this finder until access is verified.
                       </CardDescription>
@@ -408,7 +408,7 @@ export default function MastermindHub() {
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <AuditMetric title="Success paths" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
+                  <AuditMetric title="Focus areas" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
                   <AuditMetric title="Visible resources" value={visibleResources.length.toLocaleString()} />
                   <AuditMetric title="Indexed now" value={indexedResourceCount.toLocaleString()} />
                   <AuditMetric title="Access labels" value={accessRailCount.toLocaleString()} />

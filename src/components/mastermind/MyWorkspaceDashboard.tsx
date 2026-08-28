@@ -42,14 +42,14 @@ export function MyWorkspaceDashboard({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Target className="h-4 w-4 text-primary" />
-              Next useful action
+              Quick win
             </CardTitle>
-            <CardDescription>{draft.nextMoneyMove}</CardDescription>
+            <CardDescription>{draft.quickWin.action}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 sm:flex-row lg:flex-col">
             {capabilities.mastermindCoreAccess ? (
               <Button type="button" onClick={onOpenSuccessPath}>
-                Open 90-day guidance
+                Review quick win
               </Button>
             ) : (
               <Button type="button" variant="secondary">
@@ -66,14 +66,14 @@ export function MyWorkspaceDashboard({
       <section className="grid gap-4 lg:grid-cols-3">
         <ActionPanel
           icon={Sparkles}
-          title="90-Day Guidance"
+          title="Recommended playlist"
           badge={capabilities.mastermindCoreAccess ? 'Included' : 'Mastermind only'}
           description={
             capabilities.mastermindCoreAccess
-              ? `${draft.currentStage.label}: one weekly move, one evidence target, one resource.`
+              ? `${draft.currentStage.label}: fundamentals plus the shortest useful watch list for this 90-day plan.`
               : 'Planner users keep planning and evidence tools without member-only curriculum.'
           }
-          buttonLabel={capabilities.mastermindCoreAccess ? 'See 90-day guidance' : 'Keep planner focus'}
+          buttonLabel={capabilities.mastermindCoreAccess ? 'See playlist' : 'Keep planner focus'}
           locked={!capabilities.mastermindCoreAccess}
           onClick={capabilities.mastermindCoreAccess ? onOpenSuccessPath : undefined}
         />

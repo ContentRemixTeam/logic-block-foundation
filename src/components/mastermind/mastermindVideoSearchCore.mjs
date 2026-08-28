@@ -74,8 +74,8 @@ export function pilotRecommendationReason(context, result) {
   if (!result) return '';
   const stage = String(context?.stageLabel || context?.stageId || '').trim();
   const milestone = String(context?.milestoneTitle || '').trim();
-  if (result.capacityMatch) return 'Recommended for your reduced-capacity plan and current Success Path focus.';
+  if (result.capacityMatch) return 'Recommended for your reduced-capacity plan and current 90-day focus.';
   if (result.stageMatch && milestone) return `Recommended for your ${stage} stage while you work on “${milestone}.”`;
-  if (result.stageMatch) return `Recommended for your current ${stage} Success Path stage.`;
+  if (result.stageMatch) return `Recommended for your current ${stage} 90-day focus.`;
   return 'Recommended from the current goal and focus saved in your Planner.';
 }

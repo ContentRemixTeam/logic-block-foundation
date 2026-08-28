@@ -32,6 +32,9 @@ assert.ok(workspace.includes("annual_mastermind"), 'annual/lifetime persona is r
 assert.ok(workspace.includes("replayVaultAccess: false"), 'monthly/planner Vault denial must be represented');
 assert.ok(workspace.includes("getRecommendedAIWorkflow"), 'stage-aware AI workflow recommendation helper is missing');
 assert.ok(workspace.includes("getMessyActionSprintPlan"), 'Messy Action Sprint helper is missing');
+assert.ok(workspace.includes("getQuickWinRecommendation"), 'stage-aware quick win helper is missing');
+assert.ok(workspace.includes("getFundamentalsPlaylist"), 'fundamentals playlist helper is missing');
+assert.ok(workspace.includes("getRecommendedPlaylist"), 'recommended playlist helper is missing');
 assert.ok(workspace.includes("This is the live implementation room Faith already runs each month"), 'Messy Action Sprint must be framed as Faith live implementation support');
 assert.ok(workspace.includes("Offer Clarity Assistant"), 'Offer AI workflow is missing');
 assert.ok(workspace.includes("Sales Follow-Up Assistant"), 'Sell AI workflow is missing');
@@ -41,11 +44,15 @@ assert.ok(hiddenDraft.includes('DRAFT PREVIEW'), 'hidden draft page needs visibl
 assert.ok(hiddenDraft.includes('SAMPLE DATA'), 'hidden draft must label sample data');
 assert.ok(hiddenDraft.includes('90-Day Plan'), 'hidden draft must position the member-facing guidance as the 90-day plan');
 assert.ok(dashboard.includes('data-my-workspace-dashboard'), 'workspace dashboard marker is missing');
-assert.ok(dashboard.includes('90-Day Guidance'), 'workspace dashboard must use member-facing 90-Day Guidance language');
+assert.ok(dashboard.includes('Recommended playlist'), 'workspace dashboard must route members toward the plan-based playlist');
+assert.ok(dashboard.includes('Quick win'), 'workspace dashboard must surface one quick win before extra curriculum');
 assert.ok(dashboard.includes('Current constraint'), 'workspace dashboard must show the current constraint from the 90-day plan');
 assert.ok(dashboard.includes('Bring back'), 'workspace dashboard must show the evidence to bring back');
 assert.ok(successPath.includes('data-success-path-core-loop'), 'Success Path core loop marker is missing');
-assert.ok(successPath.includes("This week's move"), 'Success Path must name the weekly move');
+assert.ok(successPath.includes('Quick Win Generator'), '90-day guidance must include a quick win generator');
+assert.ok(successPath.includes('Fundamentals'), '90-day guidance must include a fundamentals playlist');
+assert.ok(successPath.includes('Recommended for this 90-day plan'), '90-day guidance must include a plan-based recommended playlist');
+assert.ok(successPath.includes('After watching'), 'playlist items must point back to implementation after watching');
 assert.ok(successPath.includes('Done enough'), 'Success Path must define the finish line');
 assert.ok(successPath.includes('Before the live sprint'), 'Success Path must include live Messy Action Sprint prep');
 assert.ok(successPath.includes('If there is no live sprint this week'), 'Success Path must include a 48-hour fallback when no live sprint is imminent');

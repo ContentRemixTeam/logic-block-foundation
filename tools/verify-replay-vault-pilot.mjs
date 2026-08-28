@@ -41,7 +41,7 @@ assert.doesNotMatch(page,/MastermindVideoSearch/,'production Vault route must no
 assert.match(pilot,/useMastermindSuccessPath/);
 assert.match(pilot,/Recommended for your plan/);
 assert.match(pilot,/Search titles, topics, keywords, and full transcripts/);
-assert.match(pilot,/Browse by Success Path/);
+assert.match(pilot,/Browse by 90-day focus/);
 assert.match(pilot,/youtube-nocookie\.com\/embed/);
 assert.doesNotMatch(pilot,/YOUTUBE_TEST_VIDEOS/,'pilot must not import and runtime-filter the broader transcript library');
 assert.match(pilot,/REPLAY_VAULT_PILOT_VIDEOS/,'pilot must import the physically isolated selected catalog');
