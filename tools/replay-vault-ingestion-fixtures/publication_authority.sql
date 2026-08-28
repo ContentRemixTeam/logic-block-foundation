@@ -16,6 +16,18 @@ SELECT public.replay_mark_resource_ready('10000000-0000-0000-0000-000000000001',
 RESET ROLE;SELECT public._fail('backward READY-DRAFT',$q$UPDATE public.replay_publication_authority SET state='DRAFT'WHERE resource_id='10000000-0000-0000-0000-000000000001'$q$);SET ROLE service_role;
 SELECT public._fail('same reviewer',$q$SELECT public.replay_approve_resource('10000000-0000-0000-0000-000000000001','privacy','editorial-v2')$q$);
 SELECT public.replay_approve_resource('10000000-0000-0000-0000-000000000001','editor','editorial-v2');RESET ROLE;UPDATE public.replay_transcript_segments SET transcript_text_private='tampered'WHERE transcript_version_id=(SELECT transcript_version_id FROM public.replay_publication_authority WHERE resource_id='10000000-0000-0000-0000-000000000001');SET ROLE service_role;SELECT public._fail('stale content after approval',$q$SELECT public.replay_publish_resource('10000000-0000-0000-0000-000000000001','publisher')$q$);RESET ROLE;UPDATE public.replay_transcript_segments SET transcript_text_private='Current complete transcript'WHERE transcript_version_id=(SELECT transcript_version_id FROM public.replay_publication_authority WHERE resource_id='10000000-0000-0000-0000-000000000001');SET ROLE service_role;
+RESET ROLE;DO $$BEGIN
+  IF NOT EXISTS(
+    SELECT 1 FROM public.mastermind_portal_resources
+    WHERE id='10000000-0000-0000-0000-000000000001'
+      AND publication_state='publishable' AND privacy_state='approved'
+      AND pairing_state='paired' AND transcript_state='active'
+      AND media_state='approved' AND published_at IS NULL
+  ) OR EXISTS(
+    SELECT 1 FROM public.replay_published_resource_projection
+    WHERE id='10000000-0000-0000-0000-000000000001'
+  ) THEN RAISE EXCEPTION 'hidden approval state'; END IF;
+END$$;SET ROLE service_role;
 SELECT public._fail('feature disabled',$q$SELECT public.replay_publish_resource('10000000-0000-0000-0000-000000000001','publisher')$q$);
 RESET ROLE;UPDATE public.replay_publication_controls SET publication_enabled=true,changed_by='fixture';SET ROLE service_role;SELECT public.replay_publish_resource('10000000-0000-0000-0000-000000000001','publisher');
 DO $$BEGIN IF(SELECT count(*)FROM public.replay_published_resource_projection)<>1 THEN RAISE EXCEPTION'publish';END IF;END$$;RESET ROLE;
