@@ -6674,6 +6674,24 @@ export type Database = {
           },
         ]
       }
+      replay_pilot_staging: {
+        Row: {
+          created_at: string
+          package: Json
+          portal_resource_id: string
+        }
+        Insert: {
+          created_at?: string
+          package: Json
+          portal_resource_id: string
+        }
+        Update: {
+          created_at?: string
+          package?: Json
+          portal_resource_id?: string
+        }
+        Relationships: []
+      }
       replay_publication_authority: {
         Row: {
           approval_review_version: string | null
