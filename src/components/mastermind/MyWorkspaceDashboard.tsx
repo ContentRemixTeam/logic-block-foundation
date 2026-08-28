@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, ClipboardCheck, FileText, Lock, PlayCircle, Sparkles, Target } from 'lucide-react';
+import { Bot, CalendarDays, CheckCircle2, ClipboardCheck, FileText, Lock, PlayCircle, Sparkles, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,12 +27,14 @@ export function MyWorkspaceDashboard({
           <CardHeader>
             <Badge variant="secondary" className="w-fit text-[11px]">Current 90-day focus</Badge>
             <CardTitle className="text-2xl leading-tight">{draft.ninetyDayFocus}</CardTitle>
-            <CardDescription>Use the next move, then record evidence before choosing more content.</CardDescription>
+            <CardDescription>
+              The Planner holds the goal. The Success Path translates it into one current constraint, one weekly move, and one evidence target.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-3">
-            <FocusMetric title="Stage" value={capabilities.mastermindCoreAccess ? draft.currentStage.label : 'Planner'} />
-            <FocusMetric title="Milestone" value={draft.activeMilestone} />
-            <FocusMetric title="Evidence" value={draft.evidenceTarget} />
+            <FocusMetric title="Current constraint" value={capabilities.mastermindCoreAccess ? draft.currentStage.label : 'Planner'} />
+            <FocusMetric title="This week" value={draft.successPathGuidance.thisWeekMove} />
+            <FocusMetric title="Bring back" value={draft.successPathGuidance.bringBack} />
           </CardContent>
         </Card>
 
@@ -40,14 +42,14 @@ export function MyWorkspaceDashboard({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Target className="h-4 w-4 text-primary" />
-              Next money move
+              Next useful action
             </CardTitle>
-            <CardDescription>{draft.currentStage.messyActionSprint[0] ?? draft.currentStage.doThis}</CardDescription>
+            <CardDescription>{draft.nextMoneyMove}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 sm:flex-row lg:flex-col">
             {capabilities.mastermindCoreAccess ? (
               <Button type="button" onClick={onOpenSuccessPath}>
-                Open Success Path
+                Open weekly guidance
               </Button>
             ) : (
               <Button type="button" variant="secondary">
@@ -68,10 +70,20 @@ export function MyWorkspaceDashboard({
           badge={capabilities.mastermindCoreAccess ? 'Included' : 'Mastermind only'}
           description={
             capabilities.mastermindCoreAccess
-              ? `${draft.currentStage.label}: ${draft.activeMilestone}`
+              ? `${draft.currentStage.label}: one weekly move, one evidence target, one resource.`
               : 'Planner users keep planning and evidence tools without member-only curriculum.'
           }
-          buttonLabel={capabilities.mastermindCoreAccess ? 'Continue path' : 'Keep planner focus'}
+          buttonLabel={capabilities.mastermindCoreAccess ? 'See guidance' : 'Keep planner focus'}
+          locked={!capabilities.mastermindCoreAccess}
+          onClick={capabilities.mastermindCoreAccess ? onOpenSuccessPath : undefined}
+        />
+
+        <ActionPanel
+          icon={CalendarDays}
+          title="Monthly Messy Action Sprint"
+          badge="Live implementation"
+          description={capabilities.mastermindCoreAccess ? draft.messyActionSprintPlan.prepMove : 'Planner-only users do not see Mastermind sprint prep.'}
+          buttonLabel={capabilities.mastermindCoreAccess ? 'Prep for sprint' : 'Not included'}
           locked={!capabilities.mastermindCoreAccess}
           onClick={capabilities.mastermindCoreAccess ? onOpenSuccessPath : undefined}
         />
@@ -84,7 +96,9 @@ export function MyWorkspaceDashboard({
           buttonLabel="Build AI support"
           onClick={onBuildAI}
         />
+      </section>
 
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.75fr)]">
         <ActionPanel
           icon={PlayCircle}
           title="Vault and replays"
@@ -93,13 +107,22 @@ export function MyWorkspaceDashboard({
             capabilities.replayVaultAccess
               ? 'Hidden until search, playback, and entitlement QA pass.'
               : capabilities.recentReplayAccess
-                ? 'Recent replays can be separate from the annual replay vault.'
+                ? 'Recent replays stay separate from the annual replay vault.'
                 : 'No Mastermind replay metadata appears for this persona.'
           }
           buttonLabel={capabilities.replayVaultAccess ? 'Review Vault QA' : 'View access state'}
           locked={!capabilities.recentReplayAccess && !capabilities.replayVaultAccess}
           onClick={onOpenVault}
         />
+
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base">What guidance should feel like</CardTitle>
+            <CardDescription>
+              The member should not have to decide between the Planner, a lesson library, live sprint, and Ask Faith. This surface points all four at the same weekly move.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </section>
 
       <Card>

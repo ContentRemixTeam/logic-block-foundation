@@ -35,6 +35,23 @@ export interface AIWorkflowRecommendation {
   firstTestPrompt: string;
 }
 
+export interface SuccessPathGuidance {
+  pathDecision: string;
+  thisWeekMove: string;
+  doneEnough: string;
+  bringBack: string;
+  askFaithWhen: string;
+}
+
+export interface MessyActionSprintPlan {
+  title: string;
+  relationship: string;
+  prepMove: string;
+  liveRoomFocus: string;
+  afterSprintProof: string;
+  ifNoLiveSprint: string;
+}
+
 export interface VaultReadinessGate {
   id: string;
   label: string;
@@ -52,6 +69,8 @@ export interface MastermindWorkspaceDraft {
   nextMoneyMove: string;
   evidenceTarget: string;
   primaryResource: string;
+  successPathGuidance: SuccessPathGuidance;
+  messyActionSprintPlan: MessyActionSprintPlan;
   artifacts: WorkspaceArtifact[];
   aiWorkflow: AIWorkflowRecommendation;
   vaultGates: VaultReadinessGate[];
@@ -160,12 +179,59 @@ const AI_WORKFLOW_BY_STAGE: Record<MastermindStageId, AIWorkflowRecommendation> 
   },
 };
 
+const MESSY_ACTION_LIVE_PLAN_BY_STAGE: Record<MastermindStageId, Omit<MessyActionSprintPlan, 'title' | 'relationship'>> = {
+  offer: {
+    prepMove: 'Bring one rough offer sentence and the names of 3-5 real people who could react to it.',
+    liveRoomFocus: 'Use the live sprint to make the offer clearer and send the first validation ask before polishing the backend.',
+    afterSprintProof: 'Log who you asked, the exact words you used, replies, questions, objections, yeses, or silence after the follow-up window.',
+    ifNoLiveSprint: 'Run the 48-hour version: ask one qualified person the validation question and record the exact response.',
+  },
+  find: {
+    prepMove: 'Bring the offer, the buyer, and one discovery channel you can actually use this week.',
+    liveRoomFocus: 'Use the live sprint to create or send one discovery piece that gives the right person a next step.',
+    afterSprintProof: 'Log reach, replies, opt-ins, link clicks, conversations, and which message created the strongest signal.',
+    ifNoLiveSprint: 'Run the 48-hour version: publish or send one discovery piece and capture the first response signal.',
+  },
+  nurture: {
+    prepMove: 'Bring one buyer belief gap and one story, proof point, or example that could shift it.',
+    liveRoomFocus: 'Use the live sprint to draft and send one nurture email, post, or story tied to the current offer.',
+    afterSprintProof: 'Log replies, clicks, questions, saves, DMs, sales signals, or the exact place people still seem confused.',
+    ifNoLiveSprint: 'Run the 48-hour version: send one nurture message and invite a reply or tiny next step.',
+  },
+  sell: {
+    prepMove: 'Bring your current offer, the warmest 5-10 leads or audience signals, and the sentence you want to send.',
+    liveRoomFocus: 'Use the live sprint to send the invitation, write the follow-up, or repair the sales conversation that is already in motion.',
+    afterSprintProof: 'Log invitations, replies, objections, follow-ups, yeses, noes, sales, deposits, or where the sales process stopped.',
+    ifNoLiveSprint: 'Run the 48-hour version: send one direct invitation and schedule the follow-up before changing the offer.',
+  },
+  deliver: {
+    prepMove: 'Bring the customer promise, the first win, and the place clients currently slow down or need extra help.',
+    liveRoomFocus: 'Use the live sprint to improve one onboarding, check-in, proof, or first-win support step.',
+    afterSprintProof: 'Log customer completion, stuck points, feedback, testimonial language, retention signals, or the next delivery fix.',
+    ifNoLiveSprint: 'Run the 48-hour version: improve one first-win step and ask one customer or client for progress feedback.',
+  },
+  leverage: {
+    prepMove: 'Bring one repeated workflow that already matters to sales, delivery, retention, or capacity.',
+    liveRoomFocus: 'Use the live sprint to document, simplify, or remove one step before automating or delegating it.',
+    afterSprintProof: 'Log time saved, errors reduced, handoff clarity, repeated-use proof, or what still requires your judgment.',
+    ifNoLiveSprint: 'Run the 48-hour version: write the real steps, remove one friction point, and test the simpler version once.',
+  },
+};
+
 export function getWorkspaceCapabilities(persona: WorkspacePersona): WorkspaceCapabilities {
   return CAPABILITIES_BY_PERSONA[persona];
 }
 
 export function getRecommendedAIWorkflow(stageId: MastermindStageId): AIWorkflowRecommendation {
   return AI_WORKFLOW_BY_STAGE[stageId];
+}
+
+export function getMessyActionSprintPlan(stageId: MastermindStageId): MessyActionSprintPlan {
+  return {
+    title: 'Monthly Messy Action Sprint',
+    relationship: 'This is the live implementation room Faith already runs each month. The app does not replace it; it tells the member what to bring, what to finish, and what evidence to log afterward.',
+    ...MESSY_ACTION_LIVE_PLAN_BY_STAGE[stageId],
+  };
 }
 
 export function getMastermindWorkspaceDraft(
@@ -188,9 +254,21 @@ export function getMastermindWorkspaceDraft(
     nextMoneyMove: currentStage.nextMoneyMove,
     evidenceTarget: currentStage.definitionOfDone[0] ?? 'One observable signal from the real world.',
     primaryResource,
+    successPathGuidance: makeSuccessPathGuidance(currentStage),
+    messyActionSprintPlan: getMessyActionSprintPlan(stageId),
     artifacts: makeArtifacts(capabilities, currentStage),
     aiWorkflow: getRecommendedAIWorkflow(stageId),
     vaultGates: makeVaultReadinessGates(capabilities),
+  };
+}
+
+function makeSuccessPathGuidance(currentStage: MastermindRoadmapStage): SuccessPathGuidance {
+  return {
+    pathDecision: currentStage.useWhen,
+    thisWeekMove: currentStage.nextMoneyMove,
+    doneEnough: currentStage.definitionOfDone[0] ?? currentStage.doThis,
+    bringBack: currentStage.messyActionSprint[2] ?? currentStage.definitionOfDone[0] ?? 'One reality-facing evidence signal.',
+    askFaithWhen: currentStage.supportPrompt,
   };
 }
 
@@ -221,7 +299,7 @@ function makeArtifacts(capabilities: WorkspaceCapabilities, currentStage: Master
       surface: 'Mastermind',
       type: 'success path',
       status: 'Using now',
-      nextAction: currentStage.messyActionSprint[0] ?? currentStage.doThis,
+      nextAction: currentStage.nextMoneyMove,
     });
   }
 

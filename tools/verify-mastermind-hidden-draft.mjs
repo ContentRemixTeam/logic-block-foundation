@@ -31,6 +31,8 @@ assert.ok(workspace.includes("monthly_mastermind"), 'monthly Mastermind persona 
 assert.ok(workspace.includes("annual_mastermind"), 'annual/lifetime persona is required');
 assert.ok(workspace.includes("replayVaultAccess: false"), 'monthly/planner Vault denial must be represented');
 assert.ok(workspace.includes("getRecommendedAIWorkflow"), 'stage-aware AI workflow recommendation helper is missing');
+assert.ok(workspace.includes("getMessyActionSprintPlan"), 'Messy Action Sprint helper is missing');
+assert.ok(workspace.includes("This is the live implementation room Faith already runs each month"), 'Messy Action Sprint must be framed as Faith live implementation support');
 assert.ok(workspace.includes("Offer Clarity Assistant"), 'Offer AI workflow is missing');
 assert.ok(workspace.includes("Sales Follow-Up Assistant"), 'Sell AI workflow is missing');
 
@@ -38,7 +40,13 @@ assert.ok(hiddenDraft.includes('data-mastermind-hidden-draft'), 'hidden draft pa
 assert.ok(hiddenDraft.includes('DRAFT PREVIEW'), 'hidden draft page needs visible admin-only draft warning');
 assert.ok(hiddenDraft.includes('SAMPLE DATA'), 'hidden draft must label sample data');
 assert.ok(dashboard.includes('data-my-workspace-dashboard'), 'workspace dashboard marker is missing');
+assert.ok(dashboard.includes('Current constraint'), 'workspace dashboard must show the current constraint from the 90-day plan');
+assert.ok(dashboard.includes('Bring back'), 'workspace dashboard must show the evidence to bring back');
 assert.ok(successPath.includes('data-success-path-core-loop'), 'Success Path core loop marker is missing');
+assert.ok(successPath.includes("This week's move"), 'Success Path must name the weekly move');
+assert.ok(successPath.includes('Done enough'), 'Success Path must define the finish line');
+assert.ok(successPath.includes('Before the live sprint'), 'Success Path must include live Messy Action Sprint prep');
+assert.ok(successPath.includes('If there is no live sprint this week'), 'Success Path must include a 48-hour fallback when no live sprint is imminent');
 assert.ok(aiBuilder.includes('data-ai-workflow-builder-preview'), 'AI workflow builder marker is missing');
 assert.ok(vault.includes('data-vault-hidden-readiness'), 'Vault hidden readiness marker is missing');
 
@@ -57,4 +65,4 @@ for (const [name, source] of [
 
 assert.ok(packageJson.includes('"verify:mastermind-hidden-draft"'), 'package script for hidden draft verifier is missing');
 
-console.log('Mastermind hidden draft verifier passed: admin-only route, no nav exposure, planner/member/Vault boundaries, AI workflow skeleton, and privacy sentinels are present.');
+console.log('Mastermind hidden draft verifier passed: admin-only route, no nav exposure, planner/member/Vault boundaries, live Messy Action Sprint model, AI workflow skeleton, and privacy sentinels are present.');
