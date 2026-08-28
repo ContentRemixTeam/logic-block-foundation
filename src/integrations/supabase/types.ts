@@ -7219,6 +7219,249 @@ export type Database = {
           },
         ]
       }
+      replay_vault_entitlements: {
+        Row: {
+          access_expires_at: string | null
+          access_starts_at: string
+          auth_user_id: string | null
+          created_at: string
+          id: string
+          last_paid_event_at: string
+          last_transition_at: string
+          normalized_email: string
+          revoked_at: string | null
+          source_order_id: string
+          source_provider: string
+          status: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          access_expires_at?: string | null
+          access_starts_at: string
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+          last_paid_event_at: string
+          last_transition_at: string
+          normalized_email: string
+          revoked_at?: string | null
+          source_order_id: string
+          source_provider: string
+          status?: string
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          access_expires_at?: string | null
+          access_starts_at?: string
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+          last_paid_event_at?: string
+          last_transition_at?: string
+          normalized_email?: string
+          revoked_at?: string | null
+          source_order_id?: string
+          source_provider?: string
+          status?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      replay_vault_launch_config: {
+        Row: {
+          launch_state: string
+          singleton: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          launch_state?: string
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          launch_state?: string
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      replay_vault_pilot_subjects: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          enabled: boolean
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          enabled?: boolean
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          enabled?: boolean
+        }
+        Relationships: []
+      }
+      replay_vault_playback_events: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          decision: string
+          id: string
+          moment_id: string | null
+          provider: string | null
+          question_id: string | null
+          resource_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          decision: string
+          id?: string
+          moment_id?: string | null
+          provider?: string | null
+          question_id?: string | null
+          resource_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          decision?: string
+          id?: string
+          moment_id?: string | null
+          provider?: string | null
+          question_id?: string | null
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_playback_events_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_playback_events_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_vault_provider_product_mappings: {
+        Row: {
+          active: boolean
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          entitlement_tier: string
+          grant_interval: string | null
+          id: string
+          price_id: string
+          product_id: string
+          provider: string
+        }
+        Insert: {
+          active?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          entitlement_tier: string
+          grant_interval?: string | null
+          id?: string
+          price_id: string
+          product_id: string
+          provider: string
+        }
+        Update: {
+          active?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          entitlement_tier?: string
+          grant_interval?: string | null
+          id?: string
+          price_id?: string
+          product_id?: string
+          provider?: string
+        }
+        Relationships: []
+      }
+      replay_vault_webhook_events: {
+        Row: {
+          applied_at: string | null
+          effective_at: string
+          error_class: string | null
+          event_id: string
+          event_type: string
+          id: string
+          normalized_email: string
+          order_id: string
+          payload_sha256: string
+          price_id: string
+          product_id: string
+          provider: string
+          received_at: string
+          requested_expires_at: string | null
+          result_expires_at: string | null
+          result_status: string | null
+          result_tier: string | null
+          signature_verified: boolean
+          status: string
+        }
+        Insert: {
+          applied_at?: string | null
+          effective_at: string
+          error_class?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          normalized_email: string
+          order_id: string
+          payload_sha256: string
+          price_id: string
+          product_id: string
+          provider: string
+          received_at?: string
+          requested_expires_at?: string | null
+          result_expires_at?: string | null
+          result_status?: string | null
+          result_tier?: string | null
+          signature_verified: boolean
+          status: string
+        }
+        Update: {
+          applied_at?: string | null
+          effective_at?: string
+          error_class?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          normalized_email?: string
+          order_id?: string
+          payload_sha256?: string
+          price_id?: string
+          product_id?: string
+          provider?: string
+          received_at?: string
+          requested_expires_at?: string | null
+          result_expires_at?: string | null
+          result_status?: string | null
+          result_tier?: string | null
+          signature_verified?: boolean
+          status?: string
+        }
+        Relationships: []
+      }
       revenue_sprints: {
         Row: {
           accountability_method: string | null
@@ -10175,6 +10418,21 @@ export type Database = {
       }
     }
     Functions: {
+      apply_replay_vault_webhook_event: {
+        Args: {
+          p_access_expires_at?: string
+          p_effective_at: string
+          p_email: string
+          p_event_id: string
+          p_event_type: string
+          p_order_id: string
+          p_payload_sha256: string
+          p_price_id: string
+          p_product_id: string
+          p_provider: string
+        }
+        Returns: Json
+      }
       auto_archive_old_notes: { Args: never; Returns: number }
       backfill_admin_user_id: { Args: never; Returns: undefined }
       check_feature_flag: { Args: { p_key: string }; Returns: boolean }
@@ -10277,6 +10535,17 @@ export type Database = {
       }
       load_my_latest_low_battery_workshop: { Args: never; Returns: Json }
       log_low_battery_planner_login: { Args: never; Returns: string }
+      record_replay_vault_playback_event: {
+        Args: {
+          p_decision: string
+          p_moment_id?: string
+          p_provider?: string
+          p_question_id?: string
+          p_resource_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       register_low_battery_workshop: {
         Args: { p_email: string; p_first_name: string }
         Returns: Json
@@ -10342,6 +10611,39 @@ export type Database = {
         Args: { p_version: string }
         Returns: string
       }
+      replay_vault_access_decision: {
+        Args: {
+          p_action?: string
+          p_as_of?: string
+          p_email: string
+          p_preview?: boolean
+          p_resource_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      resolve_replay_vault_playback: {
+        Args: {
+          p_as_of?: string
+          p_email: string
+          p_moment_id?: string
+          p_preview?: boolean
+          p_question_id?: string
+          p_resource_id: string
+          p_user_id: string
+        }
+        Returns: {
+          access_scope: string
+          authoritative_end_seconds: number
+          authoritative_start_seconds: number
+          dropbox_locator: string
+          moment_id: string
+          portal_resource_id: string
+          question_id: string
+          resource_uuid: string
+          title: string
+        }[]
+      }
       save_low_battery_workshop_answers: {
         Args: {
           p_answers: Json
@@ -10352,25 +10654,28 @@ export type Database = {
         }
         Returns: boolean
       }
-      search_mastermind_portal_resources: {
+      search_replay_vault_resources: {
         Args: {
-          p_allowed_access: string[]
+          p_as_of?: string
+          p_email: string
           p_include_metadata_fallback?: boolean
           p_limit?: number
+          p_preview?: boolean
           p_query: string
           p_stage?: string
+          p_user_id: string
         }
         Returns: {
-          access_scope: string
           category_title: string
-          portal_path: string
+          duration_seconds: number
+          ends_at_seconds: number
+          moment_id: string
           portal_resource_id: string
           product_title: string
-          rank: number
+          question_id: string
           reason: string
           resource_type: string
           snippet: string
-          stages: string[]
           starts_at_seconds: number
           title: string
         }[]
