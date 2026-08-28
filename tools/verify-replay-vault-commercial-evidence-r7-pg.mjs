@@ -9,7 +9,8 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const names=["20260809130000_replay_vault_deterministic_ingestion.sql","20260809140000_replay_vault_access_hardening.sql",
   "20260809150000_replay_vault_questions_answered_r1.sql","20260809160500_replay_vault_member_interactions_r2.sql",
   "20260809170000_replay_vault_member_parity_r4.sql","20260809180000_replay_vault_commercial_evidence_r7.sql",
-  "20260809190000_replay_vault_complete_search_r1.sql","20260820183000_replay_vault_annual_only_access_r10.sql"];
+  "20260809190000_replay_vault_complete_search_r1.sql","20260820183000_replay_vault_annual_only_access_r10.sql",
+  "20260828233500_replay_vault_hidden_preview_approval.sql"];
 const migrations=names.map(name=>path.join(root,"supabase/migrations",name));
 for(const file of migrations) if(!existsSync(file)) throw new Error(`missing migration ${file}`);
 if([...names].sort().join("|")!==names.join("|")) throw new Error("migration order is not exact");
