@@ -7363,11 +7363,200 @@ export type Database = {
           },
         ]
       }
+      replay_vault_commercial_deliveries: {
+        Row: {
+          effective_at: string
+          error_class: string | null
+          event_type: string
+          id: string
+          lifecycle_parent_order_id: string | null
+          lifecycle_parent_transaction_id: string | null
+          normalized_email: string
+          order_id: string | null
+          outcome: string
+          payload_sha256: string
+          price_id: string
+          product_id: string
+          provider: string
+          provider_delivery_id: string
+          receipt: Json
+          received_at: string
+          requested_expires_at: string | null
+          signature_sha256: string | null
+          signature_timestamp: number | null
+          signature_verified: boolean
+          source_legacy_event_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          effective_at: string
+          error_class?: string | null
+          event_type: string
+          id?: string
+          lifecycle_parent_order_id?: string | null
+          lifecycle_parent_transaction_id?: string | null
+          normalized_email: string
+          order_id?: string | null
+          outcome: string
+          payload_sha256: string
+          price_id: string
+          product_id: string
+          provider: string
+          provider_delivery_id: string
+          receipt?: Json
+          received_at?: string
+          requested_expires_at?: string | null
+          signature_sha256?: string | null
+          signature_timestamp?: number | null
+          signature_verified: boolean
+          source_legacy_event_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          effective_at?: string
+          error_class?: string | null
+          event_type?: string
+          id?: string
+          lifecycle_parent_order_id?: string | null
+          lifecycle_parent_transaction_id?: string | null
+          normalized_email?: string
+          order_id?: string | null
+          outcome?: string
+          payload_sha256?: string
+          price_id?: string
+          product_id?: string
+          provider?: string
+          provider_delivery_id?: string
+          receipt?: Json
+          received_at?: string
+          requested_expires_at?: string | null
+          signature_sha256?: string | null
+          signature_timestamp?: number | null
+          signature_verified?: boolean
+          source_legacy_event_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: []
+      }
+      replay_vault_commercial_delivery_attempts: {
+        Row: {
+          canonical_delivery_id: string
+          id: string
+          provider: string
+          provider_delivery_id: string
+          signature_sha256: string
+          signature_timestamp: number
+          verified_at: string
+        }
+        Insert: {
+          canonical_delivery_id: string
+          id?: string
+          provider: string
+          provider_delivery_id: string
+          signature_sha256: string
+          signature_timestamp: number
+          verified_at?: string
+        }
+        Update: {
+          canonical_delivery_id?: string
+          id?: string
+          provider?: string
+          provider_delivery_id?: string
+          signature_sha256?: string
+          signature_timestamp?: number
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_commercial_delivery_att_canonical_delivery_id_fkey"
+            columns: ["canonical_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "replay_vault_commercial_deliveries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_vault_commercial_quarantine: {
+        Row: {
+          created_at: string
+          evidence_sha256: string
+          id: string
+          legacy_event_ids: string[]
+          order_id: string | null
+          provider: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_sha256: string
+          id?: string
+          legacy_event_ids: string[]
+          order_id?: string | null
+          provider: string
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          evidence_sha256?: string
+          id?: string
+          legacy_event_ids?: string[]
+          order_id?: string | null
+          provider?: string
+          reason?: string
+        }
+        Relationships: []
+      }
+      replay_vault_commercial_resolutions: {
+        Row: {
+          created_at: string
+          id: string
+          original_delivery_id: string
+          replay_delivery_id: string | null
+          resolution_type: string
+          resolved_by: string
+          result_receipt: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_delivery_id: string
+          replay_delivery_id?: string | null
+          resolution_type: string
+          resolved_by: string
+          result_receipt: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_delivery_id?: string
+          replay_delivery_id?: string | null
+          resolution_type?: string
+          resolved_by?: string
+          result_receipt?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_commercial_resolutions_original_delivery_id_fkey"
+            columns: ["original_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "replay_vault_commercial_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_commercial_resolutions_replay_delivery_id_fkey"
+            columns: ["replay_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "replay_vault_commercial_deliveries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replay_vault_entitlements: {
         Row: {
           access_expires_at: string | null
           access_starts_at: string
           auth_user_id: string | null
+          commercial_evidence_state: string
           created_at: string
           id: string
           last_paid_event_at: string
@@ -7384,6 +7573,7 @@ export type Database = {
           access_expires_at?: string | null
           access_starts_at: string
           auth_user_id?: string | null
+          commercial_evidence_state?: string
           created_at?: string
           id?: string
           last_paid_event_at: string
@@ -7400,6 +7590,7 @@ export type Database = {
           access_expires_at?: string | null
           access_starts_at?: string
           auth_user_id?: string | null
+          commercial_evidence_state?: string
           created_at?: string
           id?: string
           last_paid_event_at?: string
@@ -7726,6 +7917,119 @@ export type Database = {
           provider?: string
         }
         Relationships: []
+      }
+      replay_vault_purchase_contributions: {
+        Row: {
+          contribution_expires_at: string | null
+          contribution_starts_at: string
+          created_at: string
+          entitlement_tier: string
+          evidence_quality: string
+          id: string
+          normalized_email: string
+          order_id: string
+          price_id: string
+          product_id: string
+          provider: string
+          purchase_delivery_id: string
+          purchase_effective_at: string
+          requested_expires_at: string | null
+          transaction_id: string
+        }
+        Insert: {
+          contribution_expires_at?: string | null
+          contribution_starts_at: string
+          created_at?: string
+          entitlement_tier: string
+          evidence_quality?: string
+          id?: string
+          normalized_email: string
+          order_id: string
+          price_id: string
+          product_id: string
+          provider: string
+          purchase_delivery_id: string
+          purchase_effective_at: string
+          requested_expires_at?: string | null
+          transaction_id: string
+        }
+        Update: {
+          contribution_expires_at?: string | null
+          contribution_starts_at?: string
+          created_at?: string
+          entitlement_tier?: string
+          evidence_quality?: string
+          id?: string
+          normalized_email?: string
+          order_id?: string
+          price_id?: string
+          product_id?: string
+          provider?: string
+          purchase_delivery_id?: string
+          purchase_effective_at?: string
+          requested_expires_at?: string | null
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_purchase_contributions_purchase_delivery_id_fkey"
+            columns: ["purchase_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "replay_vault_commercial_deliveries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      replay_vault_purchase_lifecycle_evidence: {
+        Row: {
+          created_at: string
+          effective_at: string
+          id: string
+          lifecycle_delivery_id: string
+          lifecycle_type: string
+          parent_order_id: string
+          parent_transaction_id: string
+          provider: string
+          purchase_contribution_id: string
+        }
+        Insert: {
+          created_at?: string
+          effective_at: string
+          id?: string
+          lifecycle_delivery_id: string
+          lifecycle_type: string
+          parent_order_id: string
+          parent_transaction_id: string
+          provider: string
+          purchase_contribution_id: string
+        }
+        Update: {
+          created_at?: string
+          effective_at?: string
+          id?: string
+          lifecycle_delivery_id?: string
+          lifecycle_type?: string
+          parent_order_id?: string
+          parent_transaction_id?: string
+          provider?: string
+          purchase_contribution_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_purchase_lifecycle_e_purchase_contribution_id_fkey"
+            columns: ["purchase_contribution_id"]
+            isOneToOne: false
+            referencedRelation: "replay_vault_purchase_contributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_purchase_lifecycle_evid_lifecycle_delivery_id_fkey"
+            columns: ["lifecycle_delivery_id"]
+            isOneToOne: true
+            referencedRelation: "replay_vault_commercial_deliveries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       replay_vault_rate_windows: {
         Row: {
@@ -10808,6 +11112,7 @@ export type Database = {
       replay_published_resource_projection: {
         Row: {
           approved_access_scope: string | null
+          availability_expires_at: string | null
           category_title: string | null
           dropbox_content_hash: string | null
           dropbox_file_id: string | null
@@ -10844,6 +11149,26 @@ export type Database = {
       }
     }
     Functions: {
+      apply_replay_vault_commercial_event_r7: {
+        Args: {
+          p_access_expires_at?: string
+          p_effective_at: string
+          p_email: string
+          p_event_id: string
+          p_event_type: string
+          p_order_id: string
+          p_parent_order_id: string
+          p_parent_transaction_id: string
+          p_payload_sha256: string
+          p_price_id: string
+          p_product_id: string
+          p_provider: string
+          p_signature_sha256: string
+          p_signature_timestamp: number
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       apply_replay_vault_webhook_event: {
         Args: {
           p_access_expires_at?: string
@@ -10961,6 +11286,10 @@ export type Database = {
       }
       load_my_latest_low_battery_workshop: { Args: never; Returns: Json }
       log_low_battery_planner_login: { Args: never; Returns: string }
+      reconcile_replay_vault_unmapped_event_r7: {
+        Args: { p_actor: string; p_original_delivery_id: string }
+        Returns: Json
+      }
       record_replay_vault_playback_event: {
         Args: {
           p_decision: string
@@ -11306,6 +11635,10 @@ export type Database = {
         Args: { p_bookmark_id: string; p_user_id: string }
         Returns: Json
       }
+      replay_vault_exclusive_end: {
+        Args: { p_inclusive_date: string }
+        Returns: string
+      }
       replay_vault_get_interaction: {
         Args: {
           p_email: string
@@ -11364,6 +11697,10 @@ export type Database = {
       replay_vault_rate_limit: {
         Args: { p_action: string; p_limit: number; p_user_id: string }
         Returns: undefined
+      }
+      replay_vault_recompute_entitlement_r7: {
+        Args: { p_as_of: string; p_email: string }
+        Returns: Json
       }
       replay_vault_record_media_event: {
         Args: {
