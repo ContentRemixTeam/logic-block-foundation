@@ -27,7 +27,7 @@ export function AIWorkflowBuilderPreview({ draft }: AIWorkflowBuilderPreviewProp
       '',
       '# BUSINESS-STRATEGY',
       `Current 90-day focus: ${draft.ninetyDayFocus}`,
-      `Current Success Path: ${draft.currentStage.label}`,
+      `Current 90-day focus: ${draft.currentStage.label}`,
       `Next money move: ${draft.nextMoneyMove}`,
       '',
       '# AI-EMPLOYEE-JOB-CARD',

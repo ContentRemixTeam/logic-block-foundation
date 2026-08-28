@@ -22,7 +22,7 @@ export interface WorkspaceArtifact {
   id: string;
   title: string;
   surface: WorkspaceSurface;
-  type: '90-day plan' | 'success path' | 'evidence' | 'offer' | 'workflow' | 'ai packet' | 'saved support';
+  type: '90-day plan' | '90-day guidance' | 'evidence' | 'offer' | 'workflow' | 'ai packet' | 'saved support';
   status: WorkspaceArtifactStatus;
   nextAction: string;
 }
@@ -295,9 +295,9 @@ function makeArtifacts(capabilities: WorkspaceCapabilities, currentStage: Master
   if (capabilities.mastermindCoreAccess) {
     artifacts.push({
       id: 'success-path',
-      title: `${currentStage.label} Success Path`,
+      title: `${currentStage.label} 90-Day Guidance`,
       surface: 'Mastermind',
-      type: 'success path',
+      type: '90-day guidance',
       status: 'Using now',
       nextAction: currentStage.nextMoneyMove,
     });

@@ -43,7 +43,7 @@ export default function MastermindHiddenDraft() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Planner-integrated workspace</h1>
               <p className="max-w-2xl text-muted-foreground">
-                One 90-day result, one Success Path, one AI workflow, and protected Vault readiness.
+                One 90-day result, one guided weekly move, one AI workflow, and protected Vault readiness.
               </p>
             </div>
           </div>
@@ -75,7 +75,7 @@ export default function MastermindHiddenDraft() {
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground">Success Path focus</p>
+            <p className="text-xs font-semibold text-muted-foreground">90-day plan focus</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {stageOptions.map((stage) => (
                 <Button
@@ -95,7 +95,7 @@ export default function MastermindHiddenDraft() {
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as DraftTab)} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="workspace">My Workspace</TabsTrigger>
-            <TabsTrigger value="success-path">Success Path</TabsTrigger>
+            <TabsTrigger value="success-path">90-Day Plan</TabsTrigger>
             <TabsTrigger value="ai-builder">Build AI Support</TabsTrigger>
             <TabsTrigger value="vault-readiness">Vault QA</TabsTrigger>
           </TabsList>

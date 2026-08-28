@@ -28,7 +28,7 @@ export function MyWorkspaceDashboard({
             <Badge variant="secondary" className="w-fit text-[11px]">Current 90-day focus</Badge>
             <CardTitle className="text-2xl leading-tight">{draft.ninetyDayFocus}</CardTitle>
             <CardDescription>
-              The Planner holds the goal. The Success Path translates it into one current constraint, one weekly move, and one evidence target.
+              The Planner holds the goal. The 90-day guidance turns it into one current constraint, one weekly move, and one evidence target.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-3">
@@ -49,7 +49,7 @@ export function MyWorkspaceDashboard({
           <CardContent className="flex flex-col gap-2 sm:flex-row lg:flex-col">
             {capabilities.mastermindCoreAccess ? (
               <Button type="button" onClick={onOpenSuccessPath}>
-                Open weekly guidance
+                Open 90-day guidance
               </Button>
             ) : (
               <Button type="button" variant="secondary">
@@ -66,14 +66,14 @@ export function MyWorkspaceDashboard({
       <section className="grid gap-4 lg:grid-cols-3">
         <ActionPanel
           icon={Sparkles}
-          title="Success Path"
+          title="90-Day Guidance"
           badge={capabilities.mastermindCoreAccess ? 'Included' : 'Mastermind only'}
           description={
             capabilities.mastermindCoreAccess
               ? `${draft.currentStage.label}: one weekly move, one evidence target, one resource.`
               : 'Planner users keep planning and evidence tools without member-only curriculum.'
           }
-          buttonLabel={capabilities.mastermindCoreAccess ? 'See guidance' : 'Keep planner focus'}
+          buttonLabel={capabilities.mastermindCoreAccess ? 'See 90-day guidance' : 'Keep planner focus'}
           locked={!capabilities.mastermindCoreAccess}
           onClick={capabilities.mastermindCoreAccess ? onOpenSuccessPath : undefined}
         />

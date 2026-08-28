@@ -21,7 +21,7 @@ export function SuccessPathExecutionPanel({ draft, onAskFaith, onBuildAI }: Succ
       <Card data-success-path-boundary>
         <CardHeader>
           <Badge variant="outline" className="w-fit">Planner boundary</Badge>
-          <CardTitle className="text-xl">Success Path is a Mastermind layer.</CardTitle>
+          <CardTitle className="text-xl">90-day guidance is a Mastermind layer.</CardTitle>
           <CardDescription>
             Planner-only users can still plan, execute, review, and build their own AI context packet.
           </CardDescription>
@@ -43,7 +43,7 @@ export function SuccessPathExecutionPanel({ draft, onAskFaith, onBuildAI }: Succ
           </div>
           <CardTitle className="text-2xl leading-tight">Your next useful move: {firstMilestone?.label ?? stage.milestone}</CardTitle>
           <CardDescription>
-            This is not a second planner or a giant curriculum map. It turns the saved 90-day plan into one weekly move, one evidence target, and one support route.
+            This is not a second planner or a giant curriculum map. It makes the saved 90-day plan more directive: one weekly move, one evidence target, and one support route.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

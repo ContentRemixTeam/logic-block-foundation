@@ -39,7 +39,9 @@ assert.ok(workspace.includes("Sales Follow-Up Assistant"), 'Sell AI workflow is 
 assert.ok(hiddenDraft.includes('data-mastermind-hidden-draft'), 'hidden draft page needs a stable QA marker');
 assert.ok(hiddenDraft.includes('DRAFT PREVIEW'), 'hidden draft page needs visible admin-only draft warning');
 assert.ok(hiddenDraft.includes('SAMPLE DATA'), 'hidden draft must label sample data');
+assert.ok(hiddenDraft.includes('90-Day Plan'), 'hidden draft must position the member-facing guidance as the 90-day plan');
 assert.ok(dashboard.includes('data-my-workspace-dashboard'), 'workspace dashboard marker is missing');
+assert.ok(dashboard.includes('90-Day Guidance'), 'workspace dashboard must use member-facing 90-Day Guidance language');
 assert.ok(dashboard.includes('Current constraint'), 'workspace dashboard must show the current constraint from the 90-day plan');
 assert.ok(dashboard.includes('Bring back'), 'workspace dashboard must show the evidence to bring back');
 assert.ok(successPath.includes('data-success-path-core-loop'), 'Success Path core loop marker is missing');
@@ -47,6 +49,7 @@ assert.ok(successPath.includes("This week's move"), 'Success Path must name the 
 assert.ok(successPath.includes('Done enough'), 'Success Path must define the finish line');
 assert.ok(successPath.includes('Before the live sprint'), 'Success Path must include live Messy Action Sprint prep');
 assert.ok(successPath.includes('If there is no live sprint this week'), 'Success Path must include a 48-hour fallback when no live sprint is imminent');
+assert.ok(aiBuilder.includes('Current 90-day focus'), 'AI builder must reference the current 90-day focus instead of member-facing Success Path language');
 assert.ok(aiBuilder.includes('data-ai-workflow-builder-preview'), 'AI workflow builder marker is missing');
 assert.ok(vault.includes('data-vault-hidden-readiness'), 'Vault hidden readiness marker is missing');
 
@@ -58,6 +61,8 @@ for (const [name, source] of [
   ['success path panel', successPath],
   ['vault readiness panel', vault],
 ]) {
+  assert.ok(!source.includes('>Success Path<'), `${name} must not show Success Path as a member-facing tab`);
+  assert.ok(!source.includes('"Success Path"'), `${name} must not show Success Path as a quoted member-facing label`);
   for (const forbidden of ['dropbox.com', 'bunny_video_id', 'membershipio:', 'VITE_ENABLE_MASTERMIND_VIDEO_SEARCH', 'MastermindVideoSearch']) {
     assert.ok(!source.includes(forbidden), `${name} must not bundle protected/private sentinel ${forbidden}`);
   }
