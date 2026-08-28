@@ -6129,12 +6129,14 @@ export type Database = {
           editorial_reviewer: string | null
           id: string
           is_best_answer: boolean
+          media_snapshot_sha256: string | null
           member_question: string
           playback_attempt_id: string
           privacy_approval: string
           privacy_reviewed_at: string | null
           privacy_reviewer: string | null
           privacy_score: number | null
+          publication_reason: string | null
           publication_state: string
           published_at: string | null
           quality_score: number | null
@@ -6144,7 +6146,9 @@ export type Database = {
           related_answer_rank: number | null
           resource_id: string
           review_version: string | null
+          revocation_reason: string | null
           revoked_at: string | null
+          revoked_by: string | null
           safe_answer_summary: string
           safe_excerpt: string | null
           seek_approval: string
@@ -6153,6 +6157,7 @@ export type Database = {
           situation_context_safe: string | null
           specificity_score: number | null
           supersedes_answer_id: string | null
+          transcript_snapshot_sha256: string | null
           transcript_version_id: string
           usefulness_score: number | null
           visibility_scope: string
@@ -6170,12 +6175,14 @@ export type Database = {
           editorial_reviewer?: string | null
           id?: string
           is_best_answer?: boolean
+          media_snapshot_sha256?: string | null
           member_question: string
           playback_attempt_id: string
           privacy_approval?: string
           privacy_reviewed_at?: string | null
           privacy_reviewer?: string | null
           privacy_score?: number | null
+          publication_reason?: string | null
           publication_state?: string
           published_at?: string | null
           quality_score?: number | null
@@ -6185,7 +6192,9 @@ export type Database = {
           related_answer_rank?: number | null
           resource_id: string
           review_version?: string | null
+          revocation_reason?: string | null
           revoked_at?: string | null
+          revoked_by?: string | null
           safe_answer_summary: string
           safe_excerpt?: string | null
           seek_approval?: string
@@ -6194,6 +6203,7 @@ export type Database = {
           situation_context_safe?: string | null
           specificity_score?: number | null
           supersedes_answer_id?: string | null
+          transcript_snapshot_sha256?: string | null
           transcript_version_id: string
           usefulness_score?: number | null
           visibility_scope: string
@@ -6211,12 +6221,14 @@ export type Database = {
           editorial_reviewer?: string | null
           id?: string
           is_best_answer?: boolean
+          media_snapshot_sha256?: string | null
           member_question?: string
           playback_attempt_id?: string
           privacy_approval?: string
           privacy_reviewed_at?: string | null
           privacy_reviewer?: string | null
           privacy_score?: number | null
+          publication_reason?: string | null
           publication_state?: string
           published_at?: string | null
           quality_score?: number | null
@@ -6226,7 +6238,9 @@ export type Database = {
           related_answer_rank?: number | null
           resource_id?: string
           review_version?: string | null
+          revocation_reason?: string | null
           revoked_at?: string | null
+          revoked_by?: string | null
           safe_answer_summary?: string
           safe_excerpt?: string | null
           seek_approval?: string
@@ -6235,6 +6249,7 @@ export type Database = {
           situation_context_safe?: string | null
           specificity_score?: number | null
           supersedes_answer_id?: string | null
+          transcript_snapshot_sha256?: string | null
           transcript_version_id?: string
           usefulness_score?: number | null
           visibility_scope?: string
@@ -6829,10 +6844,18 @@ export type Database = {
           content_sha256: string | null
           created_at: string
           duplicate_cluster_candidate_id: string | null
+          editorial_checklist_version: string | null
+          editorial_reviewed_at: string | null
+          editorial_reviewer: string | null
           evidence_features: Json
           extractor_version: string
           id: string
+          media_snapshot_sha256: string | null
           origin: string
+          playback_attempt_id: string | null
+          privacy_checklist_version: string | null
+          privacy_reviewed_at: string | null
+          privacy_reviewer: string | null
           proposed_action_private: string | null
           proposed_question_private: string
           proposed_summary_private: string | null
@@ -6842,9 +6865,13 @@ export type Database = {
           raw_excerpt_private: string | null
           raw_excerpt_sha256: string
           resource_id: string
+          seek_checklist_version: string | null
+          seek_reviewed_at: string | null
+          seek_reviewer: string | null
           sensitivity_findings: Json
           source_privacy_flag: string
           state: string
+          transcript_snapshot_sha256: string | null
           transcript_version_id: string
         }
         Insert: {
@@ -6854,10 +6881,18 @@ export type Database = {
           content_sha256?: string | null
           created_at?: string
           duplicate_cluster_candidate_id?: string | null
+          editorial_checklist_version?: string | null
+          editorial_reviewed_at?: string | null
+          editorial_reviewer?: string | null
           evidence_features?: Json
           extractor_version: string
           id?: string
+          media_snapshot_sha256?: string | null
           origin?: string
+          playback_attempt_id?: string | null
+          privacy_checklist_version?: string | null
+          privacy_reviewed_at?: string | null
+          privacy_reviewer?: string | null
           proposed_action_private?: string | null
           proposed_question_private: string
           proposed_summary_private?: string | null
@@ -6867,9 +6902,13 @@ export type Database = {
           raw_excerpt_private?: string | null
           raw_excerpt_sha256: string
           resource_id: string
+          seek_checklist_version?: string | null
+          seek_reviewed_at?: string | null
+          seek_reviewer?: string | null
           sensitivity_findings?: Json
           source_privacy_flag?: string
           state?: string
+          transcript_snapshot_sha256?: string | null
           transcript_version_id: string
         }
         Update: {
@@ -6879,10 +6918,18 @@ export type Database = {
           content_sha256?: string | null
           created_at?: string
           duplicate_cluster_candidate_id?: string | null
+          editorial_checklist_version?: string | null
+          editorial_reviewed_at?: string | null
+          editorial_reviewer?: string | null
           evidence_features?: Json
           extractor_version?: string
           id?: string
+          media_snapshot_sha256?: string | null
           origin?: string
+          playback_attempt_id?: string | null
+          privacy_checklist_version?: string | null
+          privacy_reviewed_at?: string | null
+          privacy_reviewer?: string | null
           proposed_action_private?: string | null
           proposed_question_private?: string
           proposed_summary_private?: string | null
@@ -6892,9 +6939,13 @@ export type Database = {
           raw_excerpt_private?: string | null
           raw_excerpt_sha256?: string
           resource_id?: string
+          seek_checklist_version?: string | null
+          seek_reviewed_at?: string | null
+          seek_reviewer?: string | null
           sensitivity_findings?: Json
           source_privacy_flag?: string
           state?: string
+          transcript_snapshot_sha256?: string | null
           transcript_version_id?: string
         }
         Relationships: [
@@ -6903,6 +6954,13 @@ export type Database = {
             columns: ["duplicate_cluster_candidate_id"]
             isOneToOne: false
             referencedRelation: "replay_question_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_question_candidates_playback_attempt_id_fkey"
+            columns: ["playback_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
             referencedColumns: ["id"]
           },
           {
@@ -6984,6 +7042,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      replay_question_publication_controls: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          publication_enabled: boolean
+          singleton: boolean
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string
+          publication_enabled?: boolean
+          singleton?: boolean
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          publication_enabled?: boolean
+          singleton?: boolean
+        }
+        Relationships: []
       }
       replay_source_assets: {
         Row: {
@@ -10601,6 +10680,213 @@ export type Database = {
       }
       replay_publish_resource: {
         Args: { actor: string; rid: string }
+        Returns: undefined
+      }
+      replay_questions_actor: { Args: { p_actor: string }; Returns: string }
+      replay_questions_answer_hash: {
+        Args: { p_answer_id: string }
+        Returns: string
+      }
+      replay_questions_assert_answer: {
+        Args: { p_answer_id: string; p_expected_state: string }
+        Returns: {
+          answer_end_ms: number
+          answer_start_ms: number
+          answerer_attribution: string
+          av_quality_score: number | null
+          content_sha256: string | null
+          created_at: string
+          current_alignment_score: number | null
+          editorial_approval: string
+          editorial_reviewed_at: string | null
+          editorial_reviewer: string | null
+          id: string
+          is_best_answer: boolean
+          media_snapshot_sha256: string | null
+          member_question: string
+          playback_attempt_id: string
+          privacy_approval: string
+          privacy_reviewed_at: string | null
+          privacy_reviewer: string | null
+          privacy_score: number | null
+          publication_reason: string | null
+          publication_state: string
+          published_at: string | null
+          quality_score: number | null
+          question_candidate_id: string
+          question_cluster_id: string
+          question_start_ms: number
+          related_answer_rank: number | null
+          resource_id: string
+          review_version: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          safe_answer_summary: string
+          safe_excerpt: string | null
+          seek_approval: string
+          seek_reviewed_at: string | null
+          seek_reviewer: string | null
+          situation_context_safe: string | null
+          specificity_score: number | null
+          supersedes_answer_id: string | null
+          transcript_snapshot_sha256: string | null
+          transcript_version_id: string
+          usefulness_score: number | null
+          visibility_scope: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "replay_answers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      replay_questions_assert_binding: {
+        Args: { p_candidate_id: string; p_expected_state?: string }
+        Returns: {
+          answer_end_ms: number
+          answer_start_ms: number
+          answerer_hint_private: string | null
+          content_sha256: string | null
+          created_at: string
+          duplicate_cluster_candidate_id: string | null
+          editorial_checklist_version: string | null
+          editorial_reviewed_at: string | null
+          editorial_reviewer: string | null
+          evidence_features: Json
+          extractor_version: string
+          id: string
+          media_snapshot_sha256: string | null
+          origin: string
+          playback_attempt_id: string | null
+          privacy_checklist_version: string | null
+          privacy_reviewed_at: string | null
+          privacy_reviewer: string | null
+          proposed_action_private: string | null
+          proposed_question_private: string
+          proposed_summary_private: string | null
+          proposed_tags_private: string[]
+          question_segment_index: number
+          question_start_ms: number
+          raw_excerpt_private: string | null
+          raw_excerpt_sha256: string
+          resource_id: string
+          seek_checklist_version: string | null
+          seek_reviewed_at: string | null
+          seek_reviewer: string | null
+          sensitivity_findings: Json
+          source_privacy_flag: string
+          state: string
+          transcript_snapshot_sha256: string | null
+          transcript_version_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "replay_question_candidates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      replay_questions_candidate_hash: {
+        Args: { p_candidate_id: string }
+        Returns: string
+      }
+      replay_questions_create_candidate: {
+        Args: {
+          p_answer_end_ms: number
+          p_answer_start_ms: number
+          p_extractor_version: string
+          p_proposed_question_private: string
+          p_question_segment_index: number
+          p_question_start_ms: number
+          p_resource_id: string
+        }
+        Returns: string
+      }
+      replay_questions_editorial_approve: {
+        Args: {
+          p_actor: string
+          p_candidate_id: string
+          p_checklist: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      replay_questions_event: {
+        Args: {
+          p_actor: string
+          p_after_state: string
+          p_before_state: string
+          p_checklist: string
+          p_content_sha256: string
+          p_decision: string
+          p_reason: string
+          p_subject_id: string
+          p_subject_type: string
+        }
+        Returns: undefined
+      }
+      replay_questions_excerpt: {
+        Args: {
+          p_answer_end_ms: number
+          p_question_start_ms: number
+          p_transcript_version_id: string
+        }
+        Returns: string
+      }
+      replay_questions_make_answer_ready: {
+        Args: {
+          p_actor: string
+          p_answerer_attribution: string
+          p_candidate_id: string
+          p_checklist: string
+          p_member_question: string
+          p_reason: string
+          p_safe_answer_summary: string
+          p_safe_excerpt: string
+          p_visibility_scope: string
+        }
+        Returns: string
+      }
+      replay_questions_member_safe: {
+        Args: { p_values: string[] }
+        Returns: boolean
+      }
+      replay_questions_privacy_approve: {
+        Args: {
+          p_actor: string
+          p_candidate_id: string
+          p_checklist: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      replay_questions_promote_candidate: {
+        Args: {
+          p_actor: string
+          p_candidate_id: string
+          p_checklist: string
+          p_reason: string
+        }
+        Returns: string
+      }
+      replay_questions_publish: {
+        Args: { p_actor: string; p_answer_id: string; p_reason: string }
+        Returns: undefined
+      }
+      replay_questions_required: { Args: { p_value: string }; Returns: string }
+      replay_questions_revoke: {
+        Args: { p_actor: string; p_answer_id: string; p_reason: string }
+        Returns: undefined
+      }
+      replay_questions_seek_approve: {
+        Args: {
+          p_actor: string
+          p_candidate_id: string
+          p_checklist: string
+          p_reason: string
+        }
         Returns: undefined
       }
       replay_revoke_resource: {
