@@ -139,7 +139,8 @@ Deno.serve(async (req) => {
     // Filter by tag if specified (tags are stored as JSON array)
     let filteredData = data || [];
     if (tag) {
-      filteredData = filteredData.filter(page => {
+      // deno-lint-ignore no-explicit-any
+      filteredData = (filteredData as any[]).filter((page: any) => {
         const pageTags = Array.isArray(page.tags) ? page.tags : [];
         return pageTags.some((t: string) => t.toLowerCase() === tag.toLowerCase());
       });
