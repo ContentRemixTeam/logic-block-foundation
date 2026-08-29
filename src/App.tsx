@@ -1,4 +1,4 @@
-import { lazy, Suspense, ComponentType } from 'react';
+import { lazy, Suspense, ComponentType, type ReactNode } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -168,6 +168,16 @@ const LowBatteryPlanPage = lazyWithRetry(() => import('./pages/LowBatteryPlanPag
 const LowBatteryWorkshopAdmin = lazyWithRetry(() => import('./pages/LowBatteryWorkshopAdmin'));
 const MastermindReplacementPreview = lazyWithRetry(() => import('./pages/MastermindReplacementPreview'));
 const AdminPreviewGate = lazyWithRetry(() => import('./components/admin/AdminPreviewGate').then(m => ({ default: m.AdminPreviewGate })));
+const ENABLE_MASTERMIND_90_DAY_PLAN = import.meta.env.VITE_ENABLE_MASTERMIND_90_DAY_PLAN === 'true';
+
+function MastermindLaunchGate({ children }: { children: ReactNode }) {
+  if (!ENABLE_MASTERMIND_90_DAY_PLAN) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -272,8 +282,8 @@ const App = () => (
                       <Route path="/belief-builder" element={<ProtectedRoute><PageSuspense><BeliefBuilder /></PageSuspense></ProtectedRoute>} />
                       <Route path="/identity-anchors" element={<ProtectedRoute><PageSuspense><IdentityAnchors /></PageSuspense></ProtectedRoute>} />
                       <Route path="/self-coaching" element={<ProtectedRoute><PageSuspense><SelfCoaching /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/mastermind" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
-                      <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
+                      <Route path="/mastermind" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
+                      <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
                       <Route path="/mastermind/replay-vault" element={<ProtectedRoute><PageSuspense><ReplayVault /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
