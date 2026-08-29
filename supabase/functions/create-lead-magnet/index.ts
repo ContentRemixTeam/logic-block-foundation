@@ -187,7 +187,7 @@ app.post('/', async (c) => {
   } catch (error) {
     console.error('Create lead magnet error:', error);
     return c.json(
-      { error: error.message || 'Failed to create lead magnet' },
+      { error: (error instanceof Error ? error.message : null) || 'Failed to create lead magnet' },
       500,
       corsHeaders
     );

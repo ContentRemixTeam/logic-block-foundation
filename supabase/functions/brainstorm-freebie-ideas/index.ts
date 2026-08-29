@@ -132,7 +132,7 @@ Return the ideas as JSON.`;
   } catch (error) {
     console.error('Brainstorm error:', error);
     return c.json(
-      { error: error.message || 'Failed to generate ideas' },
+      { error: (error instanceof Error ? error.message : null) || 'Failed to generate ideas' },
       500,
       corsHeaders
     );

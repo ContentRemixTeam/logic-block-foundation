@@ -221,7 +221,7 @@ app.post('/', async (c) => {
   } catch (error) {
     console.error('Create webinar error:', error);
     return c.json(
-      { error: error.message || 'Failed to create webinar' },
+      { error: (error instanceof Error ? error.message : null) || 'Failed to create webinar' },
       500,
       corsHeaders
     );

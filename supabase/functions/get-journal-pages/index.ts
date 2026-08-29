@@ -96,12 +96,8 @@ Deno.serve(async (req) => {
 
     // Select columns based on mode - preview skips full content to save bandwidth
     const selectColumns = previewOnly
-      ? `id, title, content_preview, content_length, tags, is_archived, created_at, updated_at, project_id, course_id, course_title,
-         project:projects(id, name, color),
-         course:courses(id, title)`
-      : `*,
-         project:projects(id, name, color),
-         course:courses(id, title)`;
+      ? 'id,title,content_preview,content_length,tags,is_archived,created_at,updated_at,project_id,course_id,course_title,project:projects(id,name,color),course:courses(id,title)'
+      : '*,project:projects(id,name,color),course:courses(id,title)';
 
     // Build main query
     let query = supabase
@@ -143,7 +139,8 @@ Deno.serve(async (req) => {
     // Filter by tag if specified (tags are stored as JSON array)
     let filteredData = data || [];
     if (tag) {
-      filteredData = filteredData.filter(page => {
+      // deno-lint-ignore no-explicit-any
+      filteredData = (filteredData as any[]).filter((page: any) => {
         const pageTags = Array.isArray(page.tags) ? page.tags : [];
         return pageTags.some((t: string) => t.toLowerCase() === tag.toLowerCase());
       });

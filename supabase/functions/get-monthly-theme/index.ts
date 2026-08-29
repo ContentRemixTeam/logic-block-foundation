@@ -170,7 +170,8 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("get-monthly-theme: UNHANDLED ERROR", error?.message, error?.stack);
+    const err = error as Error | null;
+    console.error("get-monthly-theme: UNHANDLED ERROR", err?.message, err?.stack);
     // Never return 500 - return inactive state so UI doesn't break
     return new Response(
       JSON.stringify({ active: false, template: null }),

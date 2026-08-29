@@ -383,7 +383,7 @@ Deno.serve(async (req) => {
               context_tags: ['content', platform],
             };
           })
-          .filter(Boolean);
+          .filter((t): t is NonNullable<typeof t> => t !== null);
 
         if (tasksToCreate.length > 0) {
           const { data: createdTasks, error: tasksError } = await supabase
