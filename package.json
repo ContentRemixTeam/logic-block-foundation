@@ -18,6 +18,7 @@
     "verify:mastermind-bundle": "node tools/verify-mastermind-bundle.mjs",
     "verify:mastermind-server-search": "node tools/verify-mastermind-server-search.mjs",
     "verify:mastermind-playback-link": "node tools/verify-mastermind-playback-link.mjs",
+    "verify:mastermind-training-playback-pg": "node tools/verify-mastermind-training-playback-pg.mjs",
     "verify:mastermind-browser": "node tools/verify-mastermind-browser.mjs",
     "qa:mastermind-live-gates": "node tools/qa-mastermind-live-gates.mjs",
     "qa:mastermind-live-gates:dry-run": "node tools/qa-mastermind-live-gates.mjs --dry-run",
