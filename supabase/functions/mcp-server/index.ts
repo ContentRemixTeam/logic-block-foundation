@@ -385,9 +385,9 @@ async function handleTool(
       return {
         habits: habits || [],
         logs: logs || [],
-        summary: (habits || []).map((h) => ({
+        summary: (habits || []).map((h: Record<string, unknown>) => ({
           habit: h.habit_name,
-          completed_days: (logs || []).filter((l) => l.habit_id === h.habit_id && l.completed).length,
+          completed_days: (logs || []).filter((l: Record<string, unknown>) => l.habit_id === h.habit_id && l.completed).length,
         })),
       };
     }
