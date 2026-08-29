@@ -63,7 +63,7 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
   {
     id: 'ninety-day-planning',
     title: '90-Day Planning',
-    description: 'The planning workflow that feeds the Success Path recommendation and keeps the quarter focused on one result.',
+    description: 'The planning workflow that keeps the quarter focused on one result and powers the weekly guidance page.',
     memberJob: 'Use this before sending someone into content, selling, or vault resources.',
     access: 'core',
     accessLabel: 'Core',
@@ -73,7 +73,7 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     portalPath: 'Planner -> Build 90-Day Plan + Learning -> 90 DAY PLANNING - Clone',
     transcriptStatus: 'transcript_ready',
     transcriptLabel: 'Planner indexed',
-    sourceStatus: 'Use this to save a focused quarter and power the Success Path recommendation.',
+    sourceStatus: 'Use this to save a focused quarter and power the weekly guidance page.',
     url: '/cycle-setup',
     isExternal: false,
     primaryAction: 'Build Plan',

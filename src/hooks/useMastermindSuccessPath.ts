@@ -8,7 +8,7 @@ import {
   type MastermindSuccessPathOutput,
 } from '@/lib/mastermindSuccessPath';
 
-// The Replay Vault / success-path snapshot tables are not present in the generated
+// The Replay Vault / 90-day guidance snapshot tables are not present in the generated
 // Supabase types yet, so use a loosely typed handle for those queries only.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as unknown as { from: (table: string) => any };
@@ -116,8 +116,8 @@ export function useMastermindSuccessPath(cycleId?: string) {
         hasConfirmedStage: Boolean(snapshot),
       });
     } catch (err) {
-      console.error('Error loading Mastermind Success Path:', err);
-      setError(err instanceof Error ? err.message : 'Unable to load your Success Path.');
+      console.error('Error loading Mastermind 90-day guidance:', err);
+      setError(err instanceof Error ? err.message : 'Unable to load your 90-day guidance.');
       setData(null);
     } finally {
       setIsLoading(false);
@@ -130,12 +130,12 @@ export function useMastermindSuccessPath(cycleId?: string) {
 
   const saveSelection = useCallback(async (stageId: MastermindStageId, milestoneId: string) => {
     if (!data?.cycle) {
-      throw new Error('Complete your 90-day plan before choosing a Success Path focus.');
+      throw new Error('Complete your 90-day plan before choosing a focus.');
     }
 
     const stage = getMastermindStage(stageId);
     const milestone = stage.milestones.find((item) => item.id === milestoneId);
-    if (!milestone) throw new Error('Choose a milestone from your current Success Path focus.');
+    if (!milestone) throw new Error('Choose a checkpoint from your current 90-day focus.');
 
     setIsSaving(true);
     setError(null);
@@ -143,7 +143,7 @@ export function useMastermindSuccessPath(cycleId?: string) {
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
-      if (!authData.user) throw new Error('Sign in to save your Success Path.');
+      if (!authData.user) throw new Error('Sign in to save your 90-day guidance.');
 
       const recommendedStage = data.successPath?.stageId ?? stageId;
       const now = new Date().toISOString();
@@ -177,8 +177,8 @@ export function useMastermindSuccessPath(cycleId?: string) {
 
       return snapshot;
     } catch (err) {
-      console.error('Error saving Mastermind Success Path:', err);
-      const message = err instanceof Error ? err.message : 'Unable to save your Success Path.';
+      console.error('Error saving Mastermind 90-day guidance:', err);
+      const message = err instanceof Error ? err.message : 'Unable to save your 90-day guidance.';
       setError(message);
       throw err;
     } finally {

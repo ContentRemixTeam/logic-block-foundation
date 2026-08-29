@@ -13,6 +13,7 @@ const outputPath = path.join(tempDir, 'entry.mjs');
 const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.tsx');
 const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermindPortalResources.ts');
 const successPathPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/SuccessPathPlanCard.tsx');
+const aiStudioSourcePath = path.join(projectRoot, 'src/lib/mastermindAiStudio.ts');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -22,12 +23,19 @@ import {
 } from '@/data/mastermindPortalResources';
 import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
 import {
+  getMastermindWeeklyGuidance,
   inferMastermindSuccessPath,
   MASTERMIND_SUCCESS_STAGES,
   type MastermindPlanCycle,
   type MastermindResourceRecommendation,
   type MastermindStageId,
 } from '@/lib/mastermindSuccessPath';
+import {
+  AI_PROJECT_PACKS,
+  getAiStudioAccessSummary,
+  getRecommendedAiProjectPack,
+  getVisibleAiProjectPacks,
+} from '@/lib/mastermindAiStudio';
 
 const stageIds: MastermindStageId[] = ['offer', 'find', 'nurture', 'sell', 'deliver', 'leverage'];
 const stageIdSet = new Set(stageIds);
@@ -182,10 +190,21 @@ for (const stage of MASTERMIND_SUCCESS_STAGES) {
   assert.equal(stage.messyActionSprint.length, 3, stage.label + ' should have exactly three messy action sprint steps');
   assert.ok(stage.nextMoneyMove.trim(), stage.label + ' is missing a next money move');
   assert.ok(stage.supportPrompt.trim(), stage.label + ' is missing an Ask Faith prompt');
+  assert.ok(stage.aiProjectId.trim(), stage.label + ' is missing an AI project pack id');
+  assert.ok(stage.quickWin.title.trim(), stage.label + ' quick win is missing a title');
+  assert.ok(stage.quickWin.action.trim(), stage.label + ' quick win is missing an action');
+  assert.ok(stage.quickWin.timeBox.trim(), stage.label + ' quick win is missing a time box');
+  assert.ok(stage.quickWin.evidence.trim(), stage.label + ' quick win is missing an evidence target');
+  assert.ok(stage.quickWin.lowEnergy.trim(), stage.label + ' quick win is missing a low-capacity action');
+  assert.ok(
+    !stage.resources.some((recommendation) => recommendation.resourceId === 'messy-action-sprints'),
+    stage.label + ' should not make Messy Action Sprint a required dashboard recommendation'
+  );
 
   for (const recommendation of stage.resources) {
     assert.ok(recommendation.resourceId?.trim(), stage.label + ' recommendation ' + recommendation.title + ' is missing a resourceId');
     assert.ok(recommendation.portalPath?.trim(), stage.label + ' recommendation ' + recommendation.title + ' is missing a portal path');
+    assert.ok(recommendation.afterWatching?.trim(), stage.label + ' recommendation ' + recommendation.title + ' is missing an after-watching action');
     assert.notEqual(recommendation.access, 'Access review', stage.label + ' recommendation ' + recommendation.title + ' should be usable without manual access review');
     const portalResource = matchingPortalResource(recommendation);
     assert.ok(portalResource, stage.label + ' recommendation ' + recommendation.title + ' does not map to a portal resource');
@@ -211,6 +230,27 @@ assert.equal(
   'find',
   'lowest diagnostic should drive the suggested path when no stronger signal exists'
 );
+
+const sellGuidance = getMastermindWeeklyGuidance('sell', cycle({ low_energy_version: 'Send one warm follow-up before rewriting anything.' }));
+assert.equal(sellGuidance.stage.id, 'sell', 'weekly guidance should load the selected stage');
+assert.equal(sellGuidance.quickWin.lowEnergy, 'Send one warm follow-up before rewriting anything.', 'weekly guidance should respect the member low-capacity plan');
+assert.equal(sellGuidance.primaryResource.resourceId, 'sales-marketing', 'weekly guidance should choose the first approved support resource');
+assert.equal(sellGuidance.aiProjectId, 'sales-room', 'weekly guidance should expose the stage-matched AI project pack id');
+
+assert.ok(AI_PROJECT_PACKS.length >= 7, 'AI Studio should include the foundation pack plus each stage pack');
+const monthlyAccess = getAiStudioAccessSummary('mastermind', true);
+const annualAccess = getAiStudioAccessSummary('mastermind_annual', true);
+const plannerAccess = getAiStudioAccessSummary(null, false);
+assert.equal(monthlyAccess.canSeeFullLibrary, false, 'monthly members should not receive the full AI library by default');
+assert.equal(monthlyAccess.canUnlockMonthlyPack, true, 'monthly members should be able to unlock one recommended pack');
+assert.equal(annualAccess.canSeeFullLibrary, true, 'annual/lifetime members should be eligible for the full approved AI library');
+assert.equal(plannerAccess.canUnlockMonthlyPack, false, 'planner-only members should not unlock Mastermind AI packs');
+assert.equal(getRecommendedAiProjectPack('offer', cycle({ biggest_bottleneck: 'offer clarity' })).id, 'offer-lab');
+const monthlyPacks = getVisibleAiProjectPacks(monthlyAccess, 'offer-lab');
+assert.equal(monthlyPacks.find((pack) => pack.id === 'ninety-day-ceo-workspace')?.visibility, 'included');
+assert.equal(monthlyPacks.find((pack) => pack.id === 'offer-lab')?.visibility, 'recommended_unlock');
+assert.equal(monthlyPacks.find((pack) => pack.id === 'sales-room')?.visibility, 'locked');
+assert.ok(getVisibleAiProjectPacks(annualAccess, 'offer-lab').every((pack) => pack.visibility === 'included'), 'annual access should include every AI project pack');
 
 console.log('mastermind portal verifier passed');
 `;
@@ -255,17 +295,21 @@ try {
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
+  const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
-  assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main Success Plan card');
-  assert.ok(mastermindHubSource.includes('Does this focus feel right?'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
+  assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main 90-day guidance card');
+  assert.ok(mastermindHubSource.includes('Adjust the focus if this is not the real constraint.'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
   assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');
   assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
-  assert.ok(successPathPlanCardSource.includes('Your next three moves'), 'The Success Plan should turn the recommendation into three concrete moves');
-  assert.ok(successPathPlanCardSource.includes('Update My 90-Day Plan'), 'The Success Plan needs an honest direct plan-editing action');
-  assert.ok(successPathPlanCardSource.includes('Open My Starting Resource'), 'The Success Plan should include a direct supporting-resource action');
+  assert.ok(successPathPlanCardSource.includes('Do this this week'), 'The 90-day guidance card should name one concrete weekly move');
+  assert.ok(successPathPlanCardSource.includes('Bring back this evidence'), 'The 90-day guidance card should define the evidence target');
+  assert.ok(successPathPlanCardSource.includes('Update My 90-Day Plan'), 'The 90-day guidance card needs an honest direct plan-editing action');
+  assert.ok(successPathPlanCardSource.includes('Open training'), 'The 90-day guidance card should include a direct supporting-training action');
+  assert.ok(aiStudioSource.includes('Monthly members get the planner-safe workspace plus one recommended project pack unlock per active month'), 'AI Studio should encode monthly limited access copy');
+  assert.ok(aiStudioSource.includes('90-Day CEO Workspace'), 'AI Studio should include a planner-safe foundation workspace');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
@@ -274,7 +318,7 @@ try {
     assert.ok(!mastermindResourcesSource.includes(hiddenSourceLabel), 'Frontend resource data should not include private source/audit label: ' + hiddenSourceLabel);
   }
   assert.ok(mastermindHubSource.includes('className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"'), 'Primary Mastermind actions should stack cleanly on mobile');
-  assert.ok(!mastermindHubSource.includes("navigate('/mastermind/replay-vault')"), 'Success Path must keep the Replay Vault hidden until launch is enabled');
+  assert.ok(!mastermindHubSource.includes("navigate('/mastermind/replay-vault')"), '90-day guidance must keep the Replay Vault hidden until launch is enabled');
   assert.ok(!mastermindHubSource.includes('VITE_ENABLE_MASTERMIND_VIDEO_SEARCH'), 'MastermindHub must not retain the static video-search feature flag');
   assert.ok(!mastermindHubSource.includes('MastermindVideoSearch'), 'MastermindHub must not mount the static Replay Vault pilot');
 
@@ -293,9 +337,9 @@ try {
 
   const requiredSuccessPathLayoutGuards = [
     'className="max-w-3xl"',
-    'className="mt-3 grid gap-3 md:grid-cols-3"',
-    'className="flex gap-3 rounded-xl border bg-background p-4"',
-    'className="flex flex-col gap-2 sm:flex-row"',
+    'className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"',
+    'className="rounded-lg border bg-background p-4"',
+    'className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"',
     'className="border-t bg-background/60 px-6 py-4 md:px-8"',
   ];
   for (const guard of requiredSuccessPathLayoutGuards) {
