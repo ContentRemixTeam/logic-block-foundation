@@ -96,8 +96,8 @@ Deno.serve(async (req) => {
 
     // Select columns based on mode - preview skips full content to save bandwidth
     const selectColumns = previewOnly
-      ? 'id, title, content_preview, content_length, tags, is_archived, created_at, updated_at, project_id, course_id, course_title, project:projects(id, name, color), course:courses(id, title)'
-      : '*, project:projects(id, name, color), course:courses(id, title)';
+      ? 'id,title,content_preview,content_length,tags,is_archived,created_at,updated_at,project_id,course_id,course_title,project:projects(id,name,color),course:courses(id,title)'
+      : '*,project:projects(id,name,color),course:courses(id,title)';
 
     // Build main query
     let query = supabase
