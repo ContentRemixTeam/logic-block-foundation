@@ -14,6 +14,7 @@ interface SuccessPathPlanCardProps {
   cycle: MastermindPlanCycle | null | undefined;
   successPath: MastermindSuccessPathOutput | null | undefined;
   selectedStageId: MastermindStageId;
+  currentMilestoneId?: string | null;
   isLoading: boolean;
   onBuildPlan: () => void;
   onOpenResource: (resource: MastermindResourceRecommendation) => void;
@@ -36,6 +37,7 @@ export function SuccessPathPlanCard({
   cycle,
   successPath,
   selectedStageId,
+  currentMilestoneId,
   isLoading,
   onBuildPlan,
   onOpenResource,
@@ -76,7 +78,7 @@ export function SuccessPathPlanCard({
     );
   }
 
-  const guidance = getMastermindWeeklyGuidance(selectedStageId, cycle);
+  const guidance = getMastermindWeeklyGuidance(selectedStageId, cycle, currentMilestoneId);
   const { stage, quickWin, primaryResource } = guidance;
   const realGoal = getRealGoal(cycle.goal);
 
@@ -94,12 +96,12 @@ export function SuccessPathPlanCard({
               {realGoal ?? stage.milestone}
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              This week is about removing the constraint that is most likely slowing the 90-day result down.
+              This week is about the part that is most likely slowing the 90-day result down.
             </p>
           </div>
 
           <div className="rounded-lg border bg-background/85 p-4">
-            <p className="text-xs font-semibold text-muted-foreground">Why this focus</p>
+            <p className="text-xs font-semibold text-muted-foreground">Why this is first</p>
             <p className="mt-1 text-sm leading-relaxed">
               {successPath.stageId === selectedStageId
                 ? successPath.reason
@@ -185,7 +187,7 @@ export function SuccessPathPlanCard({
           <div className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             <p className="text-sm">
-              <span className="font-semibold">You'll know this focus is working when: </span>
+              <span className="font-semibold">You'll know this is working when: </span>
               {stage.definitionOfDone.join(' | ')}
             </p>
           </div>

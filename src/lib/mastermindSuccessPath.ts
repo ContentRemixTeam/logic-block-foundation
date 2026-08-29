@@ -7,6 +7,7 @@ export interface MastermindResourceRecommendation {
   useWhen: string;
   portalPath?: string;
   afterWatching?: string;
+  milestoneIds?: string[];
 }
 
 export interface MastermindQuickWin {
@@ -74,10 +75,10 @@ interface KeywordRule {
 
 export const MASTERMIND_STAGE_MILESTONES: Record<MastermindStageId, MastermindMilestone[]> = {
   offer: [
-    { id: 'offer-focus', label: 'Choose the money-making focus', output: 'One active revenue stream for this quarter.' },
-    { id: 'offer-buyer', label: 'Choose the buyer and problem', output: 'One buyer doorway, paid problem, and piece of demand evidence.' },
-    { id: 'offer-mvp', label: 'Build the minimum viable offer', output: 'A clear promise, scope, delivery format, price, and boundary.' },
-    { id: 'offer-validate', label: 'Validate by making offers', output: 'A dated validation test with invitations and real response evidence.' },
+    { id: 'offer-focus', label: "Pick the thing you're selling", output: 'Choose one offer or revenue stream so the rest of the plan has a job.' },
+    { id: 'offer-buyer', label: 'Name the buyer and the real problem', output: 'Who is this for, what are they already trying to solve, and what proof do you have?' },
+    { id: 'offer-mvp', label: 'Make it simple enough to offer', output: 'Promise, price, format, and boundaries. Clear enough to send to a real person.' },
+    { id: 'offer-validate', label: 'Put it in front of people', output: 'Make the invitation, follow up, and write down what actually happened.' },
   ],
   find: [
     { id: 'find-path', label: 'Choose one discovery path', output: 'One channel or outreach route with a four-week test.' },
@@ -118,7 +119,7 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
     memberQuestion: 'What are you selling?',
     doThis: 'Write your offer in one sentence and invite 5 real people to react.',
     useWhen: 'Use this when the offer, buyer, price, promise, or demand evidence is still fuzzy.',
-    milestone: 'Choose one money focus and create a minimum viable offer test.',
+    milestone: "Pick the thing you're going to sell this quarter.",
     milestones: MASTERMIND_STAGE_MILESTONES.offer,
     definitionOfDone: [
       'Offer statement is clear enough to say out loud',
@@ -126,9 +127,10 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
       'Real people have been invited to validate or buy',
     ],
     resources: [
-      { resourceId: 'success-plan', title: 'Mastermind Success Plan Module One', access: 'Core', useWhen: 'Clarify the one result and how the program is meant to support it.', portalPath: 'Start Here -> Mastermind Success Plan', afterWatching: 'Write the one result, current constraint, and first evidence move in the planner.' },
-      { resourceId: 'products-offers', title: 'Products & Offers', access: 'Core', useWhen: 'Clarify the buyer, problem, promise, price, and product shape before adding more tactics.', portalPath: 'Learning -> BUSINESS STRATEGY: PRODUCTS & OFFERS', afterWatching: 'Update the offer sentence before creating more content or backend systems.' },
-      { resourceId: 'current-replays', title: 'Current Call Replays', access: '30-day replays', useWhen: 'Use a recent coaching example when the offer needs to become a real invitation instead of more private thinking.', portalPath: 'Learning -> CALL REPLAYS -> current 30-day window', afterWatching: 'Copy the smallest useful action from the example and test it this week.' },
+      { resourceId: 'money-move-day-one', title: 'Find Your Next Money Move', access: 'Core', useWhen: "Use this when you need to stop spinning and choose the thing you're actually going to sell.", portalPath: 'Core curriculum -> Find Your Next Money Move', afterWatching: 'Write the one offer or revenue stream you are choosing for this quarter.', milestoneIds: ['offer-focus'] },
+      { resourceId: 'wibn-offer-clarity', title: 'Offer Clarity', access: 'Core', useWhen: 'Use this when the idea exists, but the buyer, problem, or paid result is still fuzzy.', portalPath: 'Core curriculum -> Offer Clarity', afterWatching: 'Write the buyer/problem sentence in words a real buyer would recognize.', milestoneIds: ['offer-buyer'] },
+      { resourceId: 'money-move-day-two', title: 'Package Your Money Move', access: 'Core', useWhen: 'Use this when the offer needs to become clear enough to send before the backend is perfect.', portalPath: 'Core curriculum -> Package Your Money Move', afterWatching: 'Write the promise, price, format, and boundary for the version you can test this week.', milestoneIds: ['offer-mvp'] },
+      { resourceId: 'money-move-day-three', title: 'Create Your Sales Plan', access: 'Core', useWhen: 'Use this when the offer is clear enough and the next problem is making the invitation.', portalPath: 'Core curriculum -> Create Your Sales Plan', afterWatching: 'Make the invitation, schedule the follow-up, and record the response.', milestoneIds: ['offer-validate'] },
     ],
     supportPrompt: 'What part of this offer is still private theory instead of market evidence?',
     nextMoneyMove: 'Turn the offer into one clear invitation and put it in front of real people before you polish another backend piece.',
@@ -318,9 +320,11 @@ export const MASTERMIND_SUCCESS_STAGES: MastermindRoadmapStage[] = [
   },
 ];
 
-export function getMastermindWeeklyGuidance(stageId: MastermindStageId, cycle?: MastermindPlanCycle | null) {
+export function getMastermindWeeklyGuidance(stageId: MastermindStageId, cycle?: MastermindPlanCycle | null, milestoneId?: string | null) {
   const stage = getMastermindStage(stageId);
-  const primaryResource = stage.resources[0];
+  const primaryResource = (milestoneId
+    ? stage.resources.find((resource) => resource.milestoneIds?.includes(milestoneId))
+    : null) ?? stage.resources[0];
 
   return {
     stage,

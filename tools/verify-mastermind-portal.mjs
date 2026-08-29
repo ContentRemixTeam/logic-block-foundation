@@ -186,7 +186,8 @@ assert.ok(!transcriptReadyIds.includes('replay-vault'), 'transcript-ready filter
 
 for (const stage of MASTERMIND_SUCCESS_STAGES) {
   assert.ok(stageIdSet.has(stage.id), 'unknown stage id: ' + stage.id);
-  assert.equal(stage.resources.length, 3, stage.label + ' should recommend exactly three starting resources');
+  const expectedResourceCount = stage.id === 'offer' ? 4 : 3;
+  assert.equal(stage.resources.length, expectedResourceCount, stage.label + ' has the wrong number of starting resources');
   assert.equal(stage.messyActionSprint.length, 3, stage.label + ' should have exactly three messy action sprint steps');
   assert.ok(stage.nextMoneyMove.trim(), stage.label + ' is missing a next money move');
   assert.ok(stage.supportPrompt.trim(), stage.label + ' is missing an Ask Faith prompt');
@@ -219,6 +220,13 @@ for (const stage of MASTERMIND_SUCCESS_STAGES) {
       stage.label + ' recommendation ' + recommendation.title + ' must map to a default-visible resource'
     );
   }
+
+  if (stage.id === 'offer') {
+    const mappedMilestoneIds = new Set(stage.resources.flatMap((resource) => resource.milestoneIds ?? []));
+    for (const milestone of stage.milestones) {
+      assert.ok(mappedMilestoneIds.has(milestone.id), 'Offer milestone is missing a mapped lesson: ' + milestone.id);
+    }
+  }
 }
 
 assert.equal(inferMastermindSuccessPath(cycle({ biggest_bottleneck: 'My sales page and follow up are weak' }))?.stageId, 'sell');
@@ -236,6 +244,9 @@ assert.equal(sellGuidance.stage.id, 'sell', 'weekly guidance should load the sel
 assert.equal(sellGuidance.quickWin.lowEnergy, 'Send one warm follow-up before rewriting anything.', 'weekly guidance should respect the member low-capacity plan');
 assert.equal(sellGuidance.primaryResource.resourceId, 'sales-marketing', 'weekly guidance should choose the first approved support resource');
 assert.equal(sellGuidance.aiProjectId, 'sales-room', 'weekly guidance should expose the stage-matched AI project pack id');
+
+const offerValidationGuidance = getMastermindWeeklyGuidance('offer', cycle({}), 'offer-validate');
+assert.equal(offerValidationGuidance.primaryResource.resourceId, 'money-move-day-three', 'offer validation should recommend the sales-plan lesson');
 
 assert.ok(AI_PROJECT_PACKS.length >= 7, 'AI Studio should include the foundation pack plus each stage pack');
 const monthlyAccess = getAiStudioAccessSummary('mastermind', true);
@@ -300,7 +311,7 @@ try {
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
   assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main 90-day guidance card');
-  assert.ok(mastermindHubSource.includes('Adjust the focus if this is not the real constraint.'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
+  assert.ok(mastermindHubSource.includes('Change this if it is not the right focus.'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
   assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');
   assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
