@@ -280,6 +280,7 @@ const App = () => (
                       <Route path="/help/browser-storage" element={<ProtectedRoute><PageSuspense><BrowserStorageHelp /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><PageSuspense><Settings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin" element={<ProtectedRoute><PageSuspense><Admin /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/admin/mastermind-90-day-plan-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindHub /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
                       <Route path="/admin/mastermind-replacement-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindReplacementPreview /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
                       <Route path="/admin/low-battery-workshop" element={<ProtectedRoute><PageSuspense><LowBatteryWorkshopAdmin /></PageSuspense></ProtectedRoute>} />
                       <Route path="/coaching-log" element={<ProtectedRoute><PageSuspense><CoachingLog /></PageSuspense></ProtectedRoute>} />
