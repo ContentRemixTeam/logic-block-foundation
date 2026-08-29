@@ -28,8 +28,9 @@ function fixture(options: { authenticated?: boolean; rpcError?: boolean } = {}) 
 Deno.test('library mapper chooses fixed RPCs and clamps pagination', () => {
   const userId = '11111111-1111-4111-8111-111111111111';
   const mapped = mapLibraryRequest({ action: 'transcript', resourceId: 'replay-1', afterIndex: 999_999, limit: 999 }, userId);
-  assertEquals(mapped?.rpc, 'replay_vault_transcript_member');
-  assertEquals(mapped?.args, { p_user_id: userId, p_limit: 101, p_portal_resource_id: 'replay-1', p_after_index: 999_999 });
+  assertEquals(mapped?.rpc, 'replay_vault_transcript_authorized');
+  assertEquals(mapped?.args.p_preview, true);
+  assertEquals(mapped?.args, { p_user_id: userId, p_limit: 101, p_portal_resource_id: 'replay-1', p_after_index: 999_999, p_preview: true });
   assertEquals(mapLibraryRequest({ action: 'saved', filter: 'private' }, userId), null);
   assertEquals(mapLibraryRequest({ action: 'transcript', resourceId: '../private' }, userId), null);
 });
