@@ -91,6 +91,19 @@ export default function MastermindHub() {
   const currentMilestoneId = successPathData?.snapshot?.current_milestone_id ?? selectedStage.milestones[0].id;
   const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
     ?? selectedStage.milestones[0];
+  const currentCheckpointTitle = selectedStageId === 'offer'
+    ? "Pick the thing you're going to sell this quarter"
+    : currentMilestone.label;
+  const currentCheckpointDescription = selectedStageId === 'offer' && currentMilestone.id === 'offer-focus'
+    ? 'One offer. One group of people. One way money is supposed to come in.'
+    : currentMilestone.output;
+  const stageResourcesForCurrentMilestone = useMemo(() => {
+    const milestoneResources = selectedStage.resources.filter((resource) =>
+      !resource.milestoneIds || resource.milestoneIds.includes(currentMilestone.id)
+    );
+
+    return milestoneResources.length > 0 ? milestoneResources : selectedStage.resources;
+  }, [currentMilestone.id, selectedStage]);
 
   const handleStageSelect = async (stageId: typeof selectedStageId) => {
     if (!successPathData?.cycle) {
@@ -215,6 +228,7 @@ export default function MastermindHub() {
                 cycle={successPathData?.cycle}
                 successPath={successPathData?.successPath}
                 selectedStageId={selectedStageId}
+                currentMilestoneId={currentMilestone.id}
                 isLoading={successPathLoading}
                 onBuildPlan={() => navigate('/cycle-setup')}
                 onOpenResource={handleOpenRecommendedResource}
@@ -243,13 +257,13 @@ export default function MastermindHub() {
 
               <Card>
                 <CardHeader>
-                  <Badge variant="outline" className="w-fit">Current checkpoint</Badge>
-                  <CardTitle>{currentMilestone.label}</CardTitle>
-                  <CardDescription>{currentMilestone.output}</CardDescription>
+                  <Badge variant="outline" className="w-fit">Start here</Badge>
+                  <CardTitle>{currentCheckpointTitle}</CardTitle>
+                  <CardDescription>{currentCheckpointDescription}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button variant="outline" onClick={() => setShowMilestones((open) => !open)}>
-                    {showMilestones ? 'Keep this milestone' : 'Choose a different milestone'}
+                    {showMilestones ? 'Keep this focus' : 'Change focus'}
                   </Button>
 
                   {showMilestones && (
@@ -282,9 +296,9 @@ export default function MastermindHub() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Adjust the focus if this is not the real constraint.</CardTitle>
+                  <CardTitle>Change this if it is not the right focus.</CardTitle>
                   <CardDescription>
-                    Choose the area that is the real constraint. Your choice is saved to this 90-day cycle and stays here when you return.
+                    Choose the area that needs attention first. Your choice is saved to this 90-day cycle and stays here when you return.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -323,7 +337,7 @@ export default function MastermindHub() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-3">
-                      {selectedStage.resources.map((resource, index) => (
+                      {stageResourcesForCurrentMilestone.map((resource, index) => (
                         <div key={resource.title} className="rounded-lg border p-4">
                           <div className="flex items-start gap-3">
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
