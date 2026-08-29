@@ -19,6 +19,7 @@ const entry = String.raw`
 import assert from 'node:assert/strict';
 import {
   MASTERMIND_PORTAL_RESOURCES,
+  getProtectedTrainingHref,
   type MastermindPortalAccess,
 } from '@/data/mastermindPortalResources';
 import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
@@ -183,6 +184,44 @@ assert.ok(transcriptReadyIds.includes('success-plan'), 'transcript-ready filter 
 assert.ok(transcriptReadyIds.includes('faith-ai'), 'transcript-ready filter should include description-indexed Faith AI');
 assert.ok(!transcriptReadyIds.includes('products-offers'), 'transcript-ready filter should hide metadata-only resources');
 assert.ok(!transcriptReadyIds.includes('replay-vault'), 'transcript-ready filter should hide server-side-required vault search');
+
+const protectedCurriculumResourceIds = [
+  'success-plan',
+  'ninety-day-planning',
+  'money-move-day-one',
+  'wibn-offer-clarity',
+  'money-move-day-two',
+  'money-move-day-three',
+];
+for (const resourceId of protectedCurriculumResourceIds) {
+  const resource = MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === resourceId);
+  assert.ok(resource?.protectedPlayback, resourceId + ' is missing the protected curriculum playback contract');
+  assert.equal(resource.protectedPlayback.accessScope, 'core_curriculum', resourceId + ' must be monthly-safe core curriculum');
+  assert.equal(resource.protectedPlayback.surface, 'curriculum', resourceId + ' must open through the Training Library surface');
+  assert.equal(getProtectedTrainingHref(resource), null, resourceId + ' must keep using the current bridge until the protected import is ready');
+}
+
+const readyTrainingHref = getProtectedTrainingHref({
+  ...MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === 'money-move-day-one')!,
+  protectedPlayback: {
+    resourceId: 'money-move-day-one',
+    accessScope: 'core_curriculum',
+    surface: 'curriculum',
+    status: 'ready',
+  },
+});
+assert.equal(readyTrainingHref, '/mastermind/training?resource=money-move-day-one', 'ready curriculum video should open the protected Training Library player');
+
+const readyVaultHref = getProtectedTrainingHref({
+  ...MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === 'replay-vault')!,
+  protectedPlayback: {
+    resourceId: 'membershipio:P5qnk1Q02r',
+    accessScope: 'replay_vault',
+    surface: 'vault',
+    status: 'ready',
+  },
+});
+assert.equal(readyVaultHref, '/mastermind/replay-vault?resource=membershipio%3AP5qnk1Q02r', 'ready Vault video should keep opening the Vault surface');
 
 for (const stage of MASTERMIND_SUCCESS_STAGES) {
   assert.ok(stageIdSet.has(stage.id), 'unknown stage id: ' + stage.id);
