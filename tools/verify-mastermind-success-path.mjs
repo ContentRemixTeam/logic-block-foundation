@@ -39,7 +39,10 @@ requireText(hub, 'Your previous focus is still safe.', 'honest save failure stat
 
 const app = 'src/App.tsx';
 requireText(app, 'path="/mastermind/success-path/:cycleId"', 'cycle-specific Success Path route');
-requireText(app, '<MastermindGate><PageSuspense><MastermindHub />', 'admin preview gate retained');
+requireText(app, 'VITE_ENABLE_MASTERMIND_90_DAY_PLAN', 'member launch flag');
+requireText(app, '<MastermindLaunchGate><MastermindGate><PageSuspense><MastermindHub />', 'member route launch gate');
+requireText(app, 'path="/admin/mastermind-90-day-plan-preview"', 'admin 90-day preview route');
+requireText(app, '<AdminPreviewGate><PageSuspense><MastermindHub />', 'admin preview gate retained');
 
 for (const navFile of ['src/components/AppSidebar.tsx', 'src/components/sidebar/MobileSidebarContent.tsx']) {
   const nav = read(navFile);

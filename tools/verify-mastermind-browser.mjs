@@ -13,6 +13,7 @@ const repeatCount = Number.parseInt(process.env.MASTERMIND_BROWSER_QA_REPEAT || 
 const artifactDir = process.env.MASTERMIND_BROWSER_QA_ARTIFACT_DIR
   ? path.resolve(process.env.MASTERMIND_BROWSER_QA_ARTIFACT_DIR)
   : null;
+const qaPath = process.env.MASTERMIND_BROWSER_QA_PATH || '/admin/mastermind-90-day-plan-preview';
 const supabaseProjectRef = 'wdxelomsouudmidakxiz';
 const mockUserId = '00000000-0000-4000-8000-000000000001';
 const mockEmail = 'mastermind-browser-qa@example.com';
@@ -708,7 +709,7 @@ async function runScenario(baseUrl, debugPort, scenario, passNumber) {
       source: buildMockScript(scenario.cycle),
     });
 
-    const url = `${baseUrl}/mastermind?browserQa=${encodeURIComponent(scenario.name)}&pass=${passNumber}`;
+    const url = `${baseUrl}${qaPath}?browserQa=${encodeURIComponent(scenario.name)}&pass=${passNumber}`;
     await client.send('Page.navigate', { url });
     await waitFor(client, 'document.readyState === "complete"', `${scenario.name} document complete`);
     await runChecks(client, scenario.checks, `${scenario.name} pass ${passNumber}`);
