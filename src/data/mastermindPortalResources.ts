@@ -18,6 +18,17 @@ import {
 export type MastermindPortalAccess = 'core' | 'current_replay' | 'vault' | 'eligible' | 'access_review';
 export type MastermindTranscriptStatus = 'transcript_ready' | 'description_indexed' | 'metadata_only' | 'server_side_required';
 export type MastermindPortalResourceType = 'pathway' | 'planner' | 'support' | 'replay' | 'vault' | 'ai' | 'sprint';
+export type MastermindProtectedPlaybackScope = 'core_curriculum' | 'current_replay_30_day' | 'replay_vault';
+export type MastermindProtectedPlaybackSurface = 'curriculum' | 'recent_replay' | 'vault';
+export type MastermindProtectedPlaybackStatus = 'pending_import' | 'ready';
+
+export interface MastermindProtectedPlayback {
+  resourceId: string;
+  accessScope: MastermindProtectedPlaybackScope;
+  surface: MastermindProtectedPlaybackSurface;
+  status: MastermindProtectedPlaybackStatus;
+  sourceIdentitySha256?: string;
+}
 
 export interface MastermindPortalResource {
   id: string;
@@ -36,10 +47,19 @@ export interface MastermindPortalResource {
   url: string;
   isExternal: boolean;
   primaryAction: string;
+  protectedPlayback?: MastermindProtectedPlayback;
 }
 
 const learningUrl = (productId: string) =>
   `https://portal.faithmariah.com/communities/groups/mastermind/learning?productId=${productId}`;
+
+export function getProtectedTrainingHref(resource: MastermindPortalResource) {
+  const playback = resource.protectedPlayback;
+  if (!playback || playback.status !== 'ready') return null;
+  const params = new URLSearchParams({ resource: playback.resourceId });
+  if (playback.surface === 'vault') return `/mastermind/replay-vault?${params.toString()}`;
+  return `/mastermind/training?${params.toString()}`;
+}
 
 export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
   {
@@ -59,6 +79,12 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: learningUrl('23a1c1db-90c5-40fe-965c-d053b8b14a45'),
     isExternal: true,
     primaryAction: 'Open Success Plan',
+    protectedPlayback: {
+      resourceId: 'success-plan',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
   },
   {
     id: 'ninety-day-planning',
@@ -77,6 +103,12 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: '/cycle-setup',
     isExternal: false,
     primaryAction: 'Build Plan',
+    protectedPlayback: {
+      resourceId: 'ninety-day-planning',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
   },
   {
     id: 'ask-faith',
@@ -131,6 +163,12 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: learningUrl('8cd48d79-e6dd-4e11-9e4c-5d643703bad1'),
     isExternal: true,
     primaryAction: 'Open Current Replays',
+    protectedPlayback: {
+      resourceId: 'current-replays',
+      accessScope: 'current_replay_30_day',
+      surface: 'recent_replay',
+      status: 'pending_import',
+    },
   },
   {
     id: 'money-moves-sprint',
@@ -167,6 +205,13 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
     isExternal: true,
     primaryAction: 'Open Training',
+    protectedPlayback: {
+      resourceId: 'money-move-day-one',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+      sourceIdentitySha256: 'b02ec76d9b71805140cbd46a6c41ce36c4feacd70056f568ef49a46c485f1940',
+    },
   },
   {
     id: 'wibn-offer-clarity',
@@ -185,6 +230,13 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: learningUrl('6e8a7112-1b1d-41bd-91ea-0159bc231527'),
     isExternal: true,
     primaryAction: 'Open Training',
+    protectedPlayback: {
+      resourceId: 'wibn-offer-clarity',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+      sourceIdentitySha256: '5a24d9d6383ceee8c09be251a4e4c978f73d1b8e1e1732dcf86a2e69d5793313',
+    },
   },
   {
     id: 'money-move-day-two',
@@ -203,6 +255,13 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
     isExternal: true,
     primaryAction: 'Open Training',
+    protectedPlayback: {
+      resourceId: 'money-move-day-two',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+      sourceIdentitySha256: 'fe5fde3630ce6a4aa5a393cff94b8e302084c5874c6f1f84b60454be9948659e',
+    },
   },
   {
     id: 'money-move-day-three',
@@ -221,6 +280,13 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
     isExternal: true,
     primaryAction: 'Open Training',
+    protectedPlayback: {
+      resourceId: 'money-move-day-three',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+      sourceIdentitySha256: '1ea39b6f05165f8c7ea3a56c4f4c44cd2d5676e97d2f021841a849a0d76622ed',
+    },
   },
   {
     id: 'messy-action-sprints',
@@ -239,6 +305,12 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: learningUrl('4b78a1e1-6f76-4043-bcb5-5e05570ce90b'),
     isExternal: true,
     primaryAction: 'Open Sprints',
+    protectedPlayback: {
+      resourceId: 'messy-action-sprints',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
   },
   {
     id: 'products-offers',
@@ -383,5 +455,11 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: '/mastermind',
     isExternal: false,
     primaryAction: 'Check Vault Access',
+    protectedPlayback: {
+      resourceId: 'replay-vault',
+      accessScope: 'replay_vault',
+      surface: 'vault',
+      status: 'pending_import',
+    },
   },
 ];

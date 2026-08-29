@@ -11,6 +11,7 @@ import { AiStudioPlanCard } from '@/components/mastermind/AiStudioPlanCard';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
 import {
   MASTERMIND_PORTAL_RESOURCES,
+  getProtectedTrainingHref,
   type MastermindPortalAccess,
   type MastermindPortalResource,
 } from '@/data/mastermindPortalResources';
@@ -181,7 +182,10 @@ export default function MastermindHub() {
   }, [filteredResources, pinnedIds]);
 
   const handleOpen = (resource: MastermindPortalResource) => {
-    if (resource.isExternal) {
+    const protectedHref = getProtectedTrainingHref(resource);
+    if (protectedHref) {
+      navigate(protectedHref);
+    } else if (resource.isExternal) {
       window.open(resource.url, '_blank', 'noopener,noreferrer');
     } else {
       navigate(resource.url);
