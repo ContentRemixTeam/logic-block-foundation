@@ -564,57 +564,58 @@ async function saveScreenshot(client, scenario, passNumber) {
 }
 
 async function runChecks(client, checks, label) {
-  await waitFor(client, 'document.body && document.body.innerText.includes("My Success Plan")', `${label} Mastermind shell`);
+  await waitFor(client, 'document.body && document.body.innerText.includes("Your 90-Day Plan")', `${label} Mastermind shell`);
   await assertNoText(client, 'Video Search');
   await assertNoHorizontalOverflow(client, `${label} initial view`);
 
   if (checks.includes('savedCyclePath')) {
-    await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} saved-cycle path`);
-    await assertText(client, 'Your 90-day focus');
-    await assertText(client, 'Run one complete sales cycle with follow-up and a real debrief.');
-    await assertText(client, 'Your next three moves');
-    await assertText(client, 'Name the warmest 10 people, segments, or audience signals available right now.');
+    await waitFor(client, 'document.body.innerText.includes("Current focus: Sell")', `${label} saved-cycle guidance`);
+    await assertText(client, 'Your 90-day plan');
+    await assertText(client, 'Do this this week');
+    await assertText(client, 'Complete the next sales action');
+    await assertText(client, 'Name the warmest people or segment, send one clear invitation, and schedule the follow-up before changing the offer.');
+    await assertText(client, 'Bring back this evidence');
     await assertText(client, 'Ask Faith');
     await clickText(client, 'Get Support');
-    await waitFor(client, 'document.body.innerText.includes("Enable Faith AI")', `${label} support tab`);
-    await assertText(client, 'Enable Faith AI');
-    await clickText(client, 'Success Path');
-    await waitFor(client, 'document.body.innerText.includes("Your 90-day focus")', `${label} return to Success Path`);
-    await assertNoHorizontalOverflow(client, `${label} Success Path`);
+    await waitFor(client, 'document.body.innerText.includes("Get Coached by Faith")', `${label} support tab`);
+    await assertText(client, 'Get Coached by Faith');
+    await clickText(client, 'Guidance');
+    await waitFor(client, 'document.body.innerText.includes("Do this this week")', `${label} return to guidance`);
+    await assertNoHorizontalOverflow(client, `${label} guidance`);
 
-    await assertText(client, 'Open My Starting Resource');
-    await clickText(client, 'Resources');
-    await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} resources tab`);
+    await assertText(client, 'Open training');
+    await clickText(client, 'Training');
+    await waitFor(client, 'document.body.innerText.includes("Find What I Need")', `${label} training tab`);
     await assertText(client, 'Sales & Marketing');
-    await assertText(client, 'Sell path');
+    await assertText(client, 'Sell focus');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} resources tab`);
+    await assertNoHorizontalOverflow(client, `${label} training tab`);
   }
 
   if (checks.includes('noCyclePrompt')) {
-    await waitFor(client, 'document.body.innerText.includes("Choose one result for the next 90 days.")', `${label} no-cycle prompt`);
-    await assertText(client, 'Build My Success Plan');
-    await assertNoText(client, 'Your 90-day focus');
+    await waitFor(client, 'document.body.innerText.includes("Build your 90-day plan.")', `${label} no-cycle prompt`);
+    await assertText(client, 'Build 90-Day Plan');
+    await assertNoText(client, 'Current focus:');
     await assertNoHorizontalOverflow(client, `${label} no-cycle state`);
   }
 
   if (checks.includes('resourceFinder')) {
-    await clickText(client, 'Resources');
-    await waitFor(client, 'document.body.innerText.includes("Resource finder")', `${label} Resource Finder`);
-    await assertText(client, 'Portal map');
+    await clickText(client, 'Training');
+    await waitFor(client, 'document.body.innerText.includes("Find What I Need")', `${label} Training Finder`);
+    await assertText(client, 'Training Library map');
     await assertText(client, 'Visible resources');
     await assertText(client, 'Indexed now');
     await assertText(client, 'Access labels');
-    await assertText(client, 'Sell path');
+    await assertText(client, 'Sell focus');
     await assertText(client, 'Bonus and vault items stay out of this finder');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} Resource Finder default`);
+    await assertNoHorizontalOverflow(client, `${label} Training Finder default`);
 
-    await clickText(client, 'Sell path');
-    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} Sell path filter`);
+    await clickText(client, 'Sell focus');
+    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} Sell focus filter`);
     await assertNoText(client, 'Grow Your Email List');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} Sell path filter`);
+    await assertNoHorizontalOverflow(client, `${label} Sell focus filter`);
 
     await clickText(client, '30-day');
     await waitFor(client, 'document.body.innerText.includes("Current Call Replays")', `${label} 30-day filter`);
