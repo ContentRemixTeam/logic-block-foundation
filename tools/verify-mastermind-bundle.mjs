@@ -34,6 +34,7 @@ const forbiddenGroups = [
       'bunny_video_id',
       'youtube_video_id',
       'source_fingerprint',
+      'sourceIdentitySha256',
       'match_score',
     ],
   },

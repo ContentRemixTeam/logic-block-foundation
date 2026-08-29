@@ -27,7 +27,6 @@ export interface MastermindProtectedPlayback {
   accessScope: MastermindProtectedPlaybackScope;
   surface: MastermindProtectedPlaybackSurface;
   status: MastermindProtectedPlaybackStatus;
-  sourceIdentitySha256?: string;
 }
 
 export interface MastermindPortalResource {
@@ -210,7 +209,6 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
       accessScope: 'core_curriculum',
       surface: 'curriculum',
       status: 'pending_import',
-      sourceIdentitySha256: 'b02ec76d9b71805140cbd46a6c41ce36c4feacd70056f568ef49a46c485f1940',
     },
   },
   {
@@ -235,7 +233,6 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
       accessScope: 'core_curriculum',
       surface: 'curriculum',
       status: 'pending_import',
-      sourceIdentitySha256: '5a24d9d6383ceee8c09be251a4e4c978f73d1b8e1e1732dcf86a2e69d5793313',
     },
   },
   {
@@ -260,7 +257,6 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
       accessScope: 'core_curriculum',
       surface: 'curriculum',
       status: 'pending_import',
-      sourceIdentitySha256: 'fe5fde3630ce6a4aa5a393cff94b8e302084c5874c6f1f84b60454be9948659e',
     },
   },
   {
@@ -285,7 +281,6 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
       accessScope: 'core_curriculum',
       surface: 'curriculum',
       status: 'pending_import',
-      sourceIdentitySha256: '1ea39b6f05165f8c7ea3a56c4f4c44cd2d5676e97d2f021841a849a0d76622ed',
     },
   },
   {

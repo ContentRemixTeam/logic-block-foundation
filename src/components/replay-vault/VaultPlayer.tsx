@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useState } from 'react';
+import { RefObject, ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
@@ -7,8 +7,22 @@ import type { PlaybackResult, PlaybackTarget } from './types';
 import { VaultInteractionBar } from './VaultInteractionBar';
 import { VaultTranscript } from './VaultTranscript';
 import { VaultCallQuestions } from './VaultCallQuestions';
-interface VaultPlayerProps { playback: PlaybackResult; target: PlaybackTarget; videoRef: RefObject<HTMLVideoElement>; announcement: string; sourceGeneration: number; recoveryBusy: boolean; recoveryFailed: boolean; onLoadedMetadata: () => void; onMediaError: () => void; onManualRefresh: () => void; onOpen: (target: PlaybackTarget) => void; }
-export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh, onOpen }: VaultPlayerProps) {
+interface VaultPlayerProps {
+  playback: PlaybackResult;
+  target: PlaybackTarget;
+  videoRef: RefObject<HTMLVideoElement>;
+  announcement: string;
+  sourceGeneration: number;
+  recoveryBusy: boolean;
+  recoveryFailed: boolean;
+  onLoadedMetadata: () => void;
+  onMediaError: () => void;
+  onManualRefresh: () => void;
+  onOpen: (target: PlaybackTarget) => void;
+  showVaultTools?: boolean;
+  footer?: ReactNode;
+}
+export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh, onOpen, showVaultTools = true, footer }: VaultPlayerProps) {
   const isYouTube = playback.provider === 'youtube';
   const [currentTime, setCurrentTime] = useState(0);
   useEffect(() => { setCurrentTime(0); }, [sourceGeneration]);
@@ -27,11 +41,12 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
             <source src={playback.playbackUrl} />Your browser does not support protected video playback.
           </video>
         )}
-        {target.momentId || target.questionId
+        {showVaultTools && (target.momentId || target.questionId
           ? <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />
-          : <p className="rounded-md border p-3 text-sm text-muted-foreground">Full-replay saving is available from Browse and Saved. Answer notes, sharing, and watch progress start when you open an exact transcript moment or approved question.</p>}
-        <VaultCallQuestions resourceId={playback.resourceId} title={playback.title} onOpen={onOpen} />
-        <VaultTranscript resourceId={playback.resourceId} title={playback.title} currentTime={currentTime} timeSynchronized={!isYouTube} onOpen={onOpen} />
+          : <p className="rounded-md border p-3 text-sm text-muted-foreground">Full-replay saving is available from Browse and Saved. Answer notes, sharing, and watch progress start when you open an exact transcript moment or approved question.</p>)}
+        {footer}
+        {showVaultTools && <VaultCallQuestions resourceId={playback.resourceId} title={playback.title} onOpen={onOpen} />}
+        {showVaultTools && <VaultTranscript resourceId={playback.resourceId} title={playback.title} currentTime={currentTime} timeSynchronized={!isYouTube} onOpen={onOpen} />}
         <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
         {!isYouTube && recoveryBusy && <p role="status" className="text-sm text-muted-foreground">Refreshing protected playback…</p>}
         {!isYouTube && recoveryFailed && (
