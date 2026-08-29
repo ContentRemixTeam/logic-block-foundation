@@ -161,7 +161,8 @@ function getServiceClient() {
 // Auth resolution result
 type AuthCtx = {
   userId: string;
-  client: ReturnType<typeof createClient>;
+  // deno-lint-ignore no-explicit-any
+  client: any;
   source: "jwt" | "ai_key";
   keyId?: string;
 };
@@ -281,7 +282,7 @@ async function handleTool(
       const { data, error } = await supabase
         .from("tasks")
         .update({ is_completed: true, status: "done", completed_at: new Date().toISOString() })
-        .eq("task_id", args.task_id)
+        .eq("task_id", String(args.task_id))
         .eq("user_id", userId)
         .select("task_id, task_text")
         .single();
@@ -297,7 +298,7 @@ async function handleTool(
       const { data, error } = await supabase
         .from("tasks")
         .update(updates)
-        .eq("task_id", args.task_id)
+        .eq("task_id", String(args.task_id))
         .eq("user_id", userId)
         .select("task_id, task_text, status, priority, scheduled_date")
         .single();
@@ -444,7 +445,7 @@ async function handleMcpRequest(body: Record<string, unknown>, ctx: AuthCtx) {
           jsonrpc: "2.0",
           id,
           result: {
-            content: [{ type: "text", text: `Error: ${err.message}` }],
+            content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : "Unknown error"}` }],
             isError: true,
           },
         };
@@ -544,7 +545,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("MCP server error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
