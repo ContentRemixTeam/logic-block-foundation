@@ -48,6 +48,7 @@ const migrations = [
   "supabase/migrations/20260828233500_replay_vault_hidden_preview_approval.sql",
   "supabase/migrations/20260829133000_replay_vault_admin_preview_catalog.sql",
   "supabase/migrations/20260829170500_mastermind_training_media_playback.sql",
+  "supabase/migrations/20260830210500_mastermind_media_locator_normalization.sql",
 ];
 
 for (const migration of migrations.slice(1)) {
@@ -200,7 +201,7 @@ BEGIN
   core_resource := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
   vault_resource := 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1';
   recent_resource := 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1';
-  PERFORM pg_temp.add_resource(core_resource, 'core-lesson', 'Core curriculum lesson', 'core_curriculum', 'dbid-core', 'c');
+  PERFORM pg_temp.add_resource(core_resource, 'core-lesson', 'Core curriculum lesson', 'core_curriculum', 'id:dbid-core', 'c');
   PERFORM pg_temp.add_resource(vault_resource, 'vault-lesson', 'Annual replay vault lesson', 'replay_vault', 'dbid-vault', 'd');
   PERFORM pg_temp.add_resource(recent_resource, 'recent-lesson', 'Current replay lesson', 'current_replay_30_day', 'dbid-recent', 'e', '2026-09-15');
 

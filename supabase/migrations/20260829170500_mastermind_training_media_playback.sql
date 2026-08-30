@@ -208,7 +208,11 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT r.id, r.transcript_version_id, r.title, 'id:' || r.dropbox_file_id,
+  SELECT r.id, r.transcript_version_id, r.title,
+    CASE
+      WHEN trim(r.dropbox_file_id) LIKE 'id:%' THEN trim(r.dropbox_file_id)
+      ELSE 'id:' || trim(r.dropbox_file_id)
+    END,
     r.approved_access_scope, (r.duration_ms / 1000)::integer
   INTO v_resource_id, v_transcript_version_id, v_title, v_locator, v_scope, v_duration
   FROM public.replay_authorized_resource_projection r
