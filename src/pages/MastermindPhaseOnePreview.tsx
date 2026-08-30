@@ -36,10 +36,16 @@ import {
   PHASE_ONE_LESSONS,
   PHASE_ONE_REQUIRED_LESSONS,
 } from '@/data/phaseOneCurriculum';
+import { usePhaseOneCatalog, savePhaseOneVideoProgress } from '@/hooks/usePhaseOneCatalog';
 import { cn } from '@/lib/utils';
 
 const PROGRESS_KEY = 'mastermind-phase-one-preview-progress';
 const WORKSPACE_READY_KEY = 'mastermind-phase-one-preview-workspace-ready';
+const TRAINING_PREVIEW_ROUTE = '/admin/mastermind-training-preview';
+
+const trainingHref = (resourceId: string) =>
+  `${TRAINING_PREVIEW_ROUTE}?resource=${encodeURIComponent(resourceId)}&from=phase-one`;
+
 
 function readWatched(): string[] {
   try {
