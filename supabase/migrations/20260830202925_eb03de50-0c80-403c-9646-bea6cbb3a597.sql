@@ -1,0 +1,1 @@
+ALTER FUNCTION public.replay_import_launch_batch(jsonb, text) SET statement_timeout TO '600s';
