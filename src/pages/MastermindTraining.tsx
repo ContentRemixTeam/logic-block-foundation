@@ -210,10 +210,11 @@ export default function MastermindTraining() {
               </p>
             </div>
           </div>
-          <Button type="button" variant="outline" onClick={() => navigate('/mastermind')} className="w-full md:w-auto">
+          <Button type="button" variant="outline" onClick={() => navigate(backHref)} className="w-full md:w-auto">
             <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-            Back to 90-Day Plan
+            {backLabel}
           </Button>
+
         </div>
 
         {!initialTarget && (
