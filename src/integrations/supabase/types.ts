@@ -6471,6 +6471,7 @@ export type Database = {
           actor: string
           batch_key: string
           batch_sha256: string
+          completed_at: string
           created_at: string
           cue_count: number
           id: string
@@ -6484,6 +6485,7 @@ export type Database = {
           actor: string
           batch_key: string
           batch_sha256: string
+          completed_at?: string
           created_at?: string
           cue_count?: number
           id?: string
@@ -6497,6 +6499,7 @@ export type Database = {
           actor?: string
           batch_key?: string
           batch_sha256?: string
+          completed_at?: string
           created_at?: string
           cue_count?: number
           id?: string
