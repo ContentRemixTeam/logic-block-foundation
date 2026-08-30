@@ -6445,6 +6445,39 @@ export type Database = {
           },
         ]
       }
+      replay_launch_batch_derivations: {
+        Row: {
+          created_at: string
+          derived_batch_key: string
+          derived_batch_sha256: string
+          id: string
+          omitted_portal_resource_ids: string[]
+          origin_batch_key: string
+          origin_batch_sha256: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          derived_batch_key: string
+          derived_batch_sha256: string
+          id?: string
+          omitted_portal_resource_ids: string[]
+          origin_batch_key: string
+          origin_batch_sha256: string
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          derived_batch_key?: string
+          derived_batch_sha256?: string
+          id?: string
+          omitted_portal_resource_ids?: string[]
+          origin_batch_key?: string
+          origin_batch_sha256?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       replay_launch_batch_exclusions: {
         Row: {
           created_at: string
@@ -6508,6 +6541,39 @@ export type Database = {
           record_count?: number
           skipped_count?: number
           status?: string
+        }
+        Relationships: []
+      }
+      replay_launch_case_collision_reviews: {
+        Row: {
+          created_at: string
+          excluded_portal_resource_id: string
+          id: string
+          notes: string | null
+          origin_batch_key: string
+          retained_portal_resource_id: string
+          review_state: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          excluded_portal_resource_id: string
+          id?: string
+          notes?: string | null
+          origin_batch_key: string
+          retained_portal_resource_id: string
+          review_state?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          excluded_portal_resource_id?: string
+          id?: string
+          notes?: string | null
+          origin_batch_key?: string
+          retained_portal_resource_id?: string
+          review_state?: string
+          updated_at?: string
         }
         Relationships: []
       }
