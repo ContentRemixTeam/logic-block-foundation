@@ -169,8 +169,8 @@ export default function MastermindPhaseOnePreview() {
             </CardHeader>
             <CardContent className="space-y-3 p-4 sm:p-5">
               {visibleLessons.map((lesson, index) => {
-                const isWatched = watched.includes(lesson.resourceId);
-                const playbackReady = lesson.lessonState === 'ready';
+                const isWatched = isWatchedLesson(lesson.resourceId);
+                const playbackReady = catalogById.has(lesson.resourceId);
                 return (
                   <article key={lesson.resourceId} className={cn('group rounded-2xl border p-4 transition-colors', isWatched ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/15' : 'hover:border-primary/35')}>
                     <div className="flex items-start gap-3">
@@ -188,9 +188,16 @@ export default function MastermindPhaseOnePreview() {
                         {lesson.requirement !== 'required' && <p className="mt-2 text-xs font-medium text-primary">Show this: {lesson.showWhen}</p>}
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />{lesson.durationLabel ?? 'Duration pending'}</span>
-                          <Button size="sm" variant={isWatched ? 'outline' : 'secondary'} disabled={!playbackReady} onClick={() => navigate(`/mastermind/training?resource=${lesson.resourceId}`)}>
+                          <Button size="sm" variant={isWatched ? 'outline' : 'secondary'} disabled={!playbackReady} onClick={() => navigate(trainingHref(lesson.resourceId))}>
                             <Play className="mr-1.5 h-3.5 w-3.5" />{playbackReady ? (isWatched ? 'Watch again' : 'Watch lesson') : 'Playback coming soon'}
                           </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+
                         </div>
                       </div>
                     </div>
