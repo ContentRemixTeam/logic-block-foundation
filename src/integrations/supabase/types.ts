@@ -142,6 +142,123 @@ export type Database = {
           },
         ]
       }
+      ai_planner_task_proposal_receipts: {
+        Row: {
+          canonical_task_id: string | null
+          decided_at: string
+          decision: string
+          proposal_id: string
+          receipt_id: string
+          user_id: string
+        }
+        Insert: {
+          canonical_task_id?: string | null
+          decided_at?: string
+          decision: string
+          proposal_id: string
+          receipt_id?: string
+          user_id: string
+        }
+        Update: {
+          canonical_task_id?: string | null
+          decided_at?: string
+          decision?: string
+          proposal_id?: string
+          receipt_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_planner_task_proposal_receipts_canonical_task_id_fkey"
+            columns: ["canonical_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "ai_planner_task_proposal_receipts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "ai_planner_task_proposals"
+            referencedColumns: ["proposal_id"]
+          },
+        ]
+      }
+      ai_planner_task_proposals: {
+        Row: {
+          approved_task_id: string | null
+          connection_key_id: string | null
+          created_at: string
+          done_enough: string | null
+          evidence_target: string | null
+          idempotency_key: string
+          priority: string
+          proposal_id: string
+          reviewed_at: string | null
+          source_context: Json
+          status: string
+          suggested_date: string | null
+          task_description: string | null
+          task_text: string
+          updated_at: string
+          user_id: string
+          why_this_task: string | null
+        }
+        Insert: {
+          approved_task_id?: string | null
+          connection_key_id?: string | null
+          created_at?: string
+          done_enough?: string | null
+          evidence_target?: string | null
+          idempotency_key: string
+          priority?: string
+          proposal_id?: string
+          reviewed_at?: string | null
+          source_context?: Json
+          status?: string
+          suggested_date?: string | null
+          task_description?: string | null
+          task_text: string
+          updated_at?: string
+          user_id: string
+          why_this_task?: string | null
+        }
+        Update: {
+          approved_task_id?: string | null
+          connection_key_id?: string | null
+          created_at?: string
+          done_enough?: string | null
+          evidence_target?: string | null
+          idempotency_key?: string
+          priority?: string
+          proposal_id?: string
+          reviewed_at?: string | null
+          source_context?: Json
+          status?: string
+          suggested_date?: string | null
+          task_description?: string | null
+          task_text?: string
+          updated_at?: string
+          user_id?: string
+          why_this_task?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_planner_task_proposals_approved_task_id_fkey"
+            columns: ["approved_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "ai_planner_task_proposals_connection_key_id_fkey"
+            columns: ["connection_key_id"]
+            isOneToOne: false
+            referencedRelation: "ai_connection_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_themes: {
         Row: {
           config_json: Json
@@ -4611,6 +4728,147 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      mastermind_phase_one_resource_progress: {
+        Row: {
+          completed_at: string | null
+          completion_source: string | null
+          first_started_at: string | null
+          last_position_seconds: number
+          last_watched_at: string | null
+          portal_resource_id: string
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+        }
+        Insert: {
+          completed_at?: string | null
+          completion_source?: string | null
+          first_started_at?: string | null
+          last_position_seconds?: number
+          last_watched_at?: string | null
+          portal_resource_id: string
+          updated_at?: string
+          user_id: string
+          watched_seconds?: number
+        }
+        Update: {
+          completed_at?: string | null
+          completion_source?: string | null
+          first_started_at?: string | null
+          last_position_seconds?: number
+          last_watched_at?: string | null
+          portal_resource_id?: string
+          updated_at?: string
+          user_id?: string
+          watched_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mastermind_phase_one_resource_progress_portal_resource_id_fkey"
+            columns: ["portal_resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["portal_resource_id"]
+          },
+          {
+            foreignKeyName: "mastermind_phase_one_resource_progress_portal_resource_id_fkey"
+            columns: ["portal_resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
+            referencedColumns: ["portal_resource_id"]
+          },
+          {
+            foreignKeyName: "mastermind_phase_one_resource_progress_portal_resource_id_fkey"
+            columns: ["portal_resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_authorized_resource_projection"
+            referencedColumns: ["portal_resource_id"]
+          },
+          {
+            foreignKeyName: "mastermind_phase_one_resource_progress_portal_resource_id_fkey"
+            columns: ["portal_resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["portal_resource_id"]
+          },
+        ]
+      }
+      mastermind_phase_one_state: {
+        Row: {
+          completed_at: string | null
+          connector_status: string
+          connector_verified_at: string | null
+          created_at: string
+          current_step: string
+          cycle_id: string | null
+          phase_version: string
+          plan_ready_at: string | null
+          test_proposal_id: string | null
+          test_task_id: string | null
+          updated_at: string
+          user_id: string
+          workspace_provider: string | null
+          workspace_ready_at: string | null
+          workspace_status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          connector_status?: string
+          connector_verified_at?: string | null
+          created_at?: string
+          current_step?: string
+          cycle_id?: string | null
+          phase_version?: string
+          plan_ready_at?: string | null
+          test_proposal_id?: string | null
+          test_task_id?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_provider?: string | null
+          workspace_ready_at?: string | null
+          workspace_status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          connector_status?: string
+          connector_verified_at?: string | null
+          created_at?: string
+          current_step?: string
+          cycle_id?: string | null
+          phase_version?: string
+          plan_ready_at?: string | null
+          test_proposal_id?: string | null
+          test_task_id?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_provider?: string | null
+          workspace_ready_at?: string | null
+          workspace_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mastermind_phase_one_state_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "mastermind_phase_one_state_test_proposal_id_fkey"
+            columns: ["test_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "ai_planner_task_proposals"
+            referencedColumns: ["proposal_id"]
+          },
+          {
+            foreignKeyName: "mastermind_phase_one_state_test_task_id_fkey"
+            columns: ["test_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
       }
       mastermind_portal_resources: {
         Row: {
@@ -11717,6 +11975,10 @@ export type Database = {
         Args: { p_user_challenge_id: string }
         Returns: Json
       }
+      get_my_mastermind_phase_one_coaching_context: {
+        Args: never
+        Returns: Json
+      }
       get_user_entitlement: {
         Args: { user_email: string }
         Returns: {
@@ -11734,6 +11996,18 @@ export type Database = {
       }
       load_my_latest_low_battery_workshop: { Args: never; Returns: Json }
       log_low_battery_planner_login: { Args: never; Returns: string }
+      mastermind_media_access_decision: {
+        Args: {
+          p_action?: string
+          p_as_of?: string
+          p_email: string
+          p_preview?: boolean
+          p_resource_id?: string
+          p_surface?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       reconcile_replay_vault_unmapped_event_r7: {
         Args: { p_actor: string; p_original_delivery_id: string }
         Returns: Json
@@ -12270,6 +12544,29 @@ export type Database = {
           start_seconds: number
         }[]
       }
+      resolve_mastermind_media_playback: {
+        Args: {
+          p_as_of?: string
+          p_email: string
+          p_moment_id?: string
+          p_preview?: boolean
+          p_question_id?: string
+          p_resource_id: string
+          p_surface?: string
+          p_user_id: string
+        }
+        Returns: {
+          access_scope: string
+          authoritative_end_seconds: number
+          authoritative_start_seconds: number
+          dropbox_locator: string
+          moment_id: string
+          portal_resource_id: string
+          question_id: string
+          resource_uuid: string
+          title: string
+        }[]
+      }
       resolve_replay_vault_playback: {
         Args: {
           p_as_of?: string
@@ -12292,6 +12589,10 @@ export type Database = {
           title: string
         }[]
       }
+      review_ai_planner_task_proposal: {
+        Args: { p_decision: string; p_proposal_id: string }
+        Returns: Json
+      }
       save_low_battery_workshop_answers: {
         Args: {
           p_answers: Json
@@ -12301,6 +12602,82 @@ export type Database = {
           p_submission_token: string
         }
         Returns: boolean
+      }
+      save_my_mastermind_phase_one_state: {
+        Args: {
+          p_connector_status?: string
+          p_current_step?: string
+          p_cycle_id?: string
+          p_plan_ready?: boolean
+          p_test_proposal_id?: string
+          p_test_task_id?: string
+          p_workspace_provider?: string
+          p_workspace_status?: string
+        }
+        Returns: {
+          completed_at: string | null
+          connector_status: string
+          connector_verified_at: string | null
+          created_at: string
+          current_step: string
+          cycle_id: string | null
+          phase_version: string
+          plan_ready_at: string | null
+          test_proposal_id: string | null
+          test_task_id: string | null
+          updated_at: string
+          user_id: string
+          workspace_provider: string | null
+          workspace_ready_at: string | null
+          workspace_status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mastermind_phase_one_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_my_mastermind_phase_one_video_progress: {
+        Args: {
+          p_completed?: boolean
+          p_completion_source?: string
+          p_last_position_seconds?: number
+          p_portal_resource_id: string
+          p_watched_seconds?: number
+        }
+        Returns: {
+          completed_at: string | null
+          completion_source: string | null
+          first_started_at: string | null
+          last_position_seconds: number
+          last_watched_at: string | null
+          portal_resource_id: string
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mastermind_phase_one_resource_progress"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      search_my_mastermind_phase_one_resources: {
+        Args: { p_limit?: number; p_query?: string; p_stage?: string }
+        Returns: {
+          category_title: string
+          completed: boolean
+          duration_seconds: number
+          last_position_seconds: number
+          portal_resource_id: string
+          product_title: string
+          resource_type: string
+          stages: string[]
+          success_paths: string[]
+          title: string
+        }[]
       }
       search_replay_vault_resources: {
         Args: {
