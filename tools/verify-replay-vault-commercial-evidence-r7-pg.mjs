@@ -11,7 +11,9 @@ const names=["20260809130000_replay_vault_deterministic_ingestion.sql","20260809
   "20260809170000_replay_vault_member_parity_r4.sql","20260809180000_replay_vault_commercial_evidence_r7.sql",
   "20260809190000_replay_vault_complete_search_r1.sql","20260820183000_replay_vault_annual_only_access_r10.sql",
   "20260828233500_replay_vault_hidden_preview_approval.sql",
-  "20260829133000_replay_vault_admin_preview_catalog.sql"];
+  "20260829133000_replay_vault_admin_preview_catalog.sql",
+  "20260830191115_b9da3c14-cd79-4f81-8a05-c47d54d9fa25.sql",
+  "20260830191815_replay_vault_launch_batch_hardening.sql"];
 const migrations=names.map(name=>path.join(root,"supabase/migrations",name));
 for(const file of migrations) if(!existsSync(file)) throw new Error(`missing migration ${file}`);
 if([...names].sort().join("|")!==names.join("|")) throw new Error("migration order is not exact");
@@ -63,6 +65,7 @@ const fresh=cluster("fresh");
 try{
   fresh.start();for(const migration of migrations)fresh.psql(["-f",migration]);fresh.psql(["-f",migrations.at(-1)]);
   console.log("PASS latest_migration_apply_twice_fresh");
+  fresh.psql(["-f",path.join(root,"tools/replay-vault-launch-batch-fixtures/behavior.sql")]);
   fresh.psql(["-f",path.join(root,"tools/replay-vault-commercial-r7-fixtures/behavior.sql")]);
   fresh.psql(["-f",path.join(root,"tools/replay-vault-complete-search-fixtures/behavior.sql")]);
   fresh.psql(["-f",path.join(root,"tools/replay-vault-admin-preview-fixtures/behavior.sql")]);
