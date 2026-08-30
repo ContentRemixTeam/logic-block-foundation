@@ -197,13 +197,6 @@ export default function MastermindPhaseOnePreview() {
                   </article>
                 );
               })}
-
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
             </CardContent>
           </Card>
 
