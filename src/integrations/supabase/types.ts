@@ -8165,6 +8165,60 @@ export type Database = {
           },
         ]
       }
+      replay_vault_preview_allowlist: {
+        Row: {
+          authorized_by: string
+          created_at: string
+          email: string
+          enabled: boolean
+          id: string
+          reason: string
+          updated_at: string
+        }
+        Insert: {
+          authorized_by: string
+          created_at?: string
+          email: string
+          enabled?: boolean
+          id?: string
+          reason: string
+          updated_at?: string
+        }
+        Update: {
+          authorized_by?: string
+          created_at?: string
+          email?: string
+          enabled?: boolean
+          id?: string
+          reason?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      replay_vault_preview_allowlist_audit: {
+        Row: {
+          after_row: Json | null
+          before_row: Json | null
+          changed_at: string
+          id: string
+          operation: string
+        }
+        Insert: {
+          after_row?: Json | null
+          before_row?: Json | null
+          changed_at?: string
+          id?: string
+          operation: string
+        }
+        Update: {
+          after_row?: Json | null
+          before_row?: Json | null
+          changed_at?: string
+          id?: string
+          operation?: string
+        }
+        Relationships: []
+      }
       replay_vault_provider_product_mappings: {
         Row: {
           active: boolean
@@ -12106,6 +12160,10 @@ export type Database = {
       replay_vault_member_email: {
         Args: { p_user_id: string }
         Returns: string
+      }
+      replay_vault_preview_subject: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       replay_vault_questions_member: {
         Args: {
