@@ -26,8 +26,6 @@ export interface PhaseOneLesson {
   afterWatchingAction: string;
   doneEnoughLine: string;
   evidenceTarget: string;
-  sourceReceipt: string;
-  remainingGate: string;
 }
 
 export const PHASE_ONE_EXIT_STANDARD =
@@ -47,8 +45,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Save one 90-day result, baseline, current constraint, and first weekly move.',
     doneEnoughLine: 'One result and the first move are clear.',
     evidenceTarget: 'Saved plan plus one dated action attempt within 48 hours.',
-    sourceReceipt: 'Exact Searchie resource; verified Dropbox archive duration and full decode; private server-side locator retained; CRDB row 719 transcript candidate.',
-    remainingGate: 'Bind the exact approved transcript/captions to the verified media and pass editorial, access, and protected-playback QA.',
   },
   {
     resourceId: 'wibn-three-part-business-growth-engine',
@@ -63,8 +59,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Map the current Offer, Find, Nurture, and Sell path in one sentence each.',
     doneEnoughLine: 'The member can see the full engine and name the area that needs attention now.',
     evidenceTarget: 'Saved Business Engine Map plus one selected 90-day focus.',
-    sourceReceipt: 'Current GHL placement was playback-verified at 10:13 with a captions control; readable WIBN transcript evidence is documented in the curriculum source map.',
-    remainingGate: 'Resolve or create the canonical Dropbox media identity, inspect/export the exact caption object, prove transcript pairing, and complete editorial, access, and protected-playback QA.',
   },
   {
     resourceId: 'wibn-ceo-embodiment',
@@ -79,8 +73,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Choose one CEO behavior to practice during the first week.',
     doneEnoughLine: 'One observable behavior replaces a vague identity goal.',
     evidenceTarget: 'The behavior is scheduled and checked once during the first week.',
-    sourceReceipt: 'WIBN GHL lesson playback was observed read-only at 18:13; transcript source is documented.',
-    remainingGate: 'Resolve the Dropbox/Searchie source of truth and complete transcript pairing, captions, editorial, access, and protected-playback QA.',
   },
   {
     resourceId: 'wibn-business-vision',
@@ -95,8 +87,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Write a short business vision and one boundary the next 90 days must respect.',
     doneEnoughLine: 'The 90-day result points toward a business the member actually wants.',
     evidenceTarget: 'Saved vision statement and capacity boundary.',
-    sourceReceipt: 'Current WIBN GHL placement was playback-verified read-only at 28:31.',
-    remainingGate: 'Confirm Dropbox/Searchie media, transcript/captions, editorial approval, access scope, and protected playback.',
   },
   {
     resourceId: 'ninety-day-goal-setting-workshop',
@@ -111,8 +101,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Finish the missing plan fields and schedule the first action.',
     doneEnoughLine: 'The plan has one result, one focus, one weekly move, and one evidence target.',
     evidenceTarget: 'Completed saved plan and first dated action.',
-    sourceReceipt: 'Current 90 Day Planning GHL placement was playback-verified at 1:15:13; CRDB row 721 is the planning transcript candidate.',
-    remainingGate: 'Clean the transcript row and verify media identity, captions, editorial approval, access, and protected playback.',
   },
   {
     resourceId: 'mastermind-success-plan-module-one',
@@ -127,8 +115,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Choose one discovery path for four weeks and make the first attempt.',
     doneEnoughLine: 'One discovery route and one bridge to the next step exist.',
     evidenceTarget: 'First attempt plus qualified replies, conversations, opt-ins, or no-response evidence.',
-    sourceReceipt: 'Exact Searchie resource at 27:23; matching Dropbox candidates; CRDB row 708 transcript candidate.',
-    remainingGate: 'Select and verify the canonical Dropbox media, bind captions/transcript, and pass editorial, access, and protected-playback QA.',
   },
   {
     resourceId: 'mastermind-success-plan-module-two',
@@ -143,8 +129,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Send one nurture asset that addresses a buyer belief or trust gap.',
     doneEnoughLine: 'One useful nurture step has a clear job.',
     evidenceTarget: 'Sent asset plus replies, clicks, questions, or other buying signals.',
-    sourceReceipt: 'Exact Searchie resource at 24:55; matching Dropbox candidates; CRDB row 709 transcript candidate.',
-    remainingGate: 'Select and verify the canonical Dropbox media, bind captions/transcript, and pass editorial, access, and protected-playback QA.',
   },
   {
     resourceId: 'mastermind-success-plan-module-three',
@@ -159,8 +143,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Send one clear invitation and schedule the follow-up.',
     doneEnoughLine: 'The offer was made with a real response path.',
     evidenceTarget: 'Invitations, follow-ups, replies, objections, yeses, sales, or no-response evidence.',
-    sourceReceipt: 'Exact Searchie resource at 26:01; matching Dropbox candidates; CRDB row 710 transcript candidate.',
-    remainingGate: 'Select and verify the canonical Dropbox media, bind captions/transcript, and pass editorial, access, and protected-playback QA.',
   },
   {
     resourceId: 'wibn-week-one-qa',
@@ -175,8 +157,6 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Write the decision or question the excerpt helped clarify.',
     doneEnoughLine: 'The member has a next decision, not another long replay in her queue.',
     evidenceTarget: 'Saved decision, coaching question, or smallest next action.',
-    sourceReceipt: 'WIBN GHL lesson playback was observed read-only at 1:26:16.',
-    remainingGate: 'Create reviewed member-safe timestamps, confirm Dropbox/Searchie media and transcript, then pass privacy, editorial, access, and playback QA.',
   },
 ] as const;
 
