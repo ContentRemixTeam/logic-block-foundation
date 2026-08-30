@@ -148,6 +148,40 @@ export default function MastermindTraining() {
     else setRecoveryFailed(true);
   };
 
+  // Member-owned progress is written only through the validated Phase One RPC.
+  const persistProgress = useCallback(async (completed: boolean) => {
+    if (!resourceId) return;
+    const media = videoRef.current;
+    const position = Math.floor(media?.currentTime ?? 0);
+    const saved = await savePhaseOneVideoProgress({
+      portalResourceId: resourceId,
+      lastPositionSeconds: position,
+      watchedSeconds: position,
+      completed,
+      completionSource: completed ? 'member_confirmed' : 'playback',
+    });
+    if (saved && completed) setProgressSaved(true);
+  }, [resourceId]);
+
+  useEffect(() => {
+    const media = videoRef.current;
+    if (!media || !playback) return;
+    const onTimeUpdate = () => {
+      const now = Date.now();
+      if (now - lastProgressSaveRef.current < 15_000) return;
+      lastProgressSaveRef.current = now;
+      void persistProgress(false);
+    };
+    const onEnded = () => { void persistProgress(true); };
+    media.addEventListener('timeupdate', onTimeUpdate);
+    media.addEventListener('ended', onEnded);
+    return () => {
+      media.removeEventListener('timeupdate', onTimeUpdate);
+      media.removeEventListener('ended', onEnded);
+    };
+  }, [playback, persistProgress]);
+
+
   useEffect(() => {
     if (!playback?.expiresAt || playback.provider === 'youtube') return;
     const refreshIn = new Date(playback.expiresAt).getTime() - Date.now() - 30_000;
