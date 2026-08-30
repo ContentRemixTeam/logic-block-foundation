@@ -7678,6 +7678,8 @@ export type Database = {
           price_id: string
           product_id: string
           provider: string
+          provider_consent_at: string | null
+          provider_consent_version: string | null
           provider_delivery_id: string
           receipt: Json
           received_at: string
@@ -7726,6 +7728,8 @@ export type Database = {
           price_id?: string
           product_id?: string
           provider?: string
+          provider_consent_at?: string | null
+          provider_consent_version?: string | null
           provider_delivery_id?: string
           receipt?: Json
           received_at?: string
@@ -7761,6 +7765,8 @@ export type Database = {
           canonical_delivery_id?: string
           id?: string
           provider?: string
+          provider_consent_at?: string | null
+          provider_consent_version?: string | null
           provider_delivery_id?: string
           signature_sha256?: string
           signature_timestamp?: number

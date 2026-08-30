@@ -279,8 +279,9 @@ export function useSaveAPIKey() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ apiKey, provider = 'openai' as AIProvider }: { apiKey: string; provider?: AIProvider }) => {
+    mutationFn: async ({ apiKey, provider = 'openai' as AIProvider, providerConsent }: { apiKey: string; provider?: AIProvider; providerConsent: boolean }) => {
       if (!user) throw new Error('Not authenticated');
+      if (!providerConsent) throw new Error('Please opt in before connecting your AI provider.');
       
       // Test the key server-side via edge function (avoids exposing CORS-restricted provider APIs to browser)
       const isValid = await testApiKeyServerSide({ provider, apiKey });
@@ -307,6 +308,8 @@ export function useSaveAPIKey() {
             key_status: 'valid',
             last_tested: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            provider_consent_at: new Date().toISOString(),
+            provider_consent_version: 'byok-provider-transfer-v1',
           })
           .eq('user_id', user.id)
           .eq('provider', provider);
@@ -321,6 +324,8 @@ export function useSaveAPIKey() {
             key_status: 'valid',
             last_tested: new Date().toISOString(),
             provider,
+            provider_consent_at: new Date().toISOString(),
+            provider_consent_version: 'byok-provider-transfer-v1',
           });
         
         if (error) throw error;

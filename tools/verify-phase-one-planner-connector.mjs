@@ -20,6 +20,9 @@ const coaching = readFileSync(
 const phaseHook = readFileSync(new URL("../src/hooks/useMastermindPhaseOne.ts", import.meta.url), "utf8");
 const phasePage = readFileSync(new URL("../src/pages/MastermindPhaseOnePreview.tsx", import.meta.url), "utf8");
 const coachUi = readFileSync(new URL("../src/components/mastermind/phase-one/GetCoachedByFaith.tsx", import.meta.url), "utf8");
+const keySettings = readFileSync(new URL("../src/components/ai-copywriting/APIKeySettings.tsx", import.meta.url), "utf8");
+const keyHook = readFileSync(new URL("../src/hooks/useAICopywriting.ts", import.meta.url), "utf8");
+const keyConsent = readFileSync(new URL("../supabase/migrations/20260830172000_user_api_key_provider_consent.sql", import.meta.url), "utf8");
 
 const requiredMigrationContracts = [
   "UNIQUE (user_id, idempotency_key)",
@@ -116,5 +119,8 @@ assert.equal(phasePage.includes('mastermind-phase-one-preview-progress'), false,
 assert.ok(coachUi.includes('shareWithProvider'), 'external AI egress needs explicit per-use consent');
 assert.ok(coachUi.includes('save_my_mastermind_coaching_exchange'), 'coaching conversations must create durable receipts');
 assert.ok(coachUi.includes('rate_my_mastermind_coaching_answer'), 'coaching feedback must be durable');
+assert.ok(keySettings.includes('providerConsent'), 'saving a BYOK provider key must require account-level opt-in');
+assert.ok(keyHook.includes('provider_consent_version'), 'BYOK opt-in must write a versioned consent receipt');
+assert.ok(keyConsent.includes('provider_consent_at'), 'BYOK consent must be durable and timestamped');
 
 console.log("Phase One Planner connector contracts verified.");

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -62,6 +63,7 @@ function ProviderKeySection({ provider }: { provider: AIProvider }) {
   const [newKey, setNewKey] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [providerConsent, setProviderConsent] = useState(false);
 
   const providerKey = apiKeys?.find(k => k.provider === provider);
   const instructions = AI_PROVIDER_INSTRUCTIONS[provider];
@@ -71,8 +73,10 @@ function ProviderKeySection({ provider }: { provider: AIProvider }) {
 
   const handleSaveKey = async () => {
     if (!isValidPrefix) return;
-    await saveKey.mutateAsync({ apiKey: newKey, provider });
+    if (!providerConsent) return;
+    await saveKey.mutateAsync({ apiKey: newKey, provider, providerConsent });
     setNewKey('');
+    setProviderConsent(false);
     setShowAddDialog(false);
   };
 
@@ -156,9 +160,22 @@ function ProviderKeySection({ provider }: { provider: AIProvider }) {
                         </p>
                       )}
                     </div>
+                    <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+                      <Checkbox
+                        checked={providerConsent}
+                        onCheckedChange={(value) => setProviderConsent(value === true)}
+                        aria-describedby={`provider-consent-${provider}`}
+                      />
+                      <span id={`provider-consent-${provider}`}>
+                        <strong>I choose to connect my {instructions.name} account.</strong>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          I understand that when I choose to use an AI feature, the information shown in that feature may be sent to {instructions.name} using my key and billed by them. My key is encrypted. I can remove it anytime.
+                        </span>
+                      </span>
+                    </label>
                     <Button 
                       onClick={handleSaveKey}
-                      disabled={!isValidPrefix || saveKey.isPending}
+                      disabled={!isValidPrefix || !providerConsent || saveKey.isPending}
                       className="w-full"
                     >
                       {saveKey.isPending ? (
@@ -302,9 +319,22 @@ function ProviderKeySection({ provider }: { provider: AIProvider }) {
                       onChange={(e) => setNewKey(e.target.value)}
                     />
                   </div>
+                  <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+                    <Checkbox
+                      checked={providerConsent}
+                      onCheckedChange={(value) => setProviderConsent(value === true)}
+                      aria-describedby={`provider-consent-update-${provider}`}
+                    />
+                    <span id={`provider-consent-update-${provider}`}>
+                      <strong>I choose to reconnect my {instructions.name} account.</strong>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        I understand that information I choose to use with AI features may be sent to {instructions.name} using my key and billed by them.
+                      </span>
+                    </span>
+                  </label>
                   <Button 
                     onClick={handleSaveKey}
-                    disabled={!isValidPrefix || saveKey.isPending}
+                    disabled={!isValidPrefix || !providerConsent || saveKey.isPending}
                     className="w-full"
                   >
                     {saveKey.isPending ? (
