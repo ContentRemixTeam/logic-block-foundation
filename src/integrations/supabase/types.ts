@@ -6445,6 +6445,69 @@ export type Database = {
           },
         ]
       }
+      replay_launch_batch_exclusions: {
+        Row: {
+          created_at: string
+          created_by: string
+          portal_resource_id: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          portal_resource_id: string
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          portal_resource_id?: string
+          reason?: string
+        }
+        Relationships: []
+      }
+      replay_launch_batch_receipts: {
+        Row: {
+          actor: string
+          batch_key: string
+          batch_sha256: string
+          created_at: string
+          cue_count: number
+          id: string
+          imported_count: number
+          receipt: Json
+          record_count: number
+          skipped_count: number
+          status: string
+        }
+        Insert: {
+          actor: string
+          batch_key: string
+          batch_sha256: string
+          created_at?: string
+          cue_count?: number
+          id?: string
+          imported_count?: number
+          receipt?: Json
+          record_count: number
+          skipped_count?: number
+          status?: string
+        }
+        Update: {
+          actor?: string
+          batch_key?: string
+          batch_sha256?: string
+          created_at?: string
+          cue_count?: number
+          id?: string
+          imported_count?: number
+          receipt?: Json
+          record_count?: number
+          skipped_count?: number
+          status?: string
+        }
+        Relationships: []
+      }
       replay_media_migration_attempts: {
         Row: {
           attempt_number: number
@@ -11480,6 +11543,10 @@ export type Database = {
       replay_import_content_package: {
         Args: { actor: string; j: Json }
         Returns: string
+      }
+      replay_import_launch_batch: {
+        Args: { actor: string; j: Json }
+        Returns: Json
       }
       replay_mark_resource_ready: {
         Args: { actor: string; rid: string; rv: string }
