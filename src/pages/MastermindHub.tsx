@@ -7,13 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
+import { AiStudioPlanCard } from '@/components/mastermind/AiStudioPlanCard';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
 import {
   MASTERMIND_PORTAL_RESOURCES,
+  getProtectedTrainingHref,
   type MastermindPortalAccess,
   type MastermindPortalResource,
 } from '@/data/mastermindPortalResources';
 import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
+import { useMembership } from '@/hooks/useMembership';
 import {
   MASTERMIND_SUCCESS_STAGES,
   type MastermindResourceRecommendation,
@@ -37,12 +40,14 @@ import {
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'mastermind-pinned-resources';
+const SHOW_AI_STUDIO = import.meta.env.VITE_ENABLE_MASTERMIND_AI_STUDIO === 'true';
 
-type ResourceFilterId = 'all' | 'path' | 'core' | 'current_replay' | 'indexed';
+type ResourceFilterId = 'all' | 'focus' | 'core' | 'current_replay' | 'indexed';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
   const { cycleId } = useParams<{ cycleId?: string }>();
+  const { isMastermind, membershipTier } = useMembership();
   const {
     data: successPathData,
     isLoading: successPathLoading,
@@ -54,7 +59,7 @@ export default function MastermindHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
-  const [activeTab, setActiveTab] = useState('path');
+  const [activeTab, setActiveTab] = useState('guidance');
   const [showMilestones, setShowMilestones] = useState(false);
 
   useEffect(() => {
@@ -87,6 +92,19 @@ export default function MastermindHub() {
   const currentMilestoneId = successPathData?.snapshot?.current_milestone_id ?? selectedStage.milestones[0].id;
   const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
     ?? selectedStage.milestones[0];
+  const currentCheckpointTitle = selectedStageId === 'offer'
+    ? "Pick the thing you're going to sell this quarter"
+    : currentMilestone.label;
+  const currentCheckpointDescription = selectedStageId === 'offer' && currentMilestone.id === 'offer-focus'
+    ? 'One offer. One group of people. One way money is supposed to come in.'
+    : currentMilestone.output;
+  const stageResourcesForCurrentMilestone = useMemo(() => {
+    const milestoneResources = selectedStage.resources.filter((resource) =>
+      !resource.milestoneIds || resource.milestoneIds.includes(currentMilestone.id)
+    );
+
+    return milestoneResources.length > 0 ? milestoneResources : selectedStage.resources;
+  }, [currentMilestone.id, selectedStage]);
 
   const handleStageSelect = async (stageId: typeof selectedStageId) => {
     if (!successPathData?.cycle) {
@@ -113,7 +131,7 @@ export default function MastermindHub() {
   const resourceFilters = useMemo(() => (
     [
       { id: 'all' as const, label: 'All' },
-      { id: 'path' as const, label: `${selectedStage.label} path` },
+      { id: 'focus' as const, label: `${selectedStage.label} focus` },
       { id: 'core' as const, label: 'Core' },
       { id: 'current_replay' as const, label: '30-day' },
       { id: 'indexed' as const, label: 'Indexed now' },
@@ -127,7 +145,7 @@ export default function MastermindHub() {
     };
 
     return {
-      stageId: resourceFilter === 'path' ? selectedStageId : undefined,
+      stageId: resourceFilter === 'focus' ? selectedStageId : undefined,
       access: accessByFilter[resourceFilter],
       transcriptReadyOnly: resourceFilter === 'indexed',
     };
@@ -164,7 +182,10 @@ export default function MastermindHub() {
   }, [filteredResources, pinnedIds]);
 
   const handleOpen = (resource: MastermindPortalResource) => {
-    if (resource.isExternal) {
+    const protectedHref = getProtectedTrainingHref(resource);
+    if (protectedHref) {
+      navigate(protectedHref);
+    } else if (resource.isExternal) {
       window.open(resource.url, '_blank', 'noopener,noreferrer');
     } else {
       navigate(resource.url);
@@ -185,9 +206,9 @@ export default function MastermindHub() {
             <div className="space-y-2">
               <Badge variant="secondary" className="w-fit">Becoming Boss Mastermind</Badge>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">My Success Plan</h1>
+                <h1 className="text-3xl font-bold">Your 90-Day Plan</h1>
                 <p className="text-muted-foreground">
-                  One goal. One focus. The next three moves that matter.
+                  One goal, one weekly move, and the training that helps you make progress faster.
                 </p>
               </div>
             </div>
@@ -201,16 +222,17 @@ export default function MastermindHub() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-3 sm:max-w-lg">
-              <TabsTrigger value="path">Success Path</TabsTrigger>
+              <TabsTrigger value="guidance">Guidance</TabsTrigger>
               <TabsTrigger value="support">Get Support</TabsTrigger>
-              <TabsTrigger value="resources">Resources</TabsTrigger>
+              <TabsTrigger value="training">Training</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="path" className="space-y-4">
+            <TabsContent value="guidance" className="space-y-4">
               <SuccessPathPlanCard
                 cycle={successPathData?.cycle}
                 successPath={successPathData?.successPath}
                 selectedStageId={selectedStageId}
+                currentMilestoneId={currentMilestone.id}
                 isLoading={successPathLoading}
                 onBuildPlan={() => navigate('/cycle-setup')}
                 onOpenResource={handleOpenRecommendedResource}
@@ -218,12 +240,16 @@ export default function MastermindHub() {
                   const cycleId = successPathData?.cycle?.cycle_id;
                   navigate(cycleId ? `/cycle-setup?edit=${cycleId}` : '/cycle-setup');
                 }}
+                onAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
+                onFindSupport={() => setActiveTab('training')}
+                onOpenAiStudio={() => setActiveTab('support')}
+                aiStudioEnabled={SHOW_AI_STUDIO}
               />
 
               {successPathData?.hasConfirmedStage && (
                 <p className="text-sm text-muted-foreground">
                   <CheckCircle2 className="mr-1 inline h-4 w-4 text-primary" />
-                  {selectedStage.label} is saved as the focus for this 90-day cycle.
+                  {selectedStage.label} is saved as your current 90-day focus.
                 </p>
               )}
 
@@ -235,13 +261,13 @@ export default function MastermindHub() {
 
               <Card>
                 <CardHeader>
-                  <Badge variant="outline" className="w-fit">Current milestone</Badge>
-                  <CardTitle>{currentMilestone.label}</CardTitle>
-                  <CardDescription>{currentMilestone.output}</CardDescription>
+                  <Badge variant="outline" className="w-fit">Start here</Badge>
+                  <CardTitle>{currentCheckpointTitle}</CardTitle>
+                  <CardDescription>{currentCheckpointDescription}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button variant="outline" onClick={() => setShowMilestones((open) => !open)}>
-                    {showMilestones ? 'Keep this milestone' : 'Choose a different milestone'}
+                    {showMilestones ? 'Keep this focus' : 'Change focus'}
                   </Button>
 
                   {showMilestones && (
@@ -274,9 +300,9 @@ export default function MastermindHub() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Does this focus feel right?</CardTitle>
+                  <CardTitle>Change this if it is not the right focus.</CardTitle>
                   <CardDescription>
-                    Choose the area that is the real constraint. Your choice is saved to this 90-day cycle and stays here when you return.
+                    Choose the area that needs attention first. Your choice is saved to this 90-day cycle and stays here when you return.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -308,14 +334,14 @@ export default function MastermindHub() {
                 <Card>
                   <CardHeader>
                     <Badge variant="outline" className="mb-2 w-fit">{selectedStage.label} support</Badge>
-                    <CardTitle>Learn only when the next move needs help.</CardTitle>
+                    <CardTitle>Watch only what helps the next move.</CardTitle>
                     <CardDescription>
-                      Start with one resource. The plan is the work — the curriculum supports it.
+                      Start with one resource. The plan is the work, and the curriculum supports it.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-3">
-                      {selectedStage.resources.map((resource, index) => (
+                      {stageResourcesForCurrentMilestone.map((resource, index) => (
                         <div key={resource.title} className="rounded-lg border p-4">
                           <div className="flex items-start gap-3">
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
@@ -327,6 +353,11 @@ export default function MastermindHub() {
                                 <Badge variant="outline" className="text-[11px]">{resource.access}</Badge>
                               </div>
                               <p className="mt-1 text-sm text-muted-foreground">{resource.useWhen}</p>
+                              {resource.afterWatching && (
+                                <p className="mt-2 text-sm leading-snug">
+                                  <span className="font-semibold">After watching: </span>{resource.afterWatching}
+                                </p>
+                              )}
                               <Button
                                 variant="link"
                                 className="mt-2 h-auto p-0"
@@ -367,37 +398,49 @@ export default function MastermindHub() {
               </div>
             </TabsContent>
 
-            <TabsContent value="support" className="grid gap-4 lg:grid-cols-3">
-              <SupportCard
-                icon={Bot}
-                title="Enable Faith AI"
-                description="Use your own OpenAI or Claude key. AI can help sort a brain dump, prep a coaching question, or break the next step down."
-                buttonLabel="Open AI Settings"
-                onClick={() => navigate('/ai-copywriting/settings')}
-              />
-              <SupportCard
-                icon={Users}
-                title="Use the room"
-                description="When the next step is emotionally sticky, take it to coworking, community, or coaching instead of disappearing."
-                buttonLabel="Open Community"
-                onClick={() => window.open('https://portal.faithmariah.com/communities/groups/mastermind/home', '_blank', 'noopener,noreferrer')}
-              />
-              <SupportCard
-                icon={Calendar}
-                title="Return every week"
-                description="The weekly review adjusts actions and support. The monthly review decides whether to continue, improve, reduce, or re-route."
-                buttonLabel="Review Progress"
-                onClick={() => navigate('/weekly-review')}
-              />
+            <TabsContent value="support" className="space-y-4">
+              {SHOW_AI_STUDIO && (
+                <AiStudioPlanCard
+                  cycle={successPathData?.cycle}
+                  selectedStageId={selectedStageId}
+                  isMastermind={isMastermind}
+                  membershipTier={membershipTier}
+                  onOpenAiSettings={() => navigate('/ai-copywriting/settings')}
+                />
+              )}
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <SupportCard
+                  icon={Bot}
+                  title="Get Coached by Faith"
+                  description="Use your own OpenAI or Claude key for AI prep, then bring the real evidence to Faith when the decision needs coaching."
+                  buttonLabel="Open AI Settings"
+                  onClick={() => navigate('/ai-copywriting/settings')}
+                />
+                <SupportCard
+                  icon={Users}
+                  title="Use the room"
+                  description="When the next step is emotionally sticky, take it to coworking, community, or coaching instead of disappearing."
+                  buttonLabel="Open Community"
+                  onClick={() => window.open('https://portal.faithmariah.com/communities/groups/mastermind/home', '_blank', 'noopener,noreferrer')}
+                />
+                <SupportCard
+                  icon={Calendar}
+                  title="Return every week"
+                  description="The weekly review adjusts actions and support. The monthly review decides whether to continue, improve, reduce, or re-route."
+                  buttonLabel="Review Progress"
+                  onClick={() => navigate('/weekly-review')}
+                />
+              </div>
             </TabsContent>
 
-            <TabsContent value="resources" className="space-y-4">
+            <TabsContent value="training" className="space-y-4">
               <Card className="border-primary/20">
                 <CardHeader>
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <Badge variant="secondary" className="mb-2 w-fit">Portal map</Badge>
-                      <CardTitle>Core paths, current replays, and vault access stay separated.</CardTitle>
+                      <Badge variant="secondary" className="mb-2 w-fit">Training Library map</Badge>
+                      <CardTitle>Core curriculum, current replays, and Vault access stay separated.</CardTitle>
                       <CardDescription>
                         Choose the smallest useful next resource. Bonus and vault items stay out of this finder until access is verified.
                       </CardDescription>
@@ -408,7 +451,7 @@ export default function MastermindHub() {
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <AuditMetric title="Success paths" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
+                  <AuditMetric title="Plan stages" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
                   <AuditMetric title="Visible resources" value={visibleResources.length.toLocaleString()} />
                   <AuditMetric title="Indexed now" value={indexedResourceCount.toLocaleString()} />
                   <AuditMetric title="Access labels" value={accessRailCount.toLocaleString()} />
@@ -419,7 +462,7 @@ export default function MastermindHub() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Search className="h-4 w-4 text-primary" />
-                    Resource finder
+                    Find What I Need
                   </CardTitle>
                   <CardDescription>
                     Monthly access is core curriculum plus current 30-day replays. Vault records stay marked separately.

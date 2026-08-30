@@ -34,6 +34,7 @@ const forbiddenGroups = [
       'bunny_video_id',
       'youtube_video_id',
       'source_fingerprint',
+      'sourceIdentitySha256',
       'match_score',
     ],
   },
@@ -69,15 +70,17 @@ const forbiddenGroups = [
 ];
 
 const requiredMastermindHubStrings = [
-  'Success Path',
-  'Resource finder',
+  'Your 90-Day Plan',
+  'Guidance',
+  'Find What I Need',
+  'Get Coached by Faith',
+  'Plan stages',
   'Visible resources',
   'Indexed now',
   'Access labels',
   'Choose the smallest useful next resource',
   'Bonus and vault items stay out of this finder',
   'Clear resource search',
-  'Enable Faith AI',
 ];
 
 function walkFiles(directory) {

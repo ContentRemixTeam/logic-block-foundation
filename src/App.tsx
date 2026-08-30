@@ -1,4 +1,4 @@
-import { lazy, Suspense, ComponentType } from 'react';
+import { lazy, Suspense, ComponentType, type ReactNode } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -113,6 +113,8 @@ const InstallSuccess = lazyWithRetry(() => import('./pages/InstallSuccess'));
 const Projects = lazyWithRetry(() => import('./pages/Projects'));
 const ProjectDetail = lazyWithRetry(() => import('./pages/ProjectDetail'));
 const MastermindHub = lazyWithRetry(() => import('./pages/MastermindHub'));
+const MastermindPhaseOnePreview = lazyWithRetry(() => import('./pages/MastermindPhaseOnePreview'));
+const MastermindTraining = lazyWithRetry(() => import('./pages/MastermindTraining'));
 const ReplayVault = lazyWithRetry(() => import('./pages/ReplayVault'));
 const MastermindGate = lazyWithRetry(() => import('./components/mastermind/MastermindGate').then(m => ({ default: m.MastermindGate })));
 const MastermindRosterImport = lazyWithRetry(() => import('./pages/MastermindRosterImport'));
@@ -168,6 +170,16 @@ const LowBatteryPlanPage = lazyWithRetry(() => import('./pages/LowBatteryPlanPag
 const LowBatteryWorkshopAdmin = lazyWithRetry(() => import('./pages/LowBatteryWorkshopAdmin'));
 const MastermindReplacementPreview = lazyWithRetry(() => import('./pages/MastermindReplacementPreview'));
 const AdminPreviewGate = lazyWithRetry(() => import('./components/admin/AdminPreviewGate').then(m => ({ default: m.AdminPreviewGate })));
+const ENABLE_MASTERMIND_90_DAY_PLAN = import.meta.env.VITE_ENABLE_MASTERMIND_90_DAY_PLAN === 'true';
+
+function MastermindLaunchGate({ children }: { children: ReactNode }) {
+  if (!ENABLE_MASTERMIND_90_DAY_PLAN) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -272,14 +284,17 @@ const App = () => (
                       <Route path="/belief-builder" element={<ProtectedRoute><PageSuspense><BeliefBuilder /></PageSuspense></ProtectedRoute>} />
                       <Route path="/identity-anchors" element={<ProtectedRoute><PageSuspense><IdentityAnchors /></PageSuspense></ProtectedRoute>} />
                       <Route path="/self-coaching" element={<ProtectedRoute><PageSuspense><SelfCoaching /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/mastermind" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
-                      <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></ProtectedRoute>} />
+                      <Route path="/mastermind" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
+                      <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
+                      <Route path="/mastermind/training" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindTraining /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
                       <Route path="/mastermind/replay-vault" element={<ProtectedRoute><PageSuspense><ReplayVault /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
                       <Route path="/help/browser-storage" element={<ProtectedRoute><PageSuspense><BrowserStorageHelp /></PageSuspense></ProtectedRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><PageSuspense><Settings /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin" element={<ProtectedRoute><PageSuspense><Admin /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/admin/mastermind-90-day-plan-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindHub /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
+                      <Route path="/admin/mastermind-phase-one-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindPhaseOnePreview /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
                       <Route path="/admin/mastermind-replacement-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindReplacementPreview /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
                       <Route path="/admin/low-battery-workshop" element={<ProtectedRoute><PageSuspense><LowBatteryWorkshopAdmin /></PageSuspense></ProtectedRoute>} />
                       <Route path="/coaching-log" element={<ProtectedRoute><PageSuspense><CoachingLog /></PageSuspense></ProtectedRoute>} />

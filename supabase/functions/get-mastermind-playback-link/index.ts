@@ -7,7 +7,8 @@ const MAX_RESOURCE_ID = 220;
 const RESOURCE_ID = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
 const DROPBOX_TEMPORARY_LINK_TTL_SECONDS = 4 * 60 * 60;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-interface PlaybackRequest { resourceId?: string; questionId?: string; momentId?: string; preview?: boolean }
+type PlaybackSurface = "curriculum" | "recent_replay" | "vault";
+interface PlaybackRequest { resourceId?: string; questionId?: string; momentId?: string; surface?: PlaybackSurface; preview?: boolean }
 interface PlaybackRow {
   resource_uuid: string; portal_resource_id: string; title: string; dropbox_locator: string; access_scope: string;
   authoritative_start_seconds: number; authoritative_end_seconds: number;
@@ -58,7 +59,9 @@ serve(async (req: Request) => {
     const resourceId = typeof body.resourceId === "string" ? body.resourceId.trim() : "";
     const questionId = typeof body.questionId === "string" ? body.questionId.trim() : "";
     const momentId = typeof body.momentId === "string" ? body.momentId.trim() : "";
+    const surface = body.surface ?? "vault";
     if (!resourceId || resourceId.length > MAX_RESOURCE_ID || !RESOURCE_ID.test(resourceId) || (Boolean(questionId) && Boolean(momentId)) ||
+        !["curriculum", "recent_replay", "vault"].includes(surface) ||
         (questionId && !UUID.test(questionId)) || (momentId && !UUID.test(momentId))) return inaccessible(req);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -71,12 +74,19 @@ serve(async (req: Request) => {
     if (authError || !authData.user?.email) return secureJson(req, { error: "Unauthorized" }, 401);
 
     const service = createClient(supabaseUrl, serviceKey);
-    const { data, error } = await service.rpc("resolve_replay_vault_playback", {
+    let playbackDecision = await service.rpc("resolve_mastermind_media_playback", {
       p_user_id: authData.user.id, p_email: authData.user.email, p_resource_id: resourceId,
+      p_surface: surface as PlaybackSurface,
       p_question_id: questionId || null, p_moment_id: momentId || null, p_preview: body.preview === true,
     });
-    if (error) throw error;
-    const row = ((data ?? []) as PlaybackRow[])[0];
+    if (playbackDecision.error && surface === "vault") {
+      playbackDecision = await service.rpc("resolve_replay_vault_playback", {
+        p_user_id: authData.user.id, p_email: authData.user.email, p_resource_id: resourceId,
+        p_question_id: questionId || null, p_moment_id: momentId || null, p_preview: body.preview === true,
+      });
+    }
+    if (playbackDecision.error) throw playbackDecision.error;
+    const row = ((playbackDecision.data ?? []) as PlaybackRow[])[0];
     if (!row || row.portal_resource_id !== resourceId || !RESOURCE_ID.test(row.portal_resource_id)) return inaccessible(req);
     const playbackUrl = await temporaryLink(row.dropbox_locator);
     if (!playbackUrl) throw new Error("dropbox_unavailable");

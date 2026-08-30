@@ -39,12 +39,10 @@ interface KeyRecord {
 }
 
 const promptExamples = [
-  'Add a task to follow up with Sarah tomorrow about the sales page.',
-  'Create three tasks from this plan and put anything without a date in my backlog.',
-  'Add this as a high priority task for Friday: record the podcast intro.',
-  'Brain dump these into my planner: update checkout, email the list, ask the team about webinar reminders.',
+  'Read my current 90-day plan and tell me the one result and focus you see.',
+  'Using my current goal, propose one task for this week with a done-enough line and evidence target.',
+  'Make this week’s move smaller, then send it to my Planner for approval.',
   'Show me my tasks for this week and help me choose the top 3.',
-  'Mark the task called "Send replay email" as done.',
 ];
 
 export function McpConnectionPanel() {
@@ -194,14 +192,14 @@ PY`;
           AI Task Connection
         </CardTitle>
         <CardDescription>
-          Connect Claude, Codex, or another AI tool so it can add tasks to your planner — with a single long-lived key.
+          Connect Claude or Codex so it can read your current plan and send task proposals back for your approval.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg border bg-muted/40 p-3">
           <p className="text-sm font-medium">What this does</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            This lets your AI assistant create planner tasks for you, read your planner tasks, update your daily plan, and log habits.
+            This lets your AI assistant read your current goal and planner tasks, then propose a next task for you to review.
             It only connects to <strong>your</strong> account.
           </p>
         </div>
@@ -252,7 +250,7 @@ PY`;
                 <li>Copy the <strong>Mac</strong> or <strong>Windows</strong> setup command for your computer.</li>
                 <li>Open <strong>Terminal</strong> (Mac) or <strong>PowerShell</strong> (Windows), paste it, and press Enter.</li>
                 <li>Fully quit Claude Desktop (right-click the icon → Quit), then reopen it.</li>
-                <li>Ask Claude to add a simple test task, then check your Tasks page.</li>
+                <li>Ask Claude to read your 90-day goal, then send one task proposal to your Planner for approval.</li>
               </ol>
               <p className="text-xs text-muted-foreground">
                 If you use Codex or another AI app, use the same server URL and AI connection key in its MCP settings.
@@ -407,7 +405,7 @@ PY`;
 
         {/* Step 3 — Try it */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">Step 3: Ask your AI to add tasks</p>
+          <p className="text-sm font-medium">Step 3: Test your plan connection</p>
           <p className="text-xs text-muted-foreground">After connecting, copy one of these prompts into Claude or Codex:</p>
           <div className="grid gap-2">
             {promptExamples.map((prompt) => (
@@ -488,7 +486,7 @@ PY`;
         <div className="border-t pt-3 space-y-1">
           <p className="text-xs font-medium text-muted-foreground">What connected AI can access:</p>
           <div className="flex flex-wrap gap-2">
-            {['Tasks', 'Daily Plans', 'Brain Dumps', 'Habits'].map((item) => (
+            {['90-Day Goal', 'Current Focus', 'Tasks', 'Daily Plans', 'Task Proposals'].map((item) => (
               <span key={item} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                 {item}
               </span>
@@ -513,7 +511,7 @@ PY`;
         <div className="rounded-lg border bg-primary/5 p-3 text-xs">
           <p className="font-medium text-foreground">Not sure what to ask your AI?</p>
           <p className="mt-1 text-muted-foreground">
-            Once connected, your AI can add tasks, update your daily plan, log habits, and more.
+            Once connected, your AI can read your plan, help you choose the next move, and send a task proposal for your approval.
             See examples and prompts in the Support Center.
           </p>
           <a

@@ -18,6 +18,16 @@ import {
 export type MastermindPortalAccess = 'core' | 'current_replay' | 'vault' | 'eligible' | 'access_review';
 export type MastermindTranscriptStatus = 'transcript_ready' | 'description_indexed' | 'metadata_only' | 'server_side_required';
 export type MastermindPortalResourceType = 'pathway' | 'planner' | 'support' | 'replay' | 'vault' | 'ai' | 'sprint';
+export type MastermindProtectedPlaybackScope = 'core_curriculum' | 'current_replay_30_day' | 'replay_vault';
+export type MastermindProtectedPlaybackSurface = 'curriculum' | 'recent_replay' | 'vault';
+export type MastermindProtectedPlaybackStatus = 'pending_import' | 'ready';
+
+export interface MastermindProtectedPlayback {
+  resourceId: string;
+  accessScope: MastermindProtectedPlaybackScope;
+  surface: MastermindProtectedPlaybackSurface;
+  status: MastermindProtectedPlaybackStatus;
+}
 
 export interface MastermindPortalResource {
   id: string;
@@ -36,10 +46,19 @@ export interface MastermindPortalResource {
   url: string;
   isExternal: boolean;
   primaryAction: string;
+  protectedPlayback?: MastermindProtectedPlayback;
 }
 
 const learningUrl = (productId: string) =>
   `https://portal.faithmariah.com/communities/groups/mastermind/learning?productId=${productId}`;
+
+export function getProtectedTrainingHref(resource: MastermindPortalResource) {
+  const playback = resource.protectedPlayback;
+  if (!playback || playback.status !== 'ready') return null;
+  const params = new URLSearchParams({ resource: playback.resourceId });
+  if (playback.surface === 'vault') return `/mastermind/replay-vault?${params.toString()}`;
+  return `/mastermind/training?${params.toString()}`;
+}
 
 export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
   {
@@ -59,11 +78,17 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: learningUrl('23a1c1db-90c5-40fe-965c-d053b8b14a45'),
     isExternal: true,
     primaryAction: 'Open Success Plan',
+    protectedPlayback: {
+      resourceId: 'success-plan',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
   },
   {
     id: 'ninety-day-planning',
     title: '90-Day Planning',
-    description: 'The planning workflow that feeds the Success Path recommendation and keeps the quarter focused on one result.',
+    description: 'The planning workflow that keeps the quarter focused on one result and powers the weekly guidance page.',
     memberJob: 'Use this before sending someone into content, selling, or vault resources.',
     access: 'core',
     accessLabel: 'Core',
@@ -73,10 +98,16 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     portalPath: 'Planner -> Build 90-Day Plan + Learning -> 90 DAY PLANNING - Clone',
     transcriptStatus: 'transcript_ready',
     transcriptLabel: 'Planner indexed',
-    sourceStatus: 'Use this to save a focused quarter and power the Success Path recommendation.',
+    sourceStatus: 'Use this to save a focused quarter and power the weekly guidance page.',
     url: '/cycle-setup',
     isExternal: false,
     primaryAction: 'Build Plan',
+    protectedPlayback: {
+      resourceId: 'ninety-day-planning',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
   },
   {
     id: 'ask-faith',
@@ -131,6 +162,12 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: learningUrl('8cd48d79-e6dd-4e11-9e4c-5d643703bad1'),
     isExternal: true,
     primaryAction: 'Open Current Replays',
+    protectedPlayback: {
+      resourceId: 'current-replays',
+      accessScope: 'current_replay_30_day',
+      surface: 'recent_replay',
+      status: 'pending_import',
+    },
   },
   {
     id: 'money-moves-sprint',
@@ -151,6 +188,102 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     primaryAction: 'Check Access',
   },
   {
+    id: 'money-move-day-one',
+    title: 'Find Your Next Money Move',
+    description: 'Choose the one offer or revenue stream this quarter is going to serve.',
+    memberJob: 'Use when the member has too many ideas, too many possible offers, or no clean money focus.',
+    access: 'core',
+    accessLabel: 'Core',
+    type: 'pathway',
+    icon: Video,
+    stages: ['offer'],
+    portalPath: 'Core curriculum -> Find Your Next Money Move',
+    transcriptStatus: 'transcript_ready',
+    transcriptLabel: 'Video indexed',
+    sourceStatus: 'Use this before picking more tactics or building another backend piece.',
+    url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
+    isExternal: true,
+    primaryAction: 'Open Training',
+    protectedPlayback: {
+      resourceId: 'money-move-day-one',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
+  },
+  {
+    id: 'wibn-offer-clarity',
+    title: 'Offer Clarity',
+    description: 'Name the buyer, the problem, and the paid result in words a real person would recognize.',
+    memberJob: 'Use when the offer idea exists, but the buyer or problem is still fuzzy.',
+    access: 'core',
+    accessLabel: 'Core',
+    type: 'pathway',
+    icon: Video,
+    stages: ['offer'],
+    portalPath: 'Core curriculum -> Offer Clarity',
+    transcriptStatus: 'transcript_ready',
+    transcriptLabel: 'Video indexed',
+    sourceStatus: 'Use this before polishing the offer or changing the business model.',
+    url: learningUrl('6e8a7112-1b1d-41bd-91ea-0159bc231527'),
+    isExternal: true,
+    primaryAction: 'Open Training',
+    protectedPlayback: {
+      resourceId: 'wibn-offer-clarity',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
+  },
+  {
+    id: 'money-move-day-two',
+    title: 'Package Your Money Move',
+    description: 'Turn the offer into a simple enough promise, format, price, and boundary.',
+    memberJob: 'Use when the offer needs to become clear enough to send before everything is built.',
+    access: 'core',
+    accessLabel: 'Core',
+    type: 'pathway',
+    icon: Video,
+    stages: ['offer'],
+    portalPath: 'Core curriculum -> Package Your Money Move',
+    transcriptStatus: 'transcript_ready',
+    transcriptLabel: 'Video indexed',
+    sourceStatus: 'Use this when the next step is making the offer easier to understand and say yes to.',
+    url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
+    isExternal: true,
+    primaryAction: 'Open Training',
+    protectedPlayback: {
+      resourceId: 'money-move-day-two',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
+  },
+  {
+    id: 'money-move-day-three',
+    title: 'Create Your Sales Plan',
+    description: 'Make the invitation, follow up, and record the responses instead of rebuilding in private.',
+    memberJob: 'Use when the offer is clear enough and the next move is putting it in front of people.',
+    access: 'core',
+    accessLabel: 'Core',
+    type: 'pathway',
+    icon: Video,
+    stages: ['offer'],
+    portalPath: 'Core curriculum -> Create Your Sales Plan',
+    transcriptStatus: 'transcript_ready',
+    transcriptLabel: 'Video indexed',
+    sourceStatus: 'Use this when the work is making offers, following up, and learning from the response.',
+    url: 'https://portal.faithmariah.com/communities/groups/mastermind/learning',
+    isExternal: true,
+    primaryAction: 'Open Training',
+    protectedPlayback: {
+      resourceId: 'money-move-day-three',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
+  },
+  {
     id: 'messy-action-sprints',
     title: 'Messy Action Sprints',
     description: 'Short implementation containers for offers, sales pages, systems, and launch actions.',
@@ -167,6 +300,12 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: learningUrl('4b78a1e1-6f76-4043-bcb5-5e05570ce90b'),
     isExternal: true,
     primaryAction: 'Open Sprints',
+    protectedPlayback: {
+      resourceId: 'messy-action-sprints',
+      accessScope: 'core_curriculum',
+      surface: 'curriculum',
+      status: 'pending_import',
+    },
   },
   {
     id: 'products-offers',
@@ -311,5 +450,11 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     url: '/mastermind',
     isExternal: false,
     primaryAction: 'Check Vault Access',
+    protectedPlayback: {
+      resourceId: 'replay-vault',
+      accessScope: 'replay_vault',
+      surface: 'vault',
+      status: 'pending_import',
+    },
   },
 ];
