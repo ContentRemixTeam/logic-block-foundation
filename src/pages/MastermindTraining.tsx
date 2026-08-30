@@ -15,6 +15,7 @@ import {
 } from '@/components/replay-vault/replayVaultCore.mjs';
 import type { PlaybackResult, PlaybackTarget } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
+import { savePhaseOneVideoProgress } from '@/hooks/usePhaseOneCatalog';
 
 const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'lesson'}`;
 
@@ -25,9 +26,15 @@ export default function MastermindTraining() {
   const playbackRequest = useRef({ generation: 0, controller: null as AbortController | null });
   const recoverySnapshotRef = useRef({ time: 0, shouldResume: false });
   const recoveryAttemptsRef = useRef(0);
+  const lastProgressSaveRef = useRef(0);
   const resourceId = searchParams.get('resource') ?? '';
   const momentId = searchParams.get('moment');
   const questionId = searchParams.get('question');
+  const fromPhaseOne = searchParams.get('from') === 'phase-one';
+  const backHref = fromPhaseOne ? '/admin/mastermind-phase-one-preview' : '/mastermind';
+  const backLabel = fromPhaseOne ? 'Back to Phase One' : 'Back to 90-Day Plan';
+  const [progressSaved, setProgressSaved] = useState(false);
+
   const initialTarget = useMemo<PlaybackTarget | null>(() => {
     if (!isStableVaultId(resourceId)) return null;
     return {
@@ -141,6 +148,40 @@ export default function MastermindTraining() {
     else setRecoveryFailed(true);
   };
 
+  // Member-owned progress is written only through the validated Phase One RPC.
+  const persistProgress = useCallback(async (completed: boolean) => {
+    if (!resourceId) return;
+    const media = videoRef.current;
+    const position = Math.floor(media?.currentTime ?? 0);
+    const saved = await savePhaseOneVideoProgress({
+      portalResourceId: resourceId,
+      lastPositionSeconds: position,
+      watchedSeconds: position,
+      completed,
+      completionSource: completed ? 'member_confirmed' : 'playback',
+    });
+    if (saved && completed) setProgressSaved(true);
+  }, [resourceId]);
+
+  useEffect(() => {
+    const media = videoRef.current;
+    if (!media || !playback) return;
+    const onTimeUpdate = () => {
+      const now = Date.now();
+      if (now - lastProgressSaveRef.current < 15_000) return;
+      lastProgressSaveRef.current = now;
+      void persistProgress(false);
+    };
+    const onEnded = () => { void persistProgress(true); };
+    media.addEventListener('timeupdate', onTimeUpdate);
+    media.addEventListener('ended', onEnded);
+    return () => {
+      media.removeEventListener('timeupdate', onTimeUpdate);
+      media.removeEventListener('ended', onEnded);
+    };
+  }, [playback, persistProgress]);
+
+
   useEffect(() => {
     if (!playback?.expiresAt || playback.provider === 'youtube') return;
     const refreshIn = new Date(playback.expiresAt).getTime() - Date.now() - 30_000;
@@ -169,10 +210,11 @@ export default function MastermindTraining() {
               </p>
             </div>
           </div>
-          <Button type="button" variant="outline" onClick={() => navigate('/mastermind')} className="w-full md:w-auto">
+          <Button type="button" variant="outline" onClick={() => navigate(backHref)} className="w-full md:w-auto">
             <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-            Back to 90-Day Plan
+            {backLabel}
           </Button>
+
         </div>
 
         {!initialTarget && (
@@ -239,13 +281,19 @@ export default function MastermindTraining() {
                   <p className="text-sm font-semibold">After watching</p>
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Go back to your 90-day plan and record the action or evidence this lesson helps you create.
+                  Go back to your plan and record the action or evidence this lesson helps you create.
                 </p>
-                <Button type="button" variant="secondary" className="mt-3 w-full sm:w-auto" onClick={() => navigate('/mastermind')}>
-                  Back to 90-Day Plan
-                </Button>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={() => void persistProgress(true)}>
+                    {progressSaved ? 'Marked complete' : 'Mark lesson complete'}
+                  </Button>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate(backHref)}>
+                    {backLabel}
+                  </Button>
+                </div>
               </div>
             )}
+
           />
         )}
 

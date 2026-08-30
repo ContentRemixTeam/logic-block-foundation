@@ -36,10 +36,16 @@ import {
   PHASE_ONE_LESSONS,
   PHASE_ONE_REQUIRED_LESSONS,
 } from '@/data/phaseOneCurriculum';
+import { usePhaseOneCatalog, savePhaseOneVideoProgress } from '@/hooks/usePhaseOneCatalog';
 import { cn } from '@/lib/utils';
 
 const PROGRESS_KEY = 'mastermind-phase-one-preview-progress';
 const WORKSPACE_READY_KEY = 'mastermind-phase-one-preview-workspace-ready';
+const TRAINING_PREVIEW_ROUTE = '/admin/mastermind-training-preview';
+
+const trainingHref = (resourceId: string) =>
+  `${TRAINING_PREVIEW_ROUTE}?resource=${encodeURIComponent(resourceId)}&from=phase-one`;
+
 
 function readWatched(): string[] {
   try {
@@ -58,22 +64,48 @@ export default function MastermindPhaseOnePreview() {
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [workspaceReady, setWorkspaceReady] = useState(() => window.localStorage.getItem(WORKSPACE_READY_KEY) === 'true');
   const [proposalState, setProposalState] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const { data: catalog } = usePhaseOneCatalog();
+
+  // Playable state is server-authorized: only lessons returned by
+  // search_my_mastermind_phase_one_resources can be opened for playback.
+  const catalogById = useMemo(() => {
+    const map = new Map<string, { completed: boolean; duration: number | null; position: number }>();
+    for (const row of catalog ?? []) {
+      map.set(row.portal_resource_id, {
+        completed: row.completed === true,
+        duration: row.duration_seconds ?? null,
+        position: row.last_position_seconds ?? 0,
+      });
+    }
+    return map;
+  }, [catalog]);
 
   const visibleLessons = useMemo(
     () => PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required' || showFullLibrary),
     [showFullLibrary],
   );
-  const watchedCount = PHASE_ONE_LESSONS.filter((lesson) => watched.includes(lesson.resourceId)).length;
-  const requiredComplete = PHASE_ONE_REQUIRED_LESSONS.every((lesson) => watched.includes(lesson.resourceId));
+  const isWatchedLesson = (resourceId: string) =>
+    watched.includes(resourceId) || catalogById.get(resourceId)?.completed === true;
+  const watchedCount = PHASE_ONE_LESSONS.filter((lesson) => isWatchedLesson(lesson.resourceId)).length;
+  const requiredComplete = PHASE_ONE_REQUIRED_LESSONS.every((lesson) => isWatchedLesson(lesson.resourceId));
   const phaseProgress = [requiredComplete, workspaceReady, connectionTested].filter(Boolean).length;
 
   const toggleWatched = (lessonId: string) => {
-    const next = watched.includes(lessonId)
-      ? watched.filter((id) => id !== lessonId)
-      : [...watched, lessonId];
+    const nowWatched = !watched.includes(lessonId);
+    const next = nowWatched ? [...watched, lessonId] : watched.filter((id) => id !== lessonId);
     setWatched(next);
     window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
+    if (nowWatched && catalogById.has(lessonId)) {
+      void savePhaseOneVideoProgress({
+        portalResourceId: lessonId,
+        completed: true,
+        completionSource: 'member_confirmed',
+        watchedSeconds: catalogById.get(lessonId)?.duration ?? 0,
+        lastPositionSeconds: catalogById.get(lessonId)?.position ?? 0,
+      });
+    }
   };
+
 
   return (
     <Layout>
@@ -137,8 +169,8 @@ export default function MastermindPhaseOnePreview() {
             </CardHeader>
             <CardContent className="space-y-3 p-4 sm:p-5">
               {visibleLessons.map((lesson, index) => {
-                const isWatched = watched.includes(lesson.resourceId);
-                const playbackReady = lesson.lessonState === 'ready';
+                const isWatched = isWatchedLesson(lesson.resourceId);
+                const playbackReady = catalogById.has(lesson.resourceId);
                 return (
                   <article key={lesson.resourceId} className={cn('group rounded-2xl border p-4 transition-colors', isWatched ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/15' : 'hover:border-primary/35')}>
                     <div className="flex items-start gap-3">
@@ -156,7 +188,7 @@ export default function MastermindPhaseOnePreview() {
                         {lesson.requirement !== 'required' && <p className="mt-2 text-xs font-medium text-primary">Show this: {lesson.showWhen}</p>}
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />{lesson.durationLabel ?? 'Duration pending'}</span>
-                          <Button size="sm" variant={isWatched ? 'outline' : 'secondary'} disabled={!playbackReady} onClick={() => navigate(`/mastermind/training?resource=${lesson.resourceId}`)}>
+                          <Button size="sm" variant={isWatched ? 'outline' : 'secondary'} disabled={!playbackReady} onClick={() => navigate(trainingHref(lesson.resourceId))}>
                             <Play className="mr-1.5 h-3.5 w-3.5" />{playbackReady ? (isWatched ? 'Watch again' : 'Watch lesson') : 'Playback coming soon'}
                           </Button>
                         </div>
@@ -191,7 +223,7 @@ export default function MastermindPhaseOnePreview() {
 
         <section className="grid gap-5 lg:grid-cols-2" aria-label="Phase One AI support previews">
           <CoachingPreviewPanel onProposeTask={() => setProposalState('pending')} />
-          <FindWhatINeedPanel onOpenResource={(resourceId) => navigate(`/mastermind/training?resource=${resourceId}`)} />
+          <FindWhatINeedPanel onOpenResource={(resourceId) => navigate(trainingHref(resourceId))} />
         </section>
 
         <Card className="border-primary/20 bg-primary/[0.04]">
