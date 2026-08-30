@@ -228,7 +228,8 @@ DO $$ DECLARE
     'replay_vault_get_interaction','replay_vault_set_bookmark','replay_vault_delete_bookmark_by_id','replay_vault_begin_session','replay_vault_record_media_event','replay_vault_create_note',
     'replay_vault_browse_member','replay_vault_categories_member','replay_vault_transcript_member','replay_vault_questions_member','replay_vault_saved_member',
     'replay_vault_browse_authorized','replay_vault_categories_authorized','replay_vault_transcript_authorized',
-    'apply_replay_vault_commercial_event_r7','reconcile_replay_vault_unmapped_event_r7'
+    'apply_replay_vault_commercial_event_r7','reconcile_replay_vault_unmapped_event_r7',
+    'replay_import_launch_batch'
   ];
 BEGIN
   IF NOT has_function_privilege('service_role',sig,'EXECUTE')
