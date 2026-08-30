@@ -4759,6 +4759,13 @@ export type Database = {
             foreignKeyName: "mastermind_portal_resources_superseded_by_fkey"
             columns: ["superseded_by"]
             isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mastermind_portal_resources_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
             referencedRelation: "replay_authorized_resource_projection"
             referencedColumns: ["id"]
           },
@@ -4871,6 +4878,13 @@ export type Database = {
             foreignKeyName: "mastermind_portal_source_evidence_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mastermind_portal_source_evidence_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
             referencedRelation: "replay_authorized_resource_projection"
             referencedColumns: ["id"]
           },
@@ -4926,6 +4940,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mastermind_portal_transcript_segments_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
             referencedColumns: ["id"]
           },
           {
@@ -6308,6 +6329,13 @@ export type Database = {
             foreignKeyName: "replay_answers_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
             referencedRelation: "replay_authorized_resource_projection"
             referencedColumns: ["id"]
           },
@@ -6808,6 +6836,13 @@ export type Database = {
             foreignKeyName: "replay_pairing_candidates_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_pairing_candidates_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
             referencedRelation: "replay_authorized_resource_projection"
             referencedColumns: ["id"]
           },
@@ -6950,6 +6985,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: true
             referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: true
+            referencedRelation: "replay_admin_preview_resource_projection"
             referencedColumns: ["id"]
           },
           {
@@ -7142,6 +7184,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_question_candidates_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
             referencedColumns: ["id"]
           },
           {
@@ -7467,6 +7516,13 @@ export type Database = {
             foreignKeyName: "replay_transcript_versions_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_transcript_versions_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
             referencedRelation: "replay_authorized_resource_projection"
             referencedColumns: ["id"]
           },
@@ -7533,6 +7589,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_bookmarks_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
             referencedColumns: ["id"]
           },
           {
@@ -7927,6 +7990,13 @@ export type Database = {
             foreignKeyName: "replay_vault_note_backlinks_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_note_backlinks_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
             referencedRelation: "replay_authorized_resource_projection"
             referencedColumns: ["id"]
           },
@@ -7994,6 +8064,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_playback_events_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
             referencedColumns: ["id"]
           },
           {
@@ -8317,6 +8394,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_watch_state_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
             referencedColumns: ["id"]
           },
           {
@@ -11284,6 +11368,46 @@ export type Database = {
           },
         ]
       }
+      replay_admin_preview_resource_projection: {
+        Row: {
+          approved_access_scope: string | null
+          approved_at: string | null
+          authority_published_at: string | null
+          authority_state: string | null
+          category_title: string | null
+          dropbox_content_hash: string | null
+          dropbox_file_id: string | null
+          duration_ms: number | null
+          id: string | null
+          playback_attempt_id: string | null
+          portal_path: string | null
+          portal_resource_id: string | null
+          product_title: string | null
+          resource_type: string | null
+          size_bytes: number | null
+          stages: string[] | null
+          success_paths: string[] | null
+          title: string | null
+          transcript_sha256: string | null
+          transcript_version_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_publication_authority_playback_attempt_id_fkey"
+            columns: ["playback_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "replay_media_migration_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_publication_authority_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: false
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replay_authorized_resource_projection: {
         Row: {
           approved_access_scope: string | null
@@ -11354,6 +11478,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_answers_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "replay_admin_preview_resource_projection"
             referencedColumns: ["id"]
           },
           {
@@ -11850,6 +11981,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      replay_vault_admin_preview_enabled: {
+        Args: { p_preview: boolean; p_user_id: string }
+        Returns: boolean
       }
       replay_vault_begin_session: {
         Args: {
