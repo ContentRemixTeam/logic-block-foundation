@@ -47,7 +47,7 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
     afterWatchingAction: 'Save one 90-day result, baseline, current constraint, and first weekly move.',
     doneEnoughLine: 'One result and the first move are clear.',
     evidenceTarget: 'Saved plan plus one dated action attempt within 48 hours.',
-    sourceReceipt: 'Exact Searchie resource; verified Dropbox archive duration; CRDB row 719 transcript candidate.',
+    sourceReceipt: 'Exact Searchie resource; verified Dropbox archive duration and full decode; private server-side locator retained; CRDB row 719 transcript candidate.',
     remainingGate: 'Bind the exact approved transcript/captions to the verified media and pass editorial, access, and protected-playback QA.',
   },
   {
