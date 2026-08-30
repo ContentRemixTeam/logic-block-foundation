@@ -20,6 +20,7 @@
     "verify:mastermind-playback-link": "node tools/verify-mastermind-playback-link.mjs",
     "verify:mastermind-training-playback-pg": "node tools/verify-mastermind-training-playback-pg.mjs",
     "verify:mastermind-browser": "node tools/verify-mastermind-browser.mjs",
+    "verify:phase-one-planner-connector": "node tools/verify-phase-one-planner-connector.mjs",
     "qa:mastermind-live-gates": "node tools/qa-mastermind-live-gates.mjs",
     "qa:mastermind-live-gates:dry-run": "node tools/qa-mastermind-live-gates.mjs --dry-run",
     "qa:mastermind-live-gates:mock": "node tools/qa-mastermind-live-gates-mock.mjs",

@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-import-prefix
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
@@ -9,6 +10,30 @@ const corsHeaders = {
 
 // ── Tool definitions ──────────────────────────────────────────────────
 const TOOLS = [
+  {
+    name: "get_current_90_day_plan",
+    description: "Read the member's current 90-day goal, capacity versions, active Success Path section, milestone, and evidence target. Read-only.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "propose_planner_task",
+    description: "Send one task proposal to the Planner for member approval. This does not create or schedule a canonical task.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        idempotency_key: { type: "string", description: "Stable unique key for this proposal so retries cannot create duplicates." },
+        task_text: { type: "string", description: "Short action-oriented task title." },
+        task_description: { type: "string", description: "Optional context." },
+        why_this_task: { type: "string", description: "Why this supports the current 90-day result." },
+        done_enough: { type: "string", description: "Small observable finish line." },
+        evidence_target: { type: "string", description: "What response, artifact, or evidence to collect." },
+        suggested_date: { type: "string", description: "Optional proposed date (YYYY-MM-DD)." },
+        priority: { type: "string", enum: ["low", "medium", "high"] },
+        source_context: { type: "object", description: "Small source receipt such as current stage or skill name." },
+      },
+      required: ["idempotency_key", "task_text", "why_this_task", "done_enough", "evidence_target"],
+    },
+  },
   // Tasks
   {
     name: "list_tasks",
@@ -165,6 +190,7 @@ type AuthCtx = {
   client: any;
   source: "jwt" | "ai_key";
   keyId?: string;
+  scopes?: string[];
 };
 
 class AuthError extends Error {
@@ -182,7 +208,7 @@ async function resolveAuth(authHeader: string): Promise<AuthCtx> {
     const keyHash = await sha256Hex(token);
     const { data: row, error } = await admin
       .from("ai_connection_keys")
-      .select("id, user_id, expires_at, revoked_at")
+      .select("id, user_id, expires_at, revoked_at, scopes")
       .eq("key_hash", keyHash)
       .maybeSingle();
 
@@ -218,6 +244,7 @@ async function resolveAuth(authHeader: string): Promise<AuthCtx> {
       client: admin,
       source: "ai_key",
       keyId: row.id as string,
+      scopes: (row.scopes as string[]) || [],
     };
   }
 
@@ -228,6 +255,28 @@ async function resolveAuth(authHeader: string): Promise<AuthCtx> {
     throw new AuthError("Unauthorized — invalid Supabase token", "invalid");
   }
   return { userId: data.user.id, client, source: "jwt" };
+}
+
+const AI_KEY_TOOLS = new Set([
+  "get_current_90_day_plan",
+  "propose_planner_task",
+  "list_tasks",
+  "get_daily_plan",
+  "list_habits",
+  "get_habit_status",
+]);
+
+function toolsFor(ctx: AuthCtx) {
+  return ctx.source === "ai_key" ? TOOLS.filter((tool) => AI_KEY_TOOLS.has(tool.name)) : TOOLS;
+}
+
+function assertToolAllowed(name: string, ctx: AuthCtx) {
+  if (ctx.source !== "ai_key") return;
+  if (!AI_KEY_TOOLS.has(name)) {
+    throw new Error("This AI connection is approval-first. Use propose_planner_task; the member approves it in Planner.");
+  }
+  const requiredScope = name === "propose_planner_task" ? "mcp:write" : "mcp:read";
+  if (!ctx.scopes?.includes(requiredScope)) throw new Error(`Connection key is missing ${requiredScope} permission`);
 }
 
 // ── Tool handlers ─────────────────────────────────────────────────────
@@ -241,6 +290,107 @@ async function handleTool(
   const today = new Date().toISOString().split("T")[0];
 
   switch (name) {
+    case "get_current_90_day_plan": {
+      const { data: cycle, error: cycleError } = await supabase
+        .from("cycles_90_day")
+        .select("cycle_id, goal, outcome, start_date, end_date, focus_area, biggest_bottleneck, minimum_viable_version, low_energy_version, medium_energy_version, high_energy_version, metric_1_name, metric_1_start, metric_1_goal, metric_2_name, metric_2_start, metric_2_goal, updated_at")
+        .eq("user_id", userId)
+        .order("end_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cycleError) throw cycleError;
+      if (!cycle) return { state: "no_plan", message: "No 90-day plan is saved yet." };
+
+      const { data: path, error: pathError } = await supabase
+        .from("cycle_success_path_snapshots")
+        .select("confirmed_stage, recommended_stage, current_milestone_id, current_milestone_title, capacity_mode, recommendation_reason, updated_at")
+        .eq("user_id", userId)
+        .eq("cycle_id", cycle.cycle_id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (pathError) throw pathError;
+
+      const metrics = [
+        cycle.metric_1_name ? { name: cycle.metric_1_name, start: cycle.metric_1_start, goal: cycle.metric_1_goal } : null,
+        cycle.metric_2_name ? { name: cycle.metric_2_name, start: cycle.metric_2_start, goal: cycle.metric_2_goal } : null,
+      ].filter(Boolean);
+
+      return {
+        state: "ready",
+        cycle_id: cycle.cycle_id,
+        result: cycle.goal,
+        outcome: cycle.outcome,
+        dates: { start: cycle.start_date, end: cycle.end_date },
+        current_focus: path?.confirmed_stage || cycle.focus_area || null,
+        recommended_focus: path?.recommended_stage || null,
+        milestone: path?.current_milestone_title || null,
+        milestone_id: path?.current_milestone_id || null,
+        bottleneck: cycle.biggest_bottleneck,
+        capacity_mode: path?.capacity_mode || null,
+        action_versions: {
+          minimum: cycle.minimum_viable_version,
+          low: cycle.low_energy_version,
+          medium: cycle.medium_energy_version,
+          high: cycle.high_energy_version,
+        },
+        evidence_targets: metrics,
+        recommendation_reason: path?.recommendation_reason || null,
+        source_updated_at: path?.updated_at || cycle.updated_at,
+      };
+    }
+
+    case "propose_planner_task": {
+      const idempotencyKey = String(args.idempotency_key || "").trim().slice(0, 160);
+      const taskText = String(args.task_text || "").trim().slice(0, 500);
+      if (idempotencyKey.length < 8 || !taskText) throw new Error("idempotency_key (8+ characters) and task_text are required");
+      const suggestedDate = args.suggested_date ? String(args.suggested_date) : null;
+      if (suggestedDate && !/^\d{4}-\d{2}-\d{2}$/.test(suggestedDate)) throw new Error("suggested_date must use YYYY-MM-DD");
+      const priority = String(args.priority || "medium");
+      if (!["low", "medium", "high"].includes(priority)) throw new Error("priority must be low, medium, or high");
+      const rawSource = typeof args.source_context === "object" && args.source_context && !Array.isArray(args.source_context)
+        ? args.source_context as Record<string, unknown>
+        : {};
+      // Keep only small provenance fields. Never persist prompts, uploaded docs,
+      // transcripts, credentials, or private business source material here.
+      const sourceContext = Object.fromEntries(
+        ["skill_name", "current_stage", "resource_id", "reason"]
+          .filter((key) => rawSource[key] !== undefined)
+          .map((key) => [key, String(rawSource[key]).slice(0, 240)]),
+      );
+
+      const proposal = {
+        user_id: userId,
+        connection_key_id: ctx.keyId || null,
+        idempotency_key: idempotencyKey,
+        task_text: taskText,
+        task_description: args.task_description ? String(args.task_description).slice(0, 2000) : null,
+        why_this_task: String(args.why_this_task || "").slice(0, 1000),
+        done_enough: String(args.done_enough || "").slice(0, 1000),
+        evidence_target: String(args.evidence_target || "").slice(0, 1000),
+        suggested_date: suggestedDate,
+        priority,
+        source_context: sourceContext,
+      };
+
+      const { data, error } = await supabase
+        .from("ai_planner_task_proposals")
+        .upsert(proposal, { onConflict: "user_id,idempotency_key", ignoreDuplicates: true })
+        .select("proposal_id, task_text, suggested_date, priority, status, created_at")
+        .single();
+      if (error) {
+        const { data: existing, error: existingError } = await supabase
+          .from("ai_planner_task_proposals")
+          .select("proposal_id, task_text, suggested_date, priority, status, created_at")
+          .eq("user_id", userId)
+          .eq("idempotency_key", idempotencyKey)
+          .single();
+        if (existingError) throw error;
+        return { state: "proposal_already_exists", member_approval_required: true, proposal: existing };
+      }
+      return { state: "proposal_created", member_approval_required: true, proposal: data };
+    }
+
     // ── Tasks ──
     case "list_tasks": {
       let query = supabase
@@ -399,7 +549,7 @@ async function handleTool(
 
 // ── MCP Protocol handler ──────────────────────────────────────────────
 async function handleMcpRequest(body: Record<string, unknown>, ctx: AuthCtx) {
-  const { jsonrpc, id, method, params } = body as {
+  const { id, method, params } = body as {
     jsonrpc: string;
     id: unknown;
     method: string;
@@ -425,13 +575,15 @@ async function handleMcpRequest(body: Record<string, unknown>, ctx: AuthCtx) {
       return {
         jsonrpc: "2.0",
         id,
-        result: { tools: TOOLS },
+        result: { tools: toolsFor(ctx) },
       };
 
     case "tools/call": {
-      const toolName = (params as any)?.name as string;
-      const toolArgs = (params as any)?.arguments || {};
+      const callParams = params as { name?: string; arguments?: Record<string, unknown> } | undefined;
+      const toolName = callParams?.name || "";
+      const toolArgs = callParams?.arguments || {};
       try {
+        assertToolAllowed(toolName, ctx);
         const result = await handleTool(toolName, toolArgs, ctx);
         return {
           jsonrpc: "2.0",
@@ -529,8 +681,8 @@ serve(async (req) => {
         JSON.stringify({
           name: "90-day-planner-mcp",
           version: "1.1.0",
-          description: "MCP server for the Boss Planner app. Provides access to tasks, daily plans, brain dumps, and habits.",
-          tools: TOOLS.map((t) => ({ name: t.name, description: t.description })),
+          description: "Approval-first Planner connection. External AI can read member-scoped plan context and propose tasks for member review.",
+          tools: toolsFor(ctx).map((t) => ({ name: t.name, description: t.description })),
           auth: "Bearer token required (Boss Planner AI connection key 'bp_live_...' or Supabase JWT)",
           authenticated_as: ctx.userId,
           auth_source: ctx.source,

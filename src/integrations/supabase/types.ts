@@ -83,6 +83,123 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_planner_task_proposal_receipts: {
+        Row: {
+          canonical_task_id: string | null
+          decided_at: string
+          decision: string
+          proposal_id: string
+          receipt_id: string
+          user_id: string
+        }
+        Insert: {
+          canonical_task_id?: string | null
+          decided_at?: string
+          decision: string
+          proposal_id: string
+          receipt_id?: string
+          user_id: string
+        }
+        Update: {
+          canonical_task_id?: string | null
+          decided_at?: string
+          decision?: string
+          proposal_id?: string
+          receipt_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_planner_task_proposal_receipts_canonical_task_id_fkey"
+            columns: ["canonical_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "ai_planner_task_proposal_receipts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "ai_planner_task_proposals"
+            referencedColumns: ["proposal_id"]
+          },
+        ]
+      }
+      ai_planner_task_proposals: {
+        Row: {
+          approved_task_id: string | null
+          connection_key_id: string | null
+          created_at: string
+          done_enough: string | null
+          evidence_target: string | null
+          idempotency_key: string
+          priority: string
+          proposal_id: string
+          reviewed_at: string | null
+          source_context: Json
+          status: string
+          suggested_date: string | null
+          task_description: string | null
+          task_text: string
+          updated_at: string
+          user_id: string
+          why_this_task: string | null
+        }
+        Insert: {
+          approved_task_id?: string | null
+          connection_key_id?: string | null
+          created_at?: string
+          done_enough?: string | null
+          evidence_target?: string | null
+          idempotency_key: string
+          priority?: string
+          proposal_id?: string
+          reviewed_at?: string | null
+          source_context?: Json
+          status?: string
+          suggested_date?: string | null
+          task_description?: string | null
+          task_text: string
+          updated_at?: string
+          user_id: string
+          why_this_task?: string | null
+        }
+        Update: {
+          approved_task_id?: string | null
+          connection_key_id?: string | null
+          created_at?: string
+          done_enough?: string | null
+          evidence_target?: string | null
+          idempotency_key?: string
+          priority?: string
+          proposal_id?: string
+          reviewed_at?: string | null
+          source_context?: Json
+          status?: string
+          suggested_date?: string | null
+          task_description?: string | null
+          task_text?: string
+          updated_at?: string
+          user_id?: string
+          why_this_task?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_planner_task_proposals_approved_task_id_fkey"
+            columns: ["approved_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "ai_planner_task_proposals_connection_key_id_fkey"
+            columns: ["connection_key_id"]
+            isOneToOne: false
+            referencedRelation: "ai_connection_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_copy_generations: {
         Row: {
           content_type: string
@@ -4611,6 +4728,126 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      mastermind_phase_one_resource_progress: {
+        Row: {
+          completed_at: string | null
+          completion_source: string | null
+          first_started_at: string | null
+          last_position_seconds: number
+          last_watched_at: string | null
+          portal_resource_id: string
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+        }
+        Insert: {
+          completed_at?: string | null
+          completion_source?: string | null
+          first_started_at?: string | null
+          last_position_seconds?: number
+          last_watched_at?: string | null
+          portal_resource_id: string
+          updated_at?: string
+          user_id: string
+          watched_seconds?: number
+        }
+        Update: {
+          completed_at?: string | null
+          completion_source?: string | null
+          first_started_at?: string | null
+          last_position_seconds?: number
+          last_watched_at?: string | null
+          portal_resource_id?: string
+          updated_at?: string
+          user_id?: string
+          watched_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mastermind_phase_one_resource_progress_portal_resource_id_fkey"
+            columns: ["portal_resource_id"]
+            isOneToOne: false
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["portal_resource_id"]
+          },
+        ]
+      }
+      mastermind_phase_one_state: {
+        Row: {
+          completed_at: string | null
+          connector_status: string
+          connector_verified_at: string | null
+          created_at: string
+          current_step: string
+          cycle_id: string | null
+          phase_version: string
+          plan_ready_at: string | null
+          test_proposal_id: string | null
+          test_task_id: string | null
+          updated_at: string
+          user_id: string
+          workspace_provider: string | null
+          workspace_ready_at: string | null
+          workspace_status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          connector_status?: string
+          connector_verified_at?: string | null
+          created_at?: string
+          current_step?: string
+          cycle_id?: string | null
+          phase_version?: string
+          plan_ready_at?: string | null
+          test_proposal_id?: string | null
+          test_task_id?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_provider?: string | null
+          workspace_ready_at?: string | null
+          workspace_status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          connector_status?: string
+          connector_verified_at?: string | null
+          created_at?: string
+          current_step?: string
+          cycle_id?: string | null
+          phase_version?: string
+          plan_ready_at?: string | null
+          test_proposal_id?: string | null
+          test_task_id?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_provider?: string | null
+          workspace_ready_at?: string | null
+          workspace_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mastermind_phase_one_state_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "mastermind_phase_one_state_test_proposal_id_fkey"
+            columns: ["test_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "ai_planner_task_proposals"
+            referencedColumns: ["proposal_id"]
+          },
+          {
+            foreignKeyName: "mastermind_phase_one_state_test_task_id_fkey"
+            columns: ["test_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
       }
       mastermind_portal_resources: {
         Row: {
@@ -11218,6 +11455,52 @@ export type Database = {
       create_default_project_board: {
         Args: { p_user_id: string }
         Returns: string
+      }
+      review_ai_planner_task_proposal: {
+        Args: { p_decision: string; p_proposal_id: string }
+        Returns: Json
+      }
+      get_my_mastermind_phase_one_coaching_context: {
+        Args: never
+        Returns: Json
+      }
+      save_my_mastermind_phase_one_state: {
+        Args: {
+          p_connector_status?: string
+          p_current_step?: string
+          p_cycle_id?: string
+          p_plan_ready?: boolean
+          p_test_proposal_id?: string
+          p_test_task_id?: string
+          p_workspace_provider?: string
+          p_workspace_status?: string
+        }
+        Returns: Database["public"]["Tables"]["mastermind_phase_one_state"]["Row"]
+      }
+      save_my_mastermind_phase_one_video_progress: {
+        Args: {
+          p_completed?: boolean
+          p_completion_source?: string
+          p_last_position_seconds?: number
+          p_portal_resource_id: string
+          p_watched_seconds?: number
+        }
+        Returns: Database["public"]["Tables"]["mastermind_phase_one_resource_progress"]["Row"]
+      }
+      search_my_mastermind_phase_one_resources: {
+        Args: { p_limit?: number; p_query?: string; p_stage?: string }
+        Returns: {
+          category_title: string | null
+          completed: boolean
+          duration_seconds: number | null
+          last_position_seconds: number
+          portal_resource_id: string
+          product_title: string
+          resource_type: string
+          stages: string[]
+          success_paths: string[]
+          title: string
+        }[]
       }
       evaluate_habit_color: {
         Args: { p_date: string; p_user_id: string }
