@@ -281,13 +281,19 @@ export default function MastermindTraining() {
                   <p className="text-sm font-semibold">After watching</p>
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Go back to your 90-day plan and record the action or evidence this lesson helps you create.
+                  Go back to your plan and record the action or evidence this lesson helps you create.
                 </p>
-                <Button type="button" variant="secondary" className="mt-3 w-full sm:w-auto" onClick={() => navigate('/mastermind')}>
-                  Back to 90-Day Plan
-                </Button>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={() => void persistProgress(true)}>
+                    {progressSaved ? 'Marked complete' : 'Mark lesson complete'}
+                  </Button>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate(backHref)}>
+                    {backLabel}
+                  </Button>
+                </div>
               </div>
             )}
+
           />
         )}
 
