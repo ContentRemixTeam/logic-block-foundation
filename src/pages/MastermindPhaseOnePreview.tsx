@@ -64,22 +64,48 @@ export default function MastermindPhaseOnePreview() {
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [workspaceReady, setWorkspaceReady] = useState(() => window.localStorage.getItem(WORKSPACE_READY_KEY) === 'true');
   const [proposalState, setProposalState] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const { data: catalog } = usePhaseOneCatalog();
+
+  // Playable state is server-authorized: only lessons returned by
+  // search_my_mastermind_phase_one_resources can be opened for playback.
+  const catalogById = useMemo(() => {
+    const map = new Map<string, { completed: boolean; duration: number | null; position: number }>();
+    for (const row of catalog ?? []) {
+      map.set(row.portal_resource_id, {
+        completed: row.completed === true,
+        duration: row.duration_seconds ?? null,
+        position: row.last_position_seconds ?? 0,
+      });
+    }
+    return map;
+  }, [catalog]);
 
   const visibleLessons = useMemo(
     () => PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required' || showFullLibrary),
     [showFullLibrary],
   );
-  const watchedCount = PHASE_ONE_LESSONS.filter((lesson) => watched.includes(lesson.resourceId)).length;
-  const requiredComplete = PHASE_ONE_REQUIRED_LESSONS.every((lesson) => watched.includes(lesson.resourceId));
+  const isWatchedLesson = (resourceId: string) =>
+    watched.includes(resourceId) || catalogById.get(resourceId)?.completed === true;
+  const watchedCount = PHASE_ONE_LESSONS.filter((lesson) => isWatchedLesson(lesson.resourceId)).length;
+  const requiredComplete = PHASE_ONE_REQUIRED_LESSONS.every((lesson) => isWatchedLesson(lesson.resourceId));
   const phaseProgress = [requiredComplete, workspaceReady, connectionTested].filter(Boolean).length;
 
   const toggleWatched = (lessonId: string) => {
-    const next = watched.includes(lessonId)
-      ? watched.filter((id) => id !== lessonId)
-      : [...watched, lessonId];
+    const nowWatched = !watched.includes(lessonId);
+    const next = nowWatched ? [...watched, lessonId] : watched.filter((id) => id !== lessonId);
     setWatched(next);
     window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
+    if (nowWatched && catalogById.has(lessonId)) {
+      void savePhaseOneVideoProgress({
+        portalResourceId: lessonId,
+        completed: true,
+        completionSource: 'member_confirmed',
+        watchedSeconds: catalogById.get(lessonId)?.duration ?? 0,
+        lastPositionSeconds: catalogById.get(lessonId)?.position ?? 0,
+      });
+    }
   };
+
 
   return (
     <Layout>
