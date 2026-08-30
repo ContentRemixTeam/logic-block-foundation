@@ -11851,6 +11851,18 @@ export type Database = {
       }
       load_my_latest_low_battery_workshop: { Args: never; Returns: Json }
       log_low_battery_planner_login: { Args: never; Returns: string }
+      mastermind_media_access_decision: {
+        Args: {
+          p_action?: string
+          p_as_of?: string
+          p_email: string
+          p_preview?: boolean
+          p_resource_id?: string
+          p_surface?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       reconcile_replay_vault_unmapped_event_r7: {
         Args: { p_actor: string; p_original_delivery_id: string }
         Returns: Json
@@ -12385,6 +12397,29 @@ export type Database = {
           end_seconds: number
           row_cursor: string
           start_seconds: number
+        }[]
+      }
+      resolve_mastermind_media_playback: {
+        Args: {
+          p_as_of?: string
+          p_email: string
+          p_moment_id?: string
+          p_preview?: boolean
+          p_question_id?: string
+          p_resource_id: string
+          p_surface?: string
+          p_user_id: string
+        }
+        Returns: {
+          access_scope: string
+          authoritative_end_seconds: number
+          authoritative_start_seconds: number
+          dropbox_locator: string
+          moment_id: string
+          portal_resource_id: string
+          question_id: string
+          resource_uuid: string
+          title: string
         }[]
       }
       resolve_replay_vault_playback: {
