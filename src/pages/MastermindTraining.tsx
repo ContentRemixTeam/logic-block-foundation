@@ -209,7 +209,7 @@ export default function MastermindTraining() {
               <CardDescription>This page opens lessons from the recommendation card once a video is ready in the protected library.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button type="button" onClick={() => navigate('/mastermind')}>Open 90-Day Plan</Button>
+              <Button type="button" onClick={() => navigate(returnTo)}>Open 90-Day Plan</Button>
             </CardContent>
           </Card>
         )}
@@ -235,7 +235,7 @@ export default function MastermindTraining() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 sm:flex-row">
-              <Button type="button" onClick={() => navigate('/mastermind')}>Back to 90-Day Plan</Button>
+              <Button type="button" onClick={() => navigate(returnTo)}>Back to 90-Day Plan</Button>
               {initialTarget && (
                 <Button type="button" variant="outline" onClick={() => void resolvePlayback(initialTarget)}>
                   Try again

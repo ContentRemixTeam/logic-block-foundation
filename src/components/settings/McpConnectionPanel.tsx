@@ -185,7 +185,7 @@ PY`;
   const activeKeys = keys.filter((k) => !k.revoked_at);
 
   return (
-    <Card>
+    <Card id="ai-task-connection" className="scroll-mt-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />

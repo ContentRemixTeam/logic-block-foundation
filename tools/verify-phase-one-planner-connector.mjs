@@ -122,5 +122,9 @@ assert.ok(coachUi.includes('rate_my_mastermind_coaching_answer'), 'coaching feed
 assert.ok(keySettings.includes('providerConsent'), 'saving a BYOK provider key must require account-level opt-in');
 assert.ok(keyHook.includes('provider_consent_version'), 'BYOK opt-in must write a versioned consent receipt');
 assert.ok(keyConsent.includes('provider_consent_at'), 'BYOK consent must be durable and timestamped');
+assert.ok(phaseHook.includes('connection_key_id'), 'external connection proof must be bound to an AI connection key');
+assert.ok(phaseHook.includes('last_used_at'), 'external connection proof must require evidence that the key was used');
+assert.equal(phasePage.includes('onCreateTask={() => void run(phase.createConnectionTest)}'), false, 'coaching must not create a fake browser-originated connection test');
+assert.ok(phasePage.includes('/admin/mastermind-training-preview'), 'admin Phase One playback must remain inside an admin-gated route');
 
 console.log("Phase One Planner connector contracts verified.");
