@@ -25,9 +25,11 @@ export default function MastermindTraining() {
   const playbackRequest = useRef({ generation: 0, controller: null as AbortController | null });
   const recoverySnapshotRef = useRef({ time: 0, shouldResume: false });
   const recoveryAttemptsRef = useRef(0);
+  const lastProgressSaveRef = useRef(0);
   const resourceId = searchParams.get('resource') ?? '';
   const momentId = searchParams.get('moment');
   const questionId = searchParams.get('question');
+  const returnTo = searchParams.get('from') === 'phase-one' ? '/admin/mastermind-phase-one-preview' : '/mastermind';
   const initialTarget = useMemo<PlaybackTarget | null>(() => {
     if (!isStableVaultId(resourceId)) return null;
     return {
@@ -151,6 +153,31 @@ export default function MastermindTraining() {
     return () => window.clearTimeout(timer);
   }, [playback?.expiresAt, playback?.provider, refreshPlayback]);
 
+  useEffect(() => {
+    if (!playback || !resourceId) return;
+    const media = videoRef.current;
+    if (!media) return;
+    let startedAt = media.currentTime || 0;
+    const save = async (completed = false) => {
+      const position = Math.max(0, Math.floor(media.currentTime || 0));
+      const watched = Math.max(0, Math.floor(position - startedAt));
+      const { error } = await supabase.rpc('save_my_mastermind_phase_one_video_progress', {
+        p_portal_resource_id: resourceId,
+        p_last_position_seconds: position,
+        p_watched_seconds: watched,
+        p_completed: completed,
+        p_completion_source: 'playback',
+      });
+      if (!error) lastProgressSaveRef.current = position;
+    };
+    const onPlay = () => { startedAt = media.currentTime || 0; void supabase.rpc('record_my_mastermind_activity' as never, { p_event_type: 'video_started', p_portal_resource_id: resourceId, p_safe_metadata: {} } as never); };
+    const onTime = () => { if ((media.currentTime || 0) - lastProgressSaveRef.current >= 15) void save(false); };
+    const onPause = () => { void save(false); };
+    const onEnded = () => { void save(true); void supabase.rpc('record_my_mastermind_activity' as never, { p_event_type: 'video_completed', p_portal_resource_id: resourceId, p_safe_metadata: {} } as never); };
+    media.addEventListener('play', onPlay); media.addEventListener('timeupdate', onTime); media.addEventListener('pause', onPause); media.addEventListener('ended', onEnded);
+    return () => { void save(false); media.removeEventListener('play', onPlay); media.removeEventListener('timeupdate', onTime); media.removeEventListener('pause', onPause); media.removeEventListener('ended', onEnded); };
+  }, [playback, resourceId]);
+
   const openTarget = (nextTarget: PlaybackTarget) => {
     recoveryAttemptsRef.current = 0;
     void resolvePlayback(nextTarget);
@@ -169,7 +196,7 @@ export default function MastermindTraining() {
               </p>
             </div>
           </div>
-          <Button type="button" variant="outline" onClick={() => navigate('/mastermind')} className="w-full md:w-auto">
+          <Button type="button" variant="outline" onClick={() => navigate(returnTo)} className="w-full md:w-auto">
             <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
             Back to 90-Day Plan
           </Button>
@@ -241,7 +268,7 @@ export default function MastermindTraining() {
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   Go back to your 90-day plan and record the action or evidence this lesson helps you create.
                 </p>
-                <Button type="button" variant="secondary" className="mt-3 w-full sm:w-auto" onClick={() => navigate('/mastermind')}>
+                <Button type="button" variant="secondary" className="mt-3 w-full sm:w-auto" onClick={() => navigate(returnTo)}>
                   Back to 90-Day Plan
                 </Button>
               </div>

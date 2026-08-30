@@ -13,6 +13,13 @@ const phaseOne = readFileSync(
   new URL("../supabase/migrations/20260830154500_phase_one_private_test_contracts.sql", import.meta.url),
   "utf8",
 );
+const coaching = readFileSync(
+  new URL("../supabase/migrations/20260830161000_phase_one_coaching_activity_admin.sql", import.meta.url),
+  "utf8",
+);
+const phaseHook = readFileSync(new URL("../src/hooks/useMastermindPhaseOne.ts", import.meta.url), "utf8");
+const phasePage = readFileSync(new URL("../src/pages/MastermindPhaseOnePreview.tsx", import.meta.url), "utf8");
+const coachUi = readFileSync(new URL("../src/components/mastermind/phase-one/GetCoachedByFaith.tsx", import.meta.url), "utf8");
 
 const requiredMigrationContracts = [
   "UNIQUE (user_id, idempotency_key)",
@@ -83,5 +90,31 @@ assert.equal(
   false,
   "Phase One writes must remain validated RPC-only",
 );
+
+for (const contract of [
+  "mastermind_coaching_conversations",
+  "mastermind_coaching_messages",
+  "mastermind_coaching_feedback",
+  "mastermind_member_activity_events",
+  "save_my_mastermind_coaching_exchange",
+  "rate_my_mastermind_coaching_answer",
+  "propose_my_phase_one_connection_test_task",
+  "admin_mastermind_member_engagement",
+  "Admins can review coaching messages",
+  "p_needs_human",
+]) assert.ok(coaching.includes(contract), `missing coaching/activity contract: ${contract}`);
+
+for (const forbidden of ["api_key','prompt','transcript','provider_id','path", "CREATE POLICY \"Members can insert"] ) {
+  if (forbidden.startsWith('CREATE')) assert.equal(coaching.includes(forbidden), false, "coaching writes must remain RPC-only");
+}
+
+for (const contract of ["search_my_mastermind_phase_one_resources", "review_ai_planner_task_proposal", "propose_my_phase_one_connection_test_task", "save_my_mastermind_phase_one_state"]) {
+  assert.ok(phaseHook.includes(contract), `Phase One hook is not wired to ${contract}`);
+}
+assert.equal(phasePage.includes('setConnectionTested(true)'), false, 'connection verification must not be a client boolean');
+assert.equal(phasePage.includes('mastermind-phase-one-preview-progress'), false, 'video completion must not use localStorage');
+assert.ok(coachUi.includes('shareWithProvider'), 'external AI egress needs explicit per-use consent');
+assert.ok(coachUi.includes('save_my_mastermind_coaching_exchange'), 'coaching conversations must create durable receipts');
+assert.ok(coachUi.includes('rate_my_mastermind_coaching_answer'), 'coaching feedback must be durable');
 
 console.log("Phase One Planner connector contracts verified.");

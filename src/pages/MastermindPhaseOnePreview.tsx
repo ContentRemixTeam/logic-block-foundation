@@ -37,47 +37,37 @@ import {
   PHASE_ONE_REQUIRED_LESSONS,
 } from '@/data/phaseOneCurriculum';
 import { cn } from '@/lib/utils';
-
-const PROGRESS_KEY = 'mastermind-phase-one-preview-progress';
-const WORKSPACE_READY_KEY = 'mastermind-phase-one-preview-workspace-ready';
-
-function readWatched(): string[] {
-  try {
-    const value = window.localStorage.getItem(PROGRESS_KEY);
-    return value ? JSON.parse(value) : [];
-  } catch {
-    return [];
-  }
-}
+import { useMastermindPhaseOne } from '@/hooks/useMastermindPhaseOne';
+import { GetCoachedByFaith } from '@/components/mastermind/phase-one/GetCoachedByFaith';
+import { FindPhaseOneResources } from '@/components/mastermind/phase-one/FindPhaseOneResources';
 
 export default function MastermindPhaseOnePreview() {
   const navigate = useNavigate();
-  const [watched, setWatched] = useState<string[]>(readWatched);
+  const phase = useMastermindPhaseOne();
   const [showFullLibrary, setShowFullLibrary] = useState(false);
-  const [connectionTested, setConnectionTested] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
-  const [workspaceReady, setWorkspaceReady] = useState(() => window.localStorage.getItem(WORKSPACE_READY_KEY) === 'true');
-  const [proposalState, setProposalState] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const visibleLessons = useMemo(
     () => PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required' || showFullLibrary),
     [showFullLibrary],
   );
-  const watchedCount = PHASE_ONE_LESSONS.filter((lesson) => watched.includes(lesson.resourceId)).length;
-  const requiredComplete = PHASE_ONE_REQUIRED_LESSONS.every((lesson) => watched.includes(lesson.resourceId));
-  const phaseProgress = [requiredComplete, workspaceReady, connectionTested].filter(Boolean).length;
+  const readyResources = useMemo(() => new Map(phase.resources.map((resource) => [resource.portal_resource_id, resource])), [phase.resources]);
+  const watchedCount = phase.resources.filter((resource) => resource.completed).length;
+  const planReady = Boolean(phase.phaseState?.plan_ready_at) || phase.planReady;
+  const workspaceReady = phase.phaseState?.workspace_status === 'ready';
+  const connectionTested = phase.phaseState?.connector_status === 'verified';
+  const phaseProgress = [planReady, workspaceReady, connectionTested].filter(Boolean).length;
 
-  const toggleWatched = (lessonId: string) => {
-    const next = watched.includes(lessonId)
-      ? watched.filter((id) => id !== lessonId)
-      : [...watched, lessonId];
-    setWatched(next);
-    window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
+  const run = async (action: () => Promise<unknown>) => {
+    setActionError(null);
+    try { await action(); } catch (caught) { setActionError(caught instanceof Error ? caught.message : 'That step could not be saved. Try again.'); }
   };
 
   return (
     <Layout>
       <main className="mx-auto w-full max-w-6xl space-y-6 pb-16">
+        {(phase.error || actionError) && <div role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><strong>Nothing was lost.</strong> {actionError || phase.error}<Button variant="link" className="h-auto px-2" onClick={() => void phase.refetch()}>Try again</Button></div>}
         <section className="relative overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/10 via-background to-amber-50/70 p-6 shadow-sm dark:to-amber-950/10 sm:p-8">
           <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
           <div className="relative max-w-3xl space-y-4">
@@ -110,9 +100,9 @@ export default function MastermindPhaseOnePreview() {
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
-            <ExitCard icon={Target} title="Plan ready" ready={requiredComplete} description="Your 90-day result, focus, weekly move, and evidence target are saved." action="Build my plan" onClick={() => navigate('/cycle-setup')} />
+            <ExitCard icon={Target} title="Plan ready" ready={planReady} description="Your 90-day result, focus, weekly move, and evidence target are saved." action={planReady ? 'Confirm saved plan' : 'Build my plan'} onClick={() => planReady ? void run(phase.syncPlanReady) : navigate('/cycle-setup')} />
             <ExitCard icon={Bot} title="AI workspace ready" ready={workspaceReady} description="Your business interview, examples, and customized CEO Workspace are installed." action={workspaceReady ? 'Review workspace' : 'Set up workspace'} onClick={() => setWorkspaceOpen(true)} />
-            <ExitCard icon={Link2} title="Planner connected" ready={connectionTested} description="Your AI can read the right goal and send a task for your approval." action={connectionTested ? 'Test passed' : 'Run connection test'} onClick={() => setConnectionTested(true)} />
+            <ExitCard icon={Link2} title="Planner connected" ready={connectionTested} description="A real test task was proposed, approved by you, and saved to the Planner." action={connectionTested ? 'Verified' : phase.pendingProposal ? 'Review test task below' : 'Create test proposal'} onClick={() => connectionTested ? undefined : phase.pendingProposal ? document.getElementById('phase-one-task-proposal')?.scrollIntoView({ behavior: 'smooth' }) : void run(phase.createConnectionTest)} />
           </div>
         </section>
 
@@ -137,14 +127,15 @@ export default function MastermindPhaseOnePreview() {
             </CardHeader>
             <CardContent className="space-y-3 p-4 sm:p-5">
               {visibleLessons.map((lesson, index) => {
-                const isWatched = watched.includes(lesson.resourceId);
-                const playbackReady = lesson.lessonState === 'ready';
+                const liveResource = readyResources.get(lesson.resourceId);
+                const isWatched = Boolean(liveResource?.completed);
+                const playbackReady = Boolean(liveResource);
                 return (
                   <article key={lesson.resourceId} className={cn('group rounded-2xl border p-4 transition-colors', isWatched ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/15' : 'hover:border-primary/35')}>
                     <div className="flex items-start gap-3">
-                      <button type="button" onClick={() => toggleWatched(lesson.resourceId)} disabled={!playbackReady} className="mt-0.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45" aria-label={playbackReady ? (isWatched ? `Mark ${lesson.title} not watched` : `Mark ${lesson.title} watched`) : `${lesson.title} playback import pending`}>
+                      <span className="mt-0.5" aria-label={isWatched ? `${lesson.title} completed` : `${lesson.title} not completed`}>
                         {isWatched ? <CheckCircle2 className="h-6 w-6 text-emerald-600" /> : <Circle className="h-6 w-6 text-muted-foreground/60" />}
-                      </button>
+                      </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-semibold text-muted-foreground">{index + 1}</span>
@@ -156,7 +147,7 @@ export default function MastermindPhaseOnePreview() {
                         {lesson.requirement !== 'required' && <p className="mt-2 text-xs font-medium text-primary">Show this: {lesson.showWhen}</p>}
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />{lesson.durationLabel ?? 'Duration pending'}</span>
-                          <Button size="sm" variant={isWatched ? 'outline' : 'secondary'} disabled={!playbackReady} onClick={() => navigate(`/mastermind/training?resource=${lesson.resourceId}`)}>
+                          <Button size="sm" variant={isWatched ? 'outline' : 'secondary'} disabled={!playbackReady} onClick={() => navigate(`/mastermind/training?resource=${encodeURIComponent(lesson.resourceId)}&from=phase-one`)}>
                             <Play className="mr-1.5 h-3.5 w-3.5" />{playbackReady ? (isWatched ? 'Watch again' : 'Watch lesson') : 'Playback coming soon'}
                           </Button>
                         </div>
@@ -185,13 +176,13 @@ export default function MastermindPhaseOnePreview() {
               </CardContent>
             </Card>
 
-            <TaskProposalCard state={proposalState} onStateChange={setProposalState} />
+            <TaskProposalCard proposal={phase.pendingProposal} busy={phase.isSaving} onCreate={() => void run(phase.createConnectionTest)} onReview={(id, decision) => void run(() => phase.reviewProposal(id, decision))} />
           </div>
         </section>
 
         <section className="grid gap-5 lg:grid-cols-2" aria-label="Phase One AI support previews">
-          <CoachingPreviewPanel onProposeTask={() => setProposalState('pending')} />
-          <FindWhatINeedPanel onOpenResource={(resourceId) => navigate(`/mastermind/training?resource=${resourceId}`)} />
+          <GetCoachedByFaith context={phase.coachingContext} hasAiKey={phase.hasAiKey} onOpenAiSettings={() => navigate('/ai-copywriting/settings')} onCreateTask={() => void run(phase.createConnectionTest)} />
+          <FindPhaseOneResources search={phase.searchResources} onOpenResource={(resourceId) => navigate(`/mastermind/training?resource=${encodeURIComponent(resourceId)}&from=phase-one`)} />
         </section>
 
         <Card className="border-primary/20 bg-primary/[0.04]">
@@ -206,68 +197,11 @@ export default function MastermindPhaseOnePreview() {
         <WorkspaceSetupDialog
           open={workspaceOpen}
           onOpenChange={setWorkspaceOpen}
-          onReady={() => {
-            window.localStorage.setItem(WORKSPACE_READY_KEY, 'true');
-            setWorkspaceReady(true);
-          }}
+          onReady={(provider) => void run(() => phase.saveWorkspaceReady(provider.toLowerCase() as 'claude' | 'codex'))}
         />
       </main>
     </Layout>
   );
-}
-
-const COACHING_KEY = 'mastermind-phase-one-preview-coaching';
-const SEARCH_KEY = 'mastermind-phase-one-preview-search';
-
-type CoachingMode = 'next' | 'smaller' | 'evidence' | 'stuck' | 'coaching' | 'restart';
-
-const COACHING_MODES: Array<{ id: CoachingMode; label: string }> = [
-  { id: 'next', label: 'What should I do next?' },
-  { id: 'smaller', label: 'Make this smaller' },
-  { id: 'evidence', label: 'Interpret my evidence' },
-  { id: 'stuck', label: 'I am stuck' },
-  { id: 'coaching', label: 'Prepare for coaching' },
-  { id: 'restart', label: 'Help me restart' },
-];
-
-const COACHING_RESPONSES: Record<CoachingMode, { diagnosis: string; action: string; evidence: string; resourceId: string }> = {
-  next: { diagnosis: 'The plan needs a real-world attempt before it needs more strategy.', action: 'Write your one-sentence 90-day result and schedule the first 20-minute action.', evidence: 'A saved result plus one dated attempt within 48 hours.', resourceId: 'ninety-day-goal-setting-introduction' },
-  smaller: { diagnosis: 'The move is probably too large for the capacity available this week.', action: 'Reduce the next move to one 20-minute draft, message, or decision.', evidence: 'One completed small version and what happened next.', resourceId: 'wibn-ceo-embodiment' },
-  evidence: { diagnosis: 'One data point is useful, but it is not yet a reason to replace the plan.', action: 'Record what you tried, who saw it, and the response before choosing continue or adjust.', evidence: 'Attempt count plus replies, clicks, conversations, sales, or no-response.', resourceId: 'wibn-week-one-qa' },
-  stuck: { diagnosis: 'You may need a decision or emotional support—not another long playlist.', action: 'Name the exact step you are avoiding and do the smallest visible version.', evidence: 'The smallest version attempted once.', resourceId: 'wibn-ceo-embodiment' },
-  coaching: { diagnosis: 'Faith can coach this faster when the plan, attempt, and decision are clear.', action: 'Bring one decision, what you tried, and what happened to coaching.', evidence: 'A specific coaching question with one evidence receipt.', resourceId: 'wibn-week-one-qa' },
-  restart: { diagnosis: 'Missing a week does not mean the strategy failed.', action: 'Keep the same result and choose one reduced move for the next 48 hours.', evidence: 'One restart action completed without adding curriculum debt.', resourceId: 'ninety-day-goal-setting-introduction' },
-};
-
-function CoachingPreviewPanel({ onProposeTask }: { onProposeTask: () => void }) {
-  const saved = (() => { try { return JSON.parse(window.localStorage.getItem(COACHING_KEY) ?? '{}'); } catch { return {}; } })() as { mode?: CoachingMode; context?: string };
-  const [mode, setMode] = useState<CoachingMode>(saved.mode ?? 'next');
-  const [context, setContext] = useState(saved.context ?? 'I have several things I could work on and keep changing my plan.');
-  const [showResponse, setShowResponse] = useState(false);
-  const response = COACHING_RESPONSES[mode];
-  const resource = PHASE_ONE_LESSONS.find((lesson) => lesson.resourceId === response.resourceId) ?? PHASE_ONE_LESSONS[0];
-  const save = (nextMode: CoachingMode, nextContext: string) => window.localStorage.setItem(COACHING_KEY, JSON.stringify({ mode: nextMode, context: nextContext }));
-  const askFaithDraft = `My 90-day focus is one clear offer. I am working on: ${context.trim() || 'my next move'}. I tried the smallest version and the evidence I have is ____. The decision I need help with is: should I persist, adjust, or reduce this move?`;
-
-  return <Card className="overflow-hidden border-sky-200 shadow-sm dark:border-sky-900"><CardHeader className="border-b bg-gradient-to-r from-sky-50 to-background dark:from-sky-950/20"><div className="flex items-center justify-between gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"><MessageCircle className="h-5 w-5" /></div><Badge variant="outline" className="bg-background">No key · test mode</Badge></div><CardTitle className="text-xl">Get Coached by Faith</CardTitle><CardDescription>Turn your current plan and evidence into one next move. This is Faith-trained guidance, not a live answer from Faith.</CardDescription></CardHeader><CardContent className="space-y-4 p-5"><div className="flex flex-wrap gap-2">{COACHING_MODES.map((item) => <Button key={item.id} size="sm" variant={mode === item.id ? 'default' : 'outline'} onClick={() => { setMode(item.id); setShowResponse(false); save(item.id, context); }}>{item.label}</Button>)}</div><div><Label htmlFor="coaching-context">What is happening right now?</Label><Textarea id="coaching-context" className="mt-2" value={context} onChange={(event) => { setContext(event.target.value); save(mode, event.target.value); }} /></div><Button className="w-full" onClick={() => setShowResponse(true)}><Sparkles className="mr-2 h-4 w-4" />Give me one next move</Button>{showResponse && <div className="space-y-3 rounded-2xl border bg-muted/20 p-4" aria-live="polite"><OutputLine label="What I see" value={response.diagnosis} /><OutputLine label="Do this next" value={response.action} /><OutputLine label="Evidence to bring back" value={response.evidence} /><div className="rounded-xl bg-background p-3"><p className="text-xs font-semibold uppercase text-muted-foreground">One useful resource</p><p className="mt-1 text-sm font-semibold">{resource.title}</p><p className="text-xs text-muted-foreground">{resource.whyRecommended} Playback remains unavailable until its protected import passes.</p></div><div className="flex flex-col gap-2 sm:flex-row"><Button size="sm" className="flex-1" onClick={onProposeTask}>Propose this task</Button><Button size="sm" variant="outline" className="flex-1" onClick={() => void navigator.clipboard.writeText(askFaithDraft)}><Send className="mr-1.5 h-4 w-4" />Copy Ask Faith draft</Button></div><details className="rounded-xl border bg-background p-3"><summary className="cursor-pointer text-sm font-semibold">Preview Ask Faith handoff</summary><p className="mt-2 text-sm text-muted-foreground">{askFaithDraft}</p><p className="mt-2 text-xs font-medium text-sky-700 dark:text-sky-300">Nothing is submitted without your confirmation.</p></details></div>}</CardContent></Card>;
-}
-
-function FindWhatINeedPanel({ onOpenResource }: { onOpenResource: (resourceId: string) => void }) {
-  const [query, setQuery] = useState(() => window.localStorage.getItem(SEARCH_KEY) ?? 'I need help choosing what to focus on');
-  const normalized = query.trim().toLowerCase();
-  const scored = PHASE_ONE_LESSONS.map((lesson) => {
-    const haystack = `${lesson.title} ${lesson.whyRecommended} ${lesson.showWhen} ${lesson.afterWatchingAction} ${lesson.evidenceTarget}`.toLowerCase();
-    const terms = normalized.split(/\s+/).filter((term) => term.length > 2);
-    const score = terms.reduce((total, term) => total + (haystack.includes(term) ? 1 : 0), 0);
-    return { lesson, score };
-  }).sort((a, b) => b.score - a.score || a.lesson.order - b.lesson.order);
-  const results = (scored.some((item) => item.score > 0) ? scored.filter((item) => item.score > 0) : scored).slice(0, 3);
-
-  return <Card className="overflow-hidden border-amber-200 shadow-sm dark:border-amber-900"><CardHeader className="border-b bg-gradient-to-r from-amber-50 to-background dark:from-amber-950/20"><div className="flex items-center justify-between gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"><Search className="h-5 w-5" /></div><Badge variant="outline" className="bg-background">9 approved items only</Badge></div><CardTitle className="text-xl">Find What I Need</CardTitle><CardDescription>Search the Phase One catalog by the problem you have—not by remembering a lesson title.</CardDescription></CardHeader><CardContent className="space-y-4 p-5"><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Search Phase One resources" className="pl-9" value={query} onChange={(event) => { setQuery(event.target.value); window.localStorage.setItem(SEARCH_KEY, event.target.value); }} placeholder="What are you stuck on?" /></div><p className="text-xs text-muted-foreground">Test mode searches approved titles and safe descriptions only. It does not search transcripts or the Replay Vault.</p><div className="space-y-3">{results.map(({ lesson }, index) => <article key={lesson.resourceId} className="rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Match {index + 1}</p><h3 className="mt-1 font-semibold">{lesson.title}</h3></div><Badge variant="secondary">{lesson.durationLabel ?? 'Duration pending'}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{lesson.whyRecommended}</p><div className="mt-3 rounded-xl bg-muted/30 p-3"><OutputLine label="After using it" value={lesson.afterWatchingAction} /><OutputLine label="Bring back" value={lesson.evidenceTarget} /></div><Button className="mt-3 w-full" size="sm" variant="outline" disabled={lesson.lessonState !== 'ready'} onClick={() => onOpenResource(lesson.resourceId)}>{lesson.lessonState === 'ready' ? 'Open protected lesson' : 'Protected import pending'}</Button></article>)}</div></CardContent></Card>;
-}
-
-function OutputLine({ label, value }: { label: string; value: string }) {
-  return <div className="mb-2 last:mb-0"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-sm leading-relaxed">{value}</p></div>;
 }
 
 type WorkspaceAnswers = {
@@ -288,7 +222,7 @@ const INITIAL_WORKSPACE_ANSWERS: WorkspaceAnswers = {
   platform: 'Claude',
 };
 
-function WorkspaceSetupDialog({ open, onOpenChange, onReady }: { open: boolean; onOpenChange: (open: boolean) => void; onReady: () => void }) {
+function WorkspaceSetupDialog({ open, onOpenChange, onReady }: { open: boolean; onOpenChange: (open: boolean) => void; onReady: (provider: 'Claude' | 'Codex') => void }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<WorkspaceAnswers>(INITIAL_WORKSPACE_ANSWERS);
   const [copied, setCopied] = useState(false);
@@ -317,7 +251,7 @@ function WorkspaceSetupDialog({ open, onOpenChange, onReady }: { open: boolean; 
       <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto p-0">
         <div className="border-b bg-gradient-to-r from-violet-50 to-background p-5 pr-12 dark:from-violet-950/20">
           <DialogHeader>
-            <div className="mb-2 flex flex-wrap gap-2"><Badge>90-Day CEO Workspace</Badge><Badge variant="outline">Preview only · saved on this device</Badge></div>
+            <div className="mb-2 flex flex-wrap gap-2"><Badge>90-Day CEO Workspace</Badge><Badge variant="outline">Private setup</Badge></div>
             <DialogTitle className="text-xl">{headings[step]}</DialogTitle>
             <DialogDescription>Step {step + 1} of 5 · No model calls, charges, or Planner changes.</DialogDescription>
           </DialogHeader>
@@ -337,7 +271,7 @@ function WorkspaceSetupDialog({ open, onOpenChange, onReady }: { open: boolean; 
 
           <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-between">
             <Button variant="ghost" onClick={() => step === 0 ? onOpenChange(false) : setStep(step - 1)}>{step === 0 ? 'Save and close' : 'Back'}</Button>
-            {step < 4 ? <Button disabled={nextDisabled} onClick={() => setStep(step + 1)}>Continue<ArrowRight className="ml-2 h-4 w-4" /></Button> : <Button disabled={!testConfirmed} onClick={() => { onReady(); onOpenChange(false); }}>Mark workspace ready<Check className="ml-2 h-4 w-4" /></Button>}
+            {step < 4 ? <Button disabled={nextDisabled} onClick={() => setStep(step + 1)}>Continue<ArrowRight className="ml-2 h-4 w-4" /></Button> : <Button disabled={!testConfirmed} onClick={() => { onReady(answers.platform); onOpenChange(false); }}>Mark workspace ready<Check className="ml-2 h-4 w-4" /></Button>}
           </div>
         </div>
       </DialogContent>
@@ -353,7 +287,7 @@ function ExitCard({ icon: Icon, title, ready, description, action, onClick }: { 
   return <Card className={cn('border-2 transition-colors', ready ? 'border-emerald-300/70 bg-emerald-50/30 dark:border-emerald-900 dark:bg-emerald-950/10' : 'border-transparent')}><CardContent className="p-4"><div className="mb-3 flex items-center justify-between"><div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', ready ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-primary/10 text-primary')}><Icon className="h-5 w-5" /></div>{ready ? <Badge className="bg-emerald-600">Ready</Badge> : <Badge variant="outline">Next step</Badge>}</div><h3 className="font-semibold">{title}</h3><p className="mt-1 min-h-12 text-sm leading-relaxed text-muted-foreground">{description}</p><Button variant="ghost" className="mt-2 h-auto p-0 text-primary" onClick={onClick}>{action}{ready ? <Check className="ml-1 h-4 w-4" /> : <ArrowRight className="ml-1 h-4 w-4" />}</Button></CardContent></Card>;
 }
 
-function TaskProposalCard({ state, onStateChange }: { state: 'pending' | 'approved' | 'rejected'; onStateChange: (state: 'pending' | 'approved' | 'rejected') => void }) {
-  if (state !== 'pending') return <Card><CardContent className="flex items-center justify-between gap-3 p-4"><div className="flex items-center gap-2">{state === 'approved' ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <X className="h-5 w-5 text-muted-foreground" />}<div><p className="text-sm font-semibold">Task {state}</p><p className="text-xs text-muted-foreground">Preview only—nothing was changed.</p></div></div><Button size="sm" variant="ghost" onClick={() => onStateChange('pending')}><RotateCcw className="mr-1 h-3.5 w-3.5" />Reset</Button></CardContent></Card>;
-  return <Card><CardHeader className="pb-3"><div className="flex items-center justify-between gap-2"><Badge variant="secondary">From your AI</Badge><span className="text-xs text-muted-foreground">Needs approval</span></div><CardTitle className="text-base">Draft my one-sentence 90-day result</CardTitle><CardDescription>Add this to Tuesday so I finish the plan before watching another lesson.</CardDescription></CardHeader><CardContent className="flex gap-2"><Button size="sm" className="flex-1" onClick={() => onStateChange('approved')}><Check className="mr-1.5 h-4 w-4" />Add task</Button><Button size="sm" variant="outline" className="flex-1" onClick={() => onStateChange('rejected')}><X className="mr-1.5 h-4 w-4" />Not now</Button></CardContent></Card>;
+function TaskProposalCard({ proposal, busy, onCreate, onReview }: { proposal: import('@/hooks/useMastermindPhaseOne').PlannerProposal | null; busy: boolean; onCreate: () => void; onReview: (id: string, decision: 'approved' | 'rejected') => void }) {
+  if (!proposal) return <Card id="phase-one-task-proposal"><CardContent className="space-y-3 p-4"><p className="font-semibold">Prove the Planner connection</p><p className="text-sm text-muted-foreground">Create one real test proposal. Nothing becomes a Planner task until you approve it.</p><Button className="min-h-11 w-full" disabled={busy} onClick={onCreate}>Create test proposal</Button></CardContent></Card>;
+  return <Card id="phase-one-task-proposal"><CardHeader className="pb-3"><div className="flex items-center justify-between gap-2"><Badge variant="secondary">Planner test</Badge><span className="text-xs text-muted-foreground">Needs your approval</span></div><CardTitle className="text-base">{proposal.task_text}</CardTitle><CardDescription>{proposal.why_this_task || proposal.task_description}</CardDescription></CardHeader><CardContent className="space-y-3"><div className="rounded-xl bg-muted/30 p-3 text-sm"><p><strong>Done enough:</strong> {proposal.done_enough || 'One small attempt is complete.'}</p><p className="mt-1"><strong>Bring back:</strong> {proposal.evidence_target || 'What you tried and what happened.'}</p></div><div className="flex gap-2"><Button size="sm" className="min-h-11 flex-1" disabled={busy} onClick={() => onReview(proposal.proposal_id, 'approved')}><Check className="mr-1.5 h-4 w-4" />Approve and add</Button><Button size="sm" variant="outline" className="min-h-11 flex-1" disabled={busy} onClick={() => onReview(proposal.proposal_id, 'rejected')}><X className="mr-1.5 h-4 w-4" />Not now</Button></div></CardContent></Card>;
 }
