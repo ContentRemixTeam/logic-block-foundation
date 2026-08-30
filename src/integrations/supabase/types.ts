@@ -142,6 +142,123 @@ export type Database = {
           },
         ]
       }
+      ai_planner_task_proposal_receipts: {
+        Row: {
+          canonical_task_id: string | null
+          decided_at: string
+          decision: string
+          proposal_id: string
+          receipt_id: string
+          user_id: string
+        }
+        Insert: {
+          canonical_task_id?: string | null
+          decided_at?: string
+          decision: string
+          proposal_id: string
+          receipt_id?: string
+          user_id: string
+        }
+        Update: {
+          canonical_task_id?: string | null
+          decided_at?: string
+          decision?: string
+          proposal_id?: string
+          receipt_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_planner_task_proposal_receipts_canonical_task_id_fkey"
+            columns: ["canonical_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "ai_planner_task_proposal_receipts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "ai_planner_task_proposals"
+            referencedColumns: ["proposal_id"]
+          },
+        ]
+      }
+      ai_planner_task_proposals: {
+        Row: {
+          approved_task_id: string | null
+          connection_key_id: string | null
+          created_at: string
+          done_enough: string | null
+          evidence_target: string | null
+          idempotency_key: string
+          priority: string
+          proposal_id: string
+          reviewed_at: string | null
+          source_context: Json
+          status: string
+          suggested_date: string | null
+          task_description: string | null
+          task_text: string
+          updated_at: string
+          user_id: string
+          why_this_task: string | null
+        }
+        Insert: {
+          approved_task_id?: string | null
+          connection_key_id?: string | null
+          created_at?: string
+          done_enough?: string | null
+          evidence_target?: string | null
+          idempotency_key: string
+          priority?: string
+          proposal_id?: string
+          reviewed_at?: string | null
+          source_context?: Json
+          status?: string
+          suggested_date?: string | null
+          task_description?: string | null
+          task_text: string
+          updated_at?: string
+          user_id: string
+          why_this_task?: string | null
+        }
+        Update: {
+          approved_task_id?: string | null
+          connection_key_id?: string | null
+          created_at?: string
+          done_enough?: string | null
+          evidence_target?: string | null
+          idempotency_key?: string
+          priority?: string
+          proposal_id?: string
+          reviewed_at?: string | null
+          source_context?: Json
+          status?: string
+          suggested_date?: string | null
+          task_description?: string | null
+          task_text?: string
+          updated_at?: string
+          user_id?: string
+          why_this_task?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_planner_task_proposals_approved_task_id_fkey"
+            columns: ["approved_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "ai_planner_task_proposals_connection_key_id_fkey"
+            columns: ["connection_key_id"]
+            isOneToOne: false
+            referencedRelation: "ai_connection_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_themes: {
         Row: {
           config_json: Json
@@ -12291,6 +12408,10 @@ export type Database = {
           resource_uuid: string
           title: string
         }[]
+      }
+      review_ai_planner_task_proposal: {
+        Args: { p_decision: string; p_proposal_id: string }
+        Returns: Json
       }
       save_low_battery_workshop_answers: {
         Args: {
