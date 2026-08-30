@@ -15,6 +15,7 @@ import {
 } from '@/components/replay-vault/replayVaultCore.mjs';
 import type { PlaybackResult, PlaybackTarget } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
+import { savePhaseOneVideoProgress } from '@/hooks/usePhaseOneCatalog';
 
 const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'lesson'}`;
 
@@ -25,9 +26,15 @@ export default function MastermindTraining() {
   const playbackRequest = useRef({ generation: 0, controller: null as AbortController | null });
   const recoverySnapshotRef = useRef({ time: 0, shouldResume: false });
   const recoveryAttemptsRef = useRef(0);
+  const lastProgressSaveRef = useRef(0);
   const resourceId = searchParams.get('resource') ?? '';
   const momentId = searchParams.get('moment');
   const questionId = searchParams.get('question');
+  const fromPhaseOne = searchParams.get('from') === 'phase-one';
+  const backHref = fromPhaseOne ? '/admin/mastermind-phase-one-preview' : '/mastermind';
+  const backLabel = fromPhaseOne ? 'Back to Phase One' : 'Back to 90-Day Plan';
+  const [progressSaved, setProgressSaved] = useState(false);
+
   const initialTarget = useMemo<PlaybackTarget | null>(() => {
     if (!isStableVaultId(resourceId)) return null;
     return {
