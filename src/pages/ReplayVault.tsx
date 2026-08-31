@@ -155,6 +155,14 @@ function ProtectedReplayVault() {
     } finally { if (!controller.signal.aborted && searchRequest.current.generation === generation) setSearching(false); }
   };
 
+  const handleCuratedPlaylistSearch = useCallback(async (playlistQuery: string) => {
+    const cleanQuery = playlistQuery.trim().slice(0, 160);
+    if (cleanQuery.length < 2 || !canUseVault(access)) return [];
+    const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit: 8, momentsPerReplay: 1, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1', preview: true } });
+    if (error) throw new Error('Playlist search unavailable');
+    return groupSearchResults(data).slice(0, 8);
+  }, [access]);
+
   const handleOpen = (nextTarget: PlaybackTarget) => { recoveryAttemptsRef.current = 0; void resolvePlayback(nextTarget); };
   const refreshPlayback = useCallback(async (manual = false) => {
     if (!target || !playback || playback.provider === 'youtube' || recoveryBusy) return;
@@ -197,7 +205,7 @@ function ProtectedReplayVault() {
           {deepLink.status === 'error' && <div role="alert" className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3"><p className="text-sm">That protected answer could not be opened. Your access has not changed.</p><Button type="button" variant="outline" className="w-fit" onClick={retryDeepLink}>Try answer again</Button></div>}
           {playbackError && deepLink.status !== 'error' && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{playbackError}</p>}
           {playback && target && <VaultPlayer playback={playback} target={target} videoRef={videoRef} announcement={announcement} sourceGeneration={sourceGeneration} recoveryBusy={recoveryBusy} recoveryFailed={recoveryFailed} onLoadedMetadata={handleLoadedMetadata} onMediaError={handleMediaError} onManualRefresh={() => void refreshPlayback(true)} onOpen={handleOpen} />}
-          <VaultCuratedPlaylists onOpen={handleOpen} />
+          <VaultCuratedPlaylists onOpen={handleOpen} onSearchPlaylist={handleCuratedPlaylistSearch} />
           <VaultLibrarySurfaces onOpen={handleOpen} />
           {groups.length > 0 && <VaultSearchResults groups={groups} loadingKey={loadingKey} onOpen={handleOpen} />}
           {!searching && submittedQuery && groups.length === 0 && !searchError && <Card><CardHeader><CardTitle>No approved moments found</CardTitle><CardDescription>Try fewer words or a broader topic. Your search is still in the box.</CardDescription></CardHeader><CardContent className="flex flex-col gap-2 sm:flex-row"><Button type="button" onClick={() => searchInputRef.current?.focus()}>Edit search</Button><Button type="button" variant="outline" onClick={() => { setQuery(''); setSubmittedQuery(''); setGroups([]); searchInputRef.current?.focus(); }}>Clear search</Button></CardContent></Card>}
