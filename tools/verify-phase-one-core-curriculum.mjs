@@ -82,9 +82,6 @@ assert.equal(
   false,
   "stale unconditional unavailable-playback copy must be removed",
 );
-for (const id of EXPECTED.map((item) => item.id)) {
-  void id;
-}
 const coachingBlock = preview.match(/const COACHING_RESPONSES[\s\S]*?\n\};/)?.[0] ?? "";
 const coachingIds = [...coachingBlock.matchAll(/resourceId: '([^']+)'/g)].map((match) => match[1]);
 assert.ok(coachingIds.length > 0, "coaching preview must recommend Phase One resources");
