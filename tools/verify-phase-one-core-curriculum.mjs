@@ -67,6 +67,29 @@ for (const forbidden of ["member_visible_default", "publish", "VITE_ENABLE_MASTE
   assert.equal(curriculum.includes(forbidden), false, `catalog must not reference ${forbidden}`);
 }
 
+// 5b. Preview must never reference placeholder wibn-* resources, must not ship the
+//     stale "9 approved items only" badge, and must not gate Find results on the
+//     static lessonState instead of the server catalog.
+assert.equal(/wibn-[a-z0-9-]+/.test(preview), false, "Phase One preview must not reference placeholder wibn-* resource ids");
+assert.equal(preview.includes("9 approved items only"), false, "stale '9 approved items only' badge must be removed");
+assert.equal(preview.includes("lessonState"), false, "Find results must use server catalog readiness, not static lessonState");
+assert.ok(
+  preview.includes("isPlaybackReady(lesson.resourceId)") && preview.includes("catalogById.has(id)"),
+  "Find/coaching panels must resolve readiness from the server catalog",
+);
+assert.equal(
+  preview.includes("Playback remains unavailable until its protected import passes."),
+  false,
+  "stale unconditional unavailable-playback copy must be removed",
+);
+const coachingBlock = preview.match(/const COACHING_RESPONSES[\s\S]*?\n\};/)?.[0] ?? "";
+const coachingIds = [...coachingBlock.matchAll(/resourceId: '([^']+)'/g)].map((match) => match[1]);
+assert.ok(coachingIds.length > 0, "coaching preview must recommend Phase One resources");
+for (const id of coachingIds) {
+  assert.ok(EXPECTED.some((item) => item.id === id), `coaching recommendation ${id} must be a real Phase One resource id`);
+}
+
+
 console.log(`verify:phase-one-core-curriculum OK (${EXPECTED.length} hidden IDs verified)`);
 
 // 6. Completion persistence contract: the hidden training preview must hydrate
