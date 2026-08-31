@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.replay_vault_saved_member(uuid, text, integer, text, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.replay_vault_saved_member(uuid, text, integer, text, boolean) TO service_role;
