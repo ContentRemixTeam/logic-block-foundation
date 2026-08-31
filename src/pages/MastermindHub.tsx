@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, type ComponentType } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,7 @@ type ResourceFilterId = 'all' | 'focus' | 'core' | 'current_replay' | 'indexed';
 
 export default function MastermindHub() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { cycleId } = useParams<{ cycleId?: string }>();
   const { isMastermind, membershipTier } = useMembership();
   const {
@@ -61,6 +62,7 @@ export default function MastermindHub() {
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
   const [activeTab, setActiveTab] = useState('guidance');
   const [showMilestones, setShowMilestones] = useState(false);
+  const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
 
   useEffect(() => {
     const stored = getStorageItem(STORAGE_KEY);
@@ -184,7 +186,12 @@ export default function MastermindHub() {
   const handleOpen = (resource: MastermindPortalResource) => {
     const protectedHref = getProtectedTrainingHref(resource);
     if (protectedHref) {
-      navigate(protectedHref);
+      if (isAdminPreview && resource.protectedPlayback?.surface === 'curriculum') {
+        const params = new URLSearchParams({ resource: resource.protectedPlayback.resourceId });
+        navigate(`/admin/mastermind-training-preview?${params.toString()}`);
+      } else {
+        navigate(protectedHref);
+      }
     } else if (resource.isExternal) {
       window.open(resource.url, '_blank', 'noopener,noreferrer');
     } else {
