@@ -423,6 +423,10 @@ try {
   assert.ok(successPathPlanCardSource.includes('Bring back this evidence'), 'The 90-day guidance card should define the evidence target');
   assert.ok(successPathPlanCardSource.includes('Update My 90-Day Plan'), 'The 90-day guidance card needs an honest direct plan-editing action');
   assert.ok(successPathPlanCardSource.includes('Open training'), 'The 90-day guidance card should include a direct supporting-training action');
+  assert.ok(successPathPlanCardSource.includes("primaryResource.resourceId === 'faith-ai'"), 'The 90-day guidance card should treat Faith AI as setup, not a video lesson');
+  assert.ok(successPathPlanCardSource.includes('Set up if needed'), 'The 90-day guidance card should label AI recommendations as setup');
+  assert.ok(successPathPlanCardSource.includes('Open AI settings'), 'The 90-day guidance card should send AI recommendations to settings');
+  assert.ok(successPathPlanCardSource.includes('After setup: '), 'The 90-day guidance card should not use watch-language for AI setup recommendations');
   assert.ok(aiStudioSource.includes('Monthly members get the planner-safe workspace plus one recommended project pack unlock per active month'), 'AI Studio should encode monthly limited access copy');
   assert.ok(aiStudioSource.includes('90-Day CEO Workspace'), 'AI Studio should include a planner-safe foundation workspace');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');

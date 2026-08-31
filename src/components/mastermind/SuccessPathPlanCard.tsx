@@ -97,6 +97,11 @@ export function SuccessPathPlanCard({
     useWhen: `Use this only if it helps you complete ${stage.label.toLowerCase()} round: ${round.question}`,
     afterWatching: roundMode === 'build' ? round.buildAction : round.improveAction,
   };
+  const isAiSetupResource = primaryResource.resourceId === 'faith-ai';
+  const PrimaryResourceIcon = isAiSetupResource ? Sparkles : PlayCircle;
+  const primaryResourceLabel = isAiSetupResource ? 'Set up if needed' : 'Watch if needed';
+  const primaryResourceActionLabel = isAiSetupResource ? 'Open AI settings' : 'Open training';
+  const primaryResourceAfterLabel = isAiSetupResource ? 'After setup: ' : 'After watching: ';
   const selectedPlatform = CREATOR_CAMP_PLATFORM_MATCHES.find((item) => item.id === platformId) ?? null;
   const realGoal = getRealGoal(cycle.goal);
 
@@ -210,20 +215,20 @@ export function SuccessPathPlanCard({
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <PlayCircle className="h-4 w-4 text-primary" aria-hidden="true" />
-                    <p className="text-sm font-semibold">Watch if needed</p>
+                    <PrimaryResourceIcon className="h-4 w-4 text-primary" aria-hidden="true" />
+                    <p className="text-sm font-semibold">{primaryResourceLabel}</p>
                     <Badge variant="outline" className="text-[11px]">{primaryResource.access}</Badge>
                   </div>
                   <h3 className="break-words text-base font-semibold leading-snug">{round.primaryResourceTitle}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{primaryResource.useWhen}</p>
                   {primaryResource.afterWatching && (
                     <p className="mt-2 text-sm leading-relaxed">
-                      <span className="font-semibold">After watching: </span>{primaryResource.afterWatching}
+                      <span className="font-semibold">{primaryResourceAfterLabel}</span>{primaryResource.afterWatching}
                     </p>
                   )}
                 </div>
                 <Button type="button" variant="outline" className="w-full shrink-0 lg:w-auto" onClick={() => onOpenResource(primaryResource)}>
-                  Open training
+                  {primaryResourceActionLabel}
                 </Button>
               </div>
             </div>
