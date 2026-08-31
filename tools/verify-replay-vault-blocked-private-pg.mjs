@@ -42,7 +42,8 @@ const data = mkdtempSync(path.join(tmpdir(), "rv-blocked-data-"));
 const socket = mkdtempSync(path.join(tmpdir(), "rv-blocked-sock-"));
 const port = 55000 + Math.floor(Math.random() * 2000);
 const db = "rv_blocked_private";
-const env = { ...process.env, PGHOST: socket, PGPORT: String(port), PGDATABASE: db, LC_ALL: "C", LANG: "C" };
+const clean = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("PG")));
+const env = { ...clean, PGHOST: socket, PGPORT: String(port), PGDATABASE: db, LC_ALL: "C", LANG: "C" };
 function run(command, args, { allowFailure = false } = {}) {
   const result = spawnSync(command, args, { env, encoding: "utf8" });
   if (result.stdout) process.stdout.write(result.stdout);
