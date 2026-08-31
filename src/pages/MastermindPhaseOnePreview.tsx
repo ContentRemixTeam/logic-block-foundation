@@ -80,12 +80,24 @@ export default function MastermindPhaseOnePreview() {
     return map;
   }, [catalog]);
 
-  const visibleLessons = useMemo(
-    () => PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required' || showFullLibrary),
-    [showFullLibrary],
-  );
   const isWatchedLesson = (resourceId: string) =>
     watched.includes(resourceId) || catalogById.get(resourceId)?.completed === true;
+  const visibleLessons = useMemo(
+    () =>
+      PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required' || showFullLibrary)
+        .slice()
+        .sort((a, b) => {
+          const watchedA = isWatchedLesson(a.resourceId) ? 1 : 0;
+          const watchedB = isWatchedLesson(b.resourceId) ? 1 : 0;
+          if (watchedA !== watchedB) return watchedA - watchedB;
+          const readyA = catalogById.has(a.resourceId) ? 0 : 1;
+          const readyB = catalogById.has(b.resourceId) ? 0 : 1;
+          if (readyA !== readyB) return readyA - readyB;
+          return a.order - b.order;
+        }),
+    [showFullLibrary, catalogById, isWatchedLesson],
+  );
+
   const watchedCount = PHASE_ONE_LESSONS.filter((lesson) => isWatchedLesson(lesson.resourceId)).length;
   const requiredComplete = PHASE_ONE_REQUIRED_LESSONS.every((lesson) => isWatchedLesson(lesson.resourceId));
   const phaseProgress = [requiredComplete, workspaceReady, connectionTested].filter(Boolean).length;
