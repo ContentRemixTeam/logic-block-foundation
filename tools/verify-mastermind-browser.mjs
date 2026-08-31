@@ -573,8 +573,10 @@ async function runChecks(client, checks, label) {
     await waitFor(client, 'document.body.innerText.includes("Current focus: Sell")', `${label} saved-cycle guidance`);
     await assertText(client, 'Your 90-day plan');
     await assertText(client, 'Do this this week');
-    await assertText(client, 'Complete the next sales action');
-    await assertText(client, 'Name the warmest people or segment, send one clear invitation, and schedule the follow-up before changing the offer.');
+    await assertText(client, 'What sales activity would make this 90-day goal possible?');
+    await assertText(client, 'Choose one offer and calculate sales, invitations, and follow-ups needed.');
+    await assertText(client, 'Save target, baseline, offer, value, assumed conversion, invitation target, and review date.');
+    await assertText(client, 'Send one direct invitation');
     await assertText(client, 'Bring back this evidence');
     await assertText(client, 'Ask Faith');
     await clickText(client, 'Get Support');
