@@ -12538,6 +12538,7 @@ export type Database = {
           p_cursor?: string
           p_filter?: string
           p_limit?: number
+          p_preview?: boolean
           p_user_id: string
         }
         Returns: {
