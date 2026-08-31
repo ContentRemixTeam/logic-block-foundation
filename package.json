@@ -12,6 +12,7 @@
     "verify:mastermind-portal": "node tools/verify-mastermind-portal.mjs",
     "verify:mastermind-success-path": "node tools/verify-mastermind-success-path.mjs",
     "verify:replay-vault": "node tools/verify-replay-vault.mjs",
+    "verify:replay-vault-playlists": "node tools/verify-replay-vault-playlists.mjs",
     "verify:replay-vault-pilot": "node tools/verify-replay-vault-pilot.mjs",
     "verify:replay-vault-pilot-bundle": "node tools/verify-replay-vault-pilot-bundle.mjs",
     "verify:replay-vault-pilot-mounted": "node tools/verify-replay-vault-pilot-mounted.mjs",
@@ -42,7 +43,9 @@
     "verify:replay-vault-commercial": "npm run verify:replay-vault-commercial-edge && npm run verify:replay-vault-commercial-pg",
     "verify:replay-vault-contrast": "node tools/verify-replay-vault-contrast.mjs",
     "verify:replay-vault-edge-lint": "deno lint supabase/functions/_shared/replayVaultAccess.ts supabase/functions/_shared/replayVaultAccess.test.ts supabase/functions/_shared/vaultInteractionsR2.ts supabase/functions/_shared/vaultInteractionsR2.test.ts supabase/functions/_shared/vaultMemberLibraryR4.ts supabase/functions/_shared/vaultMemberLibraryR4.test.ts supabase/functions/_shared/replayVaultCommercialWebhook.ts supabase/functions/_shared/replayVaultCommercialWebhook.test.ts",
-    "verify:replay-vault-parity-manifest": "node tools/verify-replay-vault-parity-manifest.mjs"
+    "verify:replay-vault-parity-manifest": "node tools/verify-replay-vault-parity-manifest.mjs",
+    "verify:replay-vault-playlists-pg": "node tools/verify-replay-vault-playlists-pg.mjs",
+    "verify:replay-vault-playlists-edge": "deno test --no-lock -A supabase/functions/_shared/vaultPlaylists.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

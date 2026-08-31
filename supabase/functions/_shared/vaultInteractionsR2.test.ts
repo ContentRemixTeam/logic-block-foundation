@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "@std/assert";
-import { createInteractionsHandler, GENERIC_ERROR, validResourceId } from "./vaultInteractionsR2.ts";
+import { allowedOrigins, createInteractionsHandler, GENERIC_ERROR, validResourceId } from "./vaultInteractionsR2.ts";
 
 const origin = "https://app.faithmariah.com";
 type Call = { name: string; args: Record<string, unknown> };
@@ -32,6 +32,30 @@ Deno.test("exact origin preflight and disallowed or missing origin fail closed",
   assertEquals(response.headers.get("access-control-allow-origin"), null);
   response = await f.handler(new Request("https://edge.test", { method: "POST" }));
   assertEquals(response.status, 403);
+});
+
+Deno.test("default allowlist accepts the plan production origin for preflight and saved actions", async () => {
+  const productionOrigin = "https://plan.faithmariah.com";
+  assert(allowedOrigins("").has(productionOrigin));
+  const calls: Call[] = [];
+  const handler = createInteractionsHandler({
+    authenticate: () => Promise.resolve({ id: "11111111-1111-4111-8111-111111111111", email: "member@example.com" }),
+    rpc: (name, args) => { calls.push({ name, args }); return Promise.resolve({ data: { ok: true } }); },
+    log: () => undefined,
+  }, "");
+  let response = await handler(new Request("https://edge.test", {
+    method: "OPTIONS",
+    headers: { origin: productionOrigin },
+  }));
+  assertEquals(response.status, 204);
+  assertEquals(response.headers.get("access-control-allow-origin"), productionOrigin);
+  response = await handler(new Request("https://edge.test", {
+    method: "POST",
+    headers: { origin: productionOrigin, authorization: "Bearer token", "content-type": "application/json" },
+    body: JSON.stringify({ action: "set_bookmark", resourceId: "replay:r2", targetKind: "replay", saved: true }),
+  }));
+  assertEquals(response.status, 200);
+  assertEquals(calls.at(-1)?.name, "replay_vault_set_bookmark");
 });
 
 Deno.test("auth, caller authority, malformed and bounded chunked bodies are generic", async () => {

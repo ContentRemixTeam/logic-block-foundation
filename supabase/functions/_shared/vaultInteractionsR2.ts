@@ -1,6 +1,10 @@
 declare const Deno: { env: { get(name: string): string | undefined } };
 const MAX_BODY_BYTES = 8192;
-const DEFAULT_ORIGINS = ["https://app.faithmariah.com", "https://planner.faithmariah.com"];
+const DEFAULT_ORIGINS = [
+ "https://app.faithmariah.com",
+ "https://plan.faithmariah.com",
+ "https://planner.faithmariah.com",
+];
 export const GENERIC_ERROR = { error: "Replay Vault request could not be completed" } as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SAFE_RESOURCE = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;

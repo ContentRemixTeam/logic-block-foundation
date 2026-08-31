@@ -14,6 +14,7 @@ import { groupSearchResults, makeAuthReturnTo, normalizeAccessResponse, parseDet
 import type { PlaybackResult, PlaybackTarget, VaultAccessState, VaultReplayGroup } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
 import { VaultOnboarding } from '@/components/replay-vault/VaultOnboarding';
+import { VaultCuratedPlaylists } from '@/components/replay-vault/VaultCuratedPlaylists';
 
 function canUseVault(access: VaultAccessState) { return access.status === 'allowed'; }
 type DeepLinkState = { key: string | null; status: 'idle' | 'loading' | 'success' | 'error' };
@@ -196,6 +197,7 @@ function ProtectedReplayVault() {
           {deepLink.status === 'error' && <div role="alert" className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3"><p className="text-sm">That protected answer could not be opened. Your access has not changed.</p><Button type="button" variant="outline" className="w-fit" onClick={retryDeepLink}>Try answer again</Button></div>}
           {playbackError && deepLink.status !== 'error' && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{playbackError}</p>}
           {playback && target && <VaultPlayer playback={playback} target={target} videoRef={videoRef} announcement={announcement} sourceGeneration={sourceGeneration} recoveryBusy={recoveryBusy} recoveryFailed={recoveryFailed} onLoadedMetadata={handleLoadedMetadata} onMediaError={handleMediaError} onManualRefresh={() => void refreshPlayback(true)} onOpen={handleOpen} />}
+          <VaultCuratedPlaylists onOpen={handleOpen} />
           <VaultLibrarySurfaces onOpen={handleOpen} />
           {groups.length > 0 && <VaultSearchResults groups={groups} loadingKey={loadingKey} onOpen={handleOpen} />}
           {!searching && submittedQuery && groups.length === 0 && !searchError && <Card><CardHeader><CardTitle>No approved moments found</CardTitle><CardDescription>Try fewer words or a broader topic. Your search is still in the box.</CardDescription></CardHeader><CardContent className="flex flex-col gap-2 sm:flex-row"><Button type="button" onClick={() => searchInputRef.current?.focus()}>Edit search</Button><Button type="button" variant="outline" onClick={() => { setQuery(''); setSubmittedQuery(''); setGroups([]); searchInputRef.current?.focus(); }}>Clear search</Button></CardContent></Card>}
