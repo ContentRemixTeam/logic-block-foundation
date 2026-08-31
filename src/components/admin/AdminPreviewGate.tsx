@@ -10,6 +10,9 @@ interface AdminPreviewGateProps {
 
 type GateState = 'checking' | 'allowed' | 'denied';
 
+const PREVIEW_ALLOWED_EMAILS = new Set(['faithhawks@gmail.com', 'info@faithmariah.com']);
+const CHECK_TIMEOUT_MS = 8000;
+
 export function AdminPreviewGate({ children }: AdminPreviewGateProps) {
   const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<GateState>('checking');
@@ -24,15 +27,35 @@ export function AdminPreviewGate({ children }: AdminPreviewGateProps) {
     }
 
     setState('checking');
-    void supabase
-      .rpc('is_admin', { check_user_id: user.id })
-      .then(({ data, error }) => {
+
+    // Hidden private-preview allowlist: specific authenticated emails are
+    // allowed without the is_admin RPC; everyone else uses is_admin.
+    const email = (user.email ?? '').trim().toLowerCase();
+    if (PREVIEW_ALLOWED_EMAILS.has(email)) {
+      setState('allowed');
+      return;
+    }
+
+    // Fail closed on timeout or error instead of hanging on "Checking…".
+    const timeout = setTimeout(() => {
+      if (active) setState('denied');
+    }, CHECK_TIMEOUT_MS);
+
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('is_admin', { check_user_id: user.id });
         if (!active) return;
         setState(!error && data === true ? 'allowed' : 'denied');
-      });
+      } catch {
+        if (active) setState('denied');
+      } finally {
+        clearTimeout(timeout);
+      }
+    })();
 
     return () => {
       active = false;
+      clearTimeout(timeout);
     };
   }, [authLoading, user]);
 
