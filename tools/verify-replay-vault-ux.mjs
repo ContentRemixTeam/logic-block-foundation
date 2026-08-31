@@ -160,7 +160,7 @@ async function runMounted(label, width, negative = false) {
   const script = fs.readFileSync(outfile, 'utf8').replaceAll('</script', '<\\/script');
   const cssPath = path.join(tmp, `${label}.css`);
   const cssBuild = spawnSync('npx', ['tailwindcss', '-i', path.join(root, 'src/index.css'), '-o', cssPath, '--minify'], {
-    cwd: root, encoding: 'utf8', timeout: 30000,
+    cwd: root, encoding: 'utf8', timeout: 120000,
   });
   assert.equal(cssBuild.status, 0, `could not compile mounted harness CSS: ${cssBuild.stderr}`);
   const css = fs.readFileSync(cssPath, 'utf8');

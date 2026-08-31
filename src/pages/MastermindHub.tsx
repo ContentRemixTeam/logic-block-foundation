@@ -22,7 +22,11 @@ import {
   MASTERMIND_SUCCESS_STAGES,
   type MastermindResourceRecommendation,
 } from '@/lib/mastermindSuccessPath';
-import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
+import {
+  isDefaultMastermindPortalResource,
+  isReadyMastermindCurriculumVideoResource,
+  searchMastermindPortalResources,
+} from '@/lib/mastermindPortalSearch';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
   ArrowRight,
@@ -43,7 +47,7 @@ import { cn } from '@/lib/utils';
 const STORAGE_KEY = 'mastermind-pinned-resources';
 const SHOW_AI_STUDIO = import.meta.env.VITE_ENABLE_MASTERMIND_AI_STUDIO === 'true';
 
-type ResourceFilterId = 'all' | 'focus' | 'core' | 'current_replay' | 'indexed';
+type ResourceFilterId = 'all' | 'focus' | 'core' | 'indexed';
 
 function PreviewAccessBoundary({ children }: { children: ReactNode }) {
   return <>{children}</>;
@@ -156,15 +160,13 @@ export default function MastermindHub() {
       { id: 'all' as const, label: 'All' },
       { id: 'focus' as const, label: `${selectedStage.label} focus` },
       { id: 'core' as const, label: 'Core' },
-      { id: 'current_replay' as const, label: '30-day' },
-      { id: 'indexed' as const, label: 'Indexed now' },
+      { id: 'indexed' as const, label: 'Transcript-backed' },
     ]
   ), [selectedStage.label]);
 
   const resourceSearchOptions = useMemo(() => {
     const accessByFilter: Partial<Record<ResourceFilterId, MastermindPortalAccess>> = {
       core: 'core',
-      current_replay: 'current_replay',
     };
 
     return {
@@ -175,7 +177,7 @@ export default function MastermindHub() {
   }, [resourceFilter, selectedStageId]);
 
   const visibleResources = useMemo(() => {
-    return MASTERMIND_PORTAL_RESOURCES.filter(isDefaultMastermindPortalResource);
+    return MASTERMIND_PORTAL_RESOURCES.filter(isReadyMastermindCurriculumVideoResource);
   }, []);
 
   const indexedResourceCount = useMemo(() => {
@@ -190,7 +192,7 @@ export default function MastermindHub() {
 
   const filteredResources = useMemo(() => {
     const resources = searchMastermindPortalResources(
-      MASTERMIND_PORTAL_RESOURCES,
+      visibleResources,
       searchQuery,
       resourceSearchOptions
     );
@@ -199,7 +201,7 @@ export default function MastermindHub() {
       const completedB = completedResourceIds.has(b.id) ? 1 : 0;
       return completedA - completedB;
     });
-  }, [completedResourceIds, searchQuery, resourceSearchOptions]);
+  }, [completedResourceIds, searchQuery, resourceSearchOptions, visibleResources]);
 
   const pinnedResources = useMemo(() => {
     return visibleResources
@@ -481,22 +483,22 @@ export default function MastermindHub() {
                 <CardHeader>
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <Badge variant="secondary" className="mb-2 w-fit">Training Library map</Badge>
-                      <CardTitle>Core curriculum, current replays, and Vault access stay separated.</CardTitle>
+                      <Badge variant="secondary" className="mb-2 w-fit">Training Library</Badge>
+                      <CardTitle>Watch the videos that are ready inside this app.</CardTitle>
                       <CardDescription>
-                        Choose the smallest useful next resource. Bonus and vault items stay out of this finder until access is verified.
+                        Choose the smallest useful next resource. Current replays, Vault search, AI tools, and support links stay in their own sections until each path is verified.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="w-fit">
-                      {filteredResources.length} matching resources
+                      {filteredResources.length} ready videos
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <AuditMetric title="Plan stages" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
-                  <AuditMetric title="Visible resources" value={visibleResources.length.toLocaleString()} />
-                  <AuditMetric title="Indexed now" value={indexedResourceCount.toLocaleString()} />
-                  <AuditMetric title="Access labels" value={accessRailCount.toLocaleString()} />
+                  <AuditMetric title="Videos ready" value={visibleResources.length.toLocaleString()} />
+                  <AuditMetric title="Transcript-backed" value={indexedResourceCount.toLocaleString()} />
+                  <AuditMetric title="Access scope" value={accessRailCount.toLocaleString()} />
                 </CardContent>
               </Card>
 
@@ -504,10 +506,10 @@ export default function MastermindHub() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Search className="h-4 w-4 text-primary" />
-                    Find What I Need
+                    Find a training
                   </CardTitle>
                   <CardDescription>
-                    Monthly access is core curriculum plus current 30-day replays. Vault records stay marked separately.
+                    This private QA finder only shows protected curriculum videos that open in the in-app player. Current replays and the Vault remain separate.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -516,7 +518,7 @@ export default function MastermindHub() {
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search offer, sales page, email list, AI, replay..."
+                      placeholder="Search offer, sales page, email list, onboarding, systems..."
                       className="pl-10 pr-10"
                     />
                     {searchQuery && (

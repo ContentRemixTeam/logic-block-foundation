@@ -26,6 +26,14 @@ export function isDefaultMastermindPortalResource(resource: MastermindPortalReso
   return DEFAULT_VISIBLE_ACCESSES.has(resource.access);
 }
 
+export function isReadyMastermindCurriculumVideoResource(resource: MastermindPortalResource) {
+  return (
+    isDefaultMastermindPortalResource(resource) &&
+    resource.protectedPlayback?.surface === 'curriculum' &&
+    resource.protectedPlayback.status === 'ready'
+  );
+}
+
 function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
