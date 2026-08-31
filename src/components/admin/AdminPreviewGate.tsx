@@ -41,18 +41,17 @@ export function AdminPreviewGate({ children }: AdminPreviewGateProps) {
       if (active) setState('denied');
     }, CHECK_TIMEOUT_MS);
 
-    supabase
-      .rpc('is_admin', { check_user_id: user.id })
-      .then(({ data, error }) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('is_admin', { check_user_id: user.id });
         if (!active) return;
         setState(!error && data === true ? 'allowed' : 'denied');
-      })
-      .catch(() => {
+      } catch {
         if (active) setState('denied');
-      })
-      .finally(() => {
+      } finally {
         clearTimeout(timeout);
-      });
+      }
+    })();
 
     return () => {
       active = false;
