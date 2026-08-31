@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, PlayCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
