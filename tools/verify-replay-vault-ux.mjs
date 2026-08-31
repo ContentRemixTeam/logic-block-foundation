@@ -8,11 +8,16 @@ import WebSocket from 'ws';
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 import {
+  formatVaultTitle,
   groupSearchResults,
   makeDetailHref,
   normalizeAccessResponse,
   parseDetailTarget,
 } from '../src/components/replay-vault/replayVaultCore.mjs';
+
+assert.equal(formatVaultTitle('YES_SUPPLY_Embodiment_EFT_Tapping.mp4'), 'Yes Supply Embodiment EFT Tapping');
+assert.equal(formatVaultTitle('Next Level Livestream_Introduction'), 'Next Level Livestream Introduction');
+assert.equal(formatVaultTitle('AskFaith_CEO_Q1'), 'Ask Faith CEO Q1');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';

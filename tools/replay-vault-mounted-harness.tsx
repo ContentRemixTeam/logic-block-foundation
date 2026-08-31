@@ -334,7 +334,7 @@ async function parityDirectoriesAndReceiptsMount() {
   assert(document.body.textContent?.includes('Playing from the start'),`Saved full video must reopen at the canonical start: ${(document.body.textContent ?? '').slice(-500)}`);
   __vaultMock.enqueue('vault-member-interactions',{data:{data:{deleted:true,bookmarkId:'66666666-6666-4666-8666-666666666666'}},error:null});
   await click(byText('Remove everywhere'));assert(document.body.textContent?.includes('Removed everywhere from Saved.'),'remove-everywhere UI must be receipt-gated');
-  const buttons=[...document.querySelectorAll<HTMLButtonElement>('button')].filter(b=>['browse','questions','saved'].includes(b.textContent?.trim()||''));
+  const buttons=[...document.querySelectorAll<HTMLButtonElement>('button')].filter(b=>['browse','Answered questions','saved'].includes(b.textContent?.trim()||''));
   assert(buttons.length===3&&buttons.every(b=>b.getBoundingClientRect().height>=44),'parity navigation must keep 44px targets');
 }
 
