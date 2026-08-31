@@ -48,11 +48,19 @@ export default function MastermindPhaseOnePreview() {
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const visibleLessons = useMemo(
-    () => PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required' || showFullLibrary),
-    [showFullLibrary],
-  );
   const readyResources = useMemo(() => new Map(phase.resources.map((resource) => [resource.portal_resource_id, resource])), [phase.resources]);
+  const visibleLessons = useMemo(() => {
+    const baseLessons = PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required' || showFullLibrary);
+
+    return [...baseLessons].sort((left, right) => {
+      const leftResource = readyResources.get(left.resourceId);
+      const rightResource = readyResources.get(right.resourceId);
+      const leftRank = leftResource?.completed ? 2 : leftResource ? 0 : 1;
+      const rightRank = rightResource?.completed ? 2 : rightResource ? 0 : 1;
+
+      return leftRank - rightRank || left.order - right.order;
+    });
+  }, [readyResources, showFullLibrary]);
   const watchedCount = phase.resources.filter((resource) => resource.completed).length;
   const planReady = Boolean(phase.phaseState?.plan_ready_at && phase.phaseState.cycle_id === phase.cycle?.cycle_id) || phase.planReady;
   const workspaceReady = phase.phaseState?.workspace_status === 'ready' && phase.hasVerifiedExternalConnection;
