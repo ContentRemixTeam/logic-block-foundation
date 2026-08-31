@@ -26,6 +26,11 @@ export function usePhaseOneCatalog(enabled = true) {
     queryKey: ['phase-one-catalog'],
     enabled,
     staleTime: 60_000,
+    // Completion state is server-owned. Always revalidate on mount so a page
+    // reload (or navigation from the preview page) never renders a stale
+    // "not completed" checkoff from cache.
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<PhaseOneCatalogRow[]> => {
       const { data, error } = await (supabase as unknown as {
         rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;

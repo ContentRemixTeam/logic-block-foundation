@@ -38,13 +38,13 @@ export default function MastermindTraining() {
   // Completion is server-owned: hydrate the checkoff from the authorized
   // Phase One catalog so a reload keeps the saved completed state.
   const queryClient = useQueryClient();
-  const { data: catalogRows } = usePhaseOneCatalog(isStableVaultId(resourceId));
+  const { data: catalogRows, isPending: catalogPending } = usePhaseOneCatalog(isStableVaultId(resourceId));
   const serverCompleted = useMemo(
     () => (catalogRows ?? []).some((row) => row.portal_resource_id === resourceId && row.completed === true),
     [catalogRows, resourceId],
   );
   useEffect(() => { setProgressSaved(false); }, [resourceId]);
-  useEffect(() => { if (serverCompleted) setProgressSaved(true); }, [serverCompleted]);
+  useEffect(() => { setProgressSaved(serverCompleted); }, [serverCompleted, resourceId]);
 
 
   const initialTarget = useMemo<PlaybackTarget | null>(() => {
@@ -300,8 +300,8 @@ export default function MastermindTraining() {
                   Go back to your plan and record the action or evidence this lesson helps you create.
                 </p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={() => void persistProgress(true)}>
-                    {progressSaved ? 'Marked complete' : 'Mark lesson complete'}
+                  <Button type="button" variant="secondary" className="w-full sm:w-auto" disabled={catalogPending} onClick={() => void persistProgress(true)}>
+                    {catalogPending ? 'Checking your progress…' : progressSaved ? 'Marked complete' : 'Mark lesson complete'}
                   </Button>
                   <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate(backHref)}>
                     {backLabel}
