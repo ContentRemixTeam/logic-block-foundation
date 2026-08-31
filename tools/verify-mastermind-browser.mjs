@@ -627,7 +627,7 @@ async function runChecks(client, checks, label) {
     await assertNoHorizontalOverflow(client, `${label} 30-day filter`);
 
     await clickText(client, 'Indexed now');
-    await waitFor(client, 'document.body.innerText.includes("Success Plan")', `${label} indexed filter`);
+    await waitFor(client, 'document.body.innerText.includes("Start Here: Your 90-Day Plan")', `${label} indexed filter`);
     await assertNoText(client, 'Products & Offers');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} indexed filter`);

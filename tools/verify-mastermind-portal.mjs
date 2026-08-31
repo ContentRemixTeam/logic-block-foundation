@@ -93,7 +93,7 @@ function cycle(overrides: Partial<MastermindPlanCycle>): MastermindPlanCycle {
   };
 }
 
-assert.ok(MASTERMIND_PORTAL_RESOURCES.length >= 14, 'expected a full portal resource map');
+assert.ok(MASTERMIND_PORTAL_RESOURCES.length >= 32, 'expected the full portal resource map plus imported core curriculum videos');
 
 const resourceIds = new Set<string>();
 const forbiddenMemberFacingResourceCopy = [
@@ -146,9 +146,12 @@ for (const resource of MASTERMIND_PORTAL_RESOURCES) {
   }
 }
 
-assert.deepEqual(idsFor('sales page').slice(0, 1), ['sales-marketing'], 'sales page should route to Sales & Marketing first');
+assert.ok(idsFor('sales page').includes('sales-marketing'), 'sales page should find Sales & Marketing');
 assert.ok(idsFor('email list').includes('grow-email-list'), 'email list should find Grow Your Email List');
 assert.ok(idsFor('AI').includes('faith-ai'), 'AI should find Faith AI');
+assert.ok(idsFor('welcome email').includes('get-your-freebie-welcome-email'), 'welcome email should find the imported welcome email lesson');
+assert.ok(idsFor('onboarding').includes('program-upgrade-onboarding-upgrade'), 'onboarding should find the imported onboarding lesson');
+assert.ok(idsFor('do less').includes('do-less-make-more-workshop'), 'do less should find the imported leverage lesson');
 assert.deepEqual(idsFor('nope impossible query'), [], 'nonsense search should return no results');
 
 const defaultIds = idsFor('');
@@ -185,20 +188,52 @@ assert.ok(transcriptReadyIds.includes('faith-ai'), 'transcript-ready filter shou
 assert.ok(!transcriptReadyIds.includes('products-offers'), 'transcript-ready filter should hide metadata-only resources');
 assert.ok(!transcriptReadyIds.includes('replay-vault'), 'transcript-ready filter should hide server-side-required vault search');
 
-const protectedCurriculumResourceIds = [
-  'success-plan',
-  'ninety-day-planning',
+const readyProtectedCurriculumResourceIds = [
+  'ninety-day-goal-setting-introduction',
+  'ninety-day-goal-setting-workshop',
   'money-move-day-one',
-  'wibn-offer-clarity',
   'money-move-day-two',
   'money-move-day-three',
+  'great-marketing-breakthrough-day-two',
+  'great-marketing-breakthrough-day-three',
+  'get-social-media-done-workshop-one',
+  'get-social-media-done-workshop-two',
+  'get-social-media-done-workshop-three',
+  'get-your-freebie-non-boring-idea',
+  'get-your-freebie-welcome-email',
+  'bosses-make-sales-day-one',
+  'bosses-make-sales-day-two',
+  'bosses-make-sales-day-three',
+  'launch-aligned-half-ass-launch',
+  'launch-aligned-debrief',
+  'program-upgrade-strategic-improvement',
+  'program-upgrade-onboarding-upgrade',
+  'program-upgrade-surprise-and-delight',
+  'program-upgrade-offboard-like-a-boss',
+  'do-less-make-more-workshop',
+  'do-less-make-more-bonus-coaching',
 ];
-for (const resourceId of protectedCurriculumResourceIds) {
+for (const resourceId of readyProtectedCurriculumResourceIds) {
   const resource = MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === resourceId);
   assert.ok(resource?.protectedPlayback, resourceId + ' is missing the protected curriculum playback contract');
   assert.equal(resource.protectedPlayback.accessScope, 'core_curriculum', resourceId + ' must be monthly-safe core curriculum');
   assert.equal(resource.protectedPlayback.surface, 'curriculum', resourceId + ' must open through the Training Library surface');
-  assert.equal(getProtectedTrainingHref(resource), null, resourceId + ' must keep using the current bridge until the protected import is ready');
+  assert.equal(resource.protectedPlayback.status, 'ready', resourceId + ' should be connected to the protected player');
+  assert.equal(getProtectedTrainingHref(resource), '/mastermind/training?resource=' + encodeURIComponent(resourceId), resourceId + ' must open the protected Training Library player');
+}
+
+const pendingCurriculumResourceIds = [
+  'success-plan',
+  'ninety-day-planning',
+  'wibn-offer-clarity',
+  'messy-action-sprints',
+];
+for (const resourceId of pendingCurriculumResourceIds) {
+  const resource = MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === resourceId);
+  assert.ok(resource?.protectedPlayback, resourceId + ' is missing the pending protected curriculum playback contract');
+  assert.equal(resource.protectedPlayback.accessScope, 'core_curriculum', resourceId + ' must be monthly-safe core curriculum');
+  assert.equal(resource.protectedPlayback.surface, 'curriculum', resourceId + ' must open through the Training Library surface when ready');
+  assert.equal(getProtectedTrainingHref(resource), null, resourceId + ' must not open the protected player until its import is ready');
 }
 
 const readyTrainingHref = getProtectedTrainingHref({
@@ -225,8 +260,7 @@ assert.equal(readyVaultHref, '/mastermind/replay-vault?resource=membershipio%3AP
 
 for (const stage of MASTERMIND_SUCCESS_STAGES) {
   assert.ok(stageIdSet.has(stage.id), 'unknown stage id: ' + stage.id);
-  const expectedResourceCount = stage.id === 'offer' ? 4 : 3;
-  assert.equal(stage.resources.length, expectedResourceCount, stage.label + ' has the wrong number of starting resources');
+  assert.equal(stage.resources.length, 4, stage.label + ' should map each milestone to a starting resource');
   assert.equal(stage.messyActionSprint.length, 3, stage.label + ' should have exactly three messy action sprint steps');
   assert.ok(stage.nextMoneyMove.trim(), stage.label + ' is missing a next money move');
   assert.ok(stage.supportPrompt.trim(), stage.label + ' is missing an Ask Faith prompt');
@@ -260,11 +294,9 @@ for (const stage of MASTERMIND_SUCCESS_STAGES) {
     );
   }
 
-  if (stage.id === 'offer') {
-    const mappedMilestoneIds = new Set(stage.resources.flatMap((resource) => resource.milestoneIds ?? []));
-    for (const milestone of stage.milestones) {
-      assert.ok(mappedMilestoneIds.has(milestone.id), 'Offer milestone is missing a mapped lesson: ' + milestone.id);
-    }
+  const mappedMilestoneIds = new Set(stage.resources.flatMap((resource) => resource.milestoneIds ?? []));
+  for (const milestone of stage.milestones) {
+    assert.ok(mappedMilestoneIds.has(milestone.id), stage.label + ' milestone is missing a mapped lesson: ' + milestone.id);
   }
 }
 
@@ -281,7 +313,7 @@ assert.equal(
 const sellGuidance = getMastermindWeeklyGuidance('sell', cycle({ low_energy_version: 'Send one warm follow-up before rewriting anything.' }));
 assert.equal(sellGuidance.stage.id, 'sell', 'weekly guidance should load the selected stage');
 assert.equal(sellGuidance.quickWin.lowEnergy, 'Send one warm follow-up before rewriting anything.', 'weekly guidance should respect the member low-capacity plan');
-assert.equal(sellGuidance.primaryResource.resourceId, 'sales-marketing', 'weekly guidance should choose the first approved support resource');
+assert.equal(sellGuidance.primaryResource.resourceId, 'money-move-day-three', 'weekly guidance should choose a real protected sales-planning lesson');
 assert.equal(sellGuidance.aiProjectId, 'sales-room', 'weekly guidance should expose the stage-matched AI project pack id');
 
 const offerValidationGuidance = getMastermindWeeklyGuidance('offer', cycle({}), 'offer-validate');

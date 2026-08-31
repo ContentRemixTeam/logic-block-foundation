@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, PlayCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Layout } from '@/components/Layout';
@@ -22,6 +22,7 @@ const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.mom
 
 export default function MastermindTraining() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playbackRequest = useRef({ generation: 0, controller: null as AbortController | null });
@@ -32,7 +33,12 @@ export default function MastermindTraining() {
   const momentId = searchParams.get('moment');
   const questionId = searchParams.get('question');
   const fromPhaseOne = searchParams.get('from') === 'phase-one';
-  const backHref = fromPhaseOne ? '/admin/mastermind-phase-one-preview' : '/mastermind';
+  const isAdminTrainingPreview = location.pathname.startsWith('/admin/mastermind-training-preview');
+  const backHref = fromPhaseOne
+    ? '/admin/mastermind-phase-one-preview'
+    : isAdminTrainingPreview
+      ? '/admin/mastermind-90-day-plan-preview'
+      : '/mastermind';
   const backLabel = fromPhaseOne ? 'Back to Phase One' : 'Back to 90-Day Plan';
   const [progressSaved, setProgressSaved] = useState(false);
   // Completion is server-owned: hydrate the checkoff from the authorized
@@ -243,7 +249,7 @@ export default function MastermindTraining() {
               <CardDescription>This page opens lessons from the recommendation card once a video is ready in the protected library.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button type="button" onClick={() => navigate('/mastermind')}>Open 90-Day Plan</Button>
+              <Button type="button" onClick={() => navigate(backHref)}>Open 90-Day Plan</Button>
             </CardContent>
           </Card>
         )}
@@ -269,7 +275,7 @@ export default function MastermindTraining() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 sm:flex-row">
-              <Button type="button" onClick={() => navigate('/mastermind')}>Back to 90-Day Plan</Button>
+              <Button type="button" onClick={() => navigate(backHref)}>Back to 90-Day Plan</Button>
               {initialTarget && (
                 <Button type="button" variant="outline" onClick={() => void resolvePlayback(initialTarget)}>
                   Try again
