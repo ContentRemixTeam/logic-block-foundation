@@ -10,7 +10,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const SAFE_RESOURCE = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
 export type AuthUser = { id: string; email?: string | null };
 export type Dependencies = { authenticate(req: Request): Promise<AuthUser | null>; rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error?: { code?: string } | null }>; log(taxonomy: "auth_rejected"|"request_rejected"|"rpc_rejected"|"internal_error", meta: { requestId: string; action?: string; code?: string }): void };
-export function allowedOrigins(env = Deno.env.get("VAULT_ALLOWED_ORIGINS")): Set<string> { const values: string[] = (env ?? "").split(",").map((x: string)=>x.trim()).filter(Boolean); return new Set<string>(values.length ? values : DEFAULT_ORIGINS); }
+export function allowedOrigins(env = Deno.env.get("VAULT_ALLOWED_ORIGINS")): Set<string> {
+ const sources: string[] = [env ?? "", Deno.env.get("REPLAY_VAULT_ALLOWED_ORIGINS") ?? ""];
+ const values: string[] = sources.join(",").split(",").map((x: string)=>x.trim()).filter(Boolean);
+ // Configured origins extend, never replace, the known production surfaces.
+ return new Set<string>([...values, ...DEFAULT_ORIGINS]);
+}
 export function validResourceId(value: unknown): value is string { return typeof value === "string" && SAFE_RESOURCE.test(value); }
 function headers(origin: string | null, allowed: Set<string>) { const h: Record<string,string>={"Content-Type":"application/json","Cache-Control":"no-store","Vary":"Origin"};if(origin&&allowed.has(origin)){h["Access-Control-Allow-Origin"]=origin;h["Access-Control-Allow-Headers"]="authorization, x-client-info, apikey, content-type";h["Access-Control-Allow-Methods"]="POST, OPTIONS";}return h; }
 function reply(origin:string|null,allowed:Set<string>,body:unknown,status:number){return new Response(status===204?null:JSON.stringify(body),{status,headers:headers(origin,allowed)});}

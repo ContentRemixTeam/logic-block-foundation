@@ -156,3 +156,78 @@ Deno.test("full replay bookmark uses canonical resource target without caller ti
     assertEquals(denied.status, 400);
   }
 });
+
+Deno.test("configured deployment origins extend the production defaults and stay fail-closed", () => {
+  const configured = "https://id-preview--example.lovable.app";
+  Deno.env.set("REPLAY_VAULT_ALLOWED_ORIGINS", `${configured}, https://logic-block-foundation.lovable.app`);
+  try {
+    const origins = allowedOrigins("");
+    assert(origins.has(configured));
+    assert(origins.has("https://logic-block-foundation.lovable.app"));
+    assert(origins.has("https://plan.faithmariah.com"));
+    assert(origins.has("https://app.faithmariah.com"));
+    assert(!origins.has("https://evil.test"));
+  } finally {
+    Deno.env.delete("REPLAY_VAULT_ALLOWED_ORIGINS");
+  }
+});
+
+Deno.test("saved actions load, save, reload persistence, unsave and signed-out denial on a preview replay", async () => {
+  const configured = "https://id-preview--example.lovable.app";
+  Deno.env.set("REPLAY_VAULT_ALLOWED_ORIGINS", configured);
+  try {
+    const calls: Call[] = [];
+    const bookmarks = new Set<string>();
+    const resourceId = "membershipio:6Dbd59bgqz";
+    const targetId = "22222222-2222-4222-8222-222222222222";
+    const key = `${resourceId}|moment|${targetId}`;
+    const deps = (auth: boolean) => ({
+      authenticate: () => Promise.resolve(auth ? { id: "11111111-1111-4111-8111-111111111111", email: "info@faithmariah.com" } : null),
+      rpc: (name: string, args: Record<string, unknown>) => {
+        calls.push({ name, args });
+        if (name === "replay_vault_set_bookmark") {
+          const saved = args.p_saved === true;
+          if (saved) bookmarks.add(key); else bookmarks.delete(key);
+          return Promise.resolve({ data: { saved, changed: true, resourceId, targetKind: "moment", targetId } });
+        }
+        return Promise.resolve({ data: { target: { resourceId, targetKind: "moment", targetId }, bookmark: bookmarks.has(key) ? { bookmarkId: targetId, resourceId, targetKind: "moment", targetId } : null } });
+      },
+      log: () => undefined,
+    });
+    const handler = createInteractionsHandler(deps(true), "");
+    const post = (body: unknown) => handler(new Request("https://edge.test", {
+      method: "POST",
+      headers: { origin: configured, authorization: "Bearer token", "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+    const target = { resourceId, targetKind: "moment", targetId };
+    let response = await post({ action: "get_interaction", ...target });
+    assertEquals(response.status, 200);
+    assertEquals((await response.json()).data.bookmark, null);
+    response = await post({ action: "set_bookmark", ...target, saved: true });
+    assertEquals(response.status, 200);
+    assertEquals((await response.json()).data.saved, true);
+    response = await post({ action: "get_interaction", ...target });
+    assertEquals((await response.json()).data.bookmark.bookmarkId, targetId);
+    response = await post({ action: "set_bookmark", ...target, saved: false });
+    assertEquals((await response.json()).data.saved, false);
+    response = await post({ action: "get_interaction", ...target });
+    assertEquals((await response.json()).data.bookmark, null);
+
+    const signedOut = createInteractionsHandler(deps(false), "");
+    const denied = await signedOut(new Request("https://edge.test", {
+      method: "POST",
+      headers: { origin: configured, "content-type": "application/json" },
+      body: JSON.stringify({ action: "get_interaction", ...target }),
+    }));
+    assertEquals(denied.status, 401);
+    const foreignOrigin = await handler(new Request("https://edge.test", {
+      method: "POST",
+      headers: { origin: "https://evil.test", authorization: "Bearer token", "content-type": "application/json" },
+      body: JSON.stringify({ action: "get_interaction", ...target }),
+    }));
+    assertEquals(foreignOrigin.status, 403);
+  } finally {
+    Deno.env.delete("REPLAY_VAULT_ALLOWED_ORIGINS");
+  }
+});
