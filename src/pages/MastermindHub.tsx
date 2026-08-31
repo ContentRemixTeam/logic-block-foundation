@@ -604,7 +604,9 @@ export default function MastermindHub() {
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="w-fit">
-                      {filteredResources.length} ready videos
+                      {filteredResources.length === visibleResources.length
+                        ? `${visibleResources.length} ready videos`
+                        : `${filteredResources.length} matching videos`}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -707,7 +709,11 @@ export default function MastermindHub() {
 
                 {filteredResources.length === 0 && (
                   <div className="py-12 text-center">
-                    <p className="break-words text-muted-foreground">No resources found matching "{searchQuery}"</p>
+                    <p className="break-words text-muted-foreground">
+                      {searchQuery
+                        ? `No ready trainings match "${searchQuery}"`
+                        : 'No ready trainings match this filter yet.'}
+                    </p>
                   </div>
                 )}
               </div>

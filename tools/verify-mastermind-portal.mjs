@@ -442,7 +442,7 @@ try {
     'className="pl-10 pr-10"',
     'className="min-h-9 whitespace-normal text-left leading-tight"',
     'className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"',
-    'className="break-words text-muted-foreground">No resources found matching',
+    'No ready trainings match',
     'className="min-w-0 flex-1 break-words leading-snug"',
     'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
   ];

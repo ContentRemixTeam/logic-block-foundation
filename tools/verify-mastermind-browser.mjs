@@ -681,12 +681,12 @@ async function runChecks(client, checks, label) {
     await assertNoHorizontalOverflow(client, `${label} email list search`);
 
     await setSearch(client, 'claudeskillinstall');
-    await waitFor(client, 'document.body.innerText.includes("No resources found matching")', `${label} AI setup search stays video-only`);
+    await waitFor(client, 'document.body.innerText.includes("No ready trainings match")', `${label} AI setup search stays video-only`);
     await assertNoText(client, 'Faith AI');
     await assertNoHorizontalOverflow(client, `${label} AI setup search`);
 
     await setSearch(client, 'zzzxqvblormp qyprandleston');
-    await waitFor(client, 'document.body.innerText.includes("No resources found matching")', `${label} no-result search`);
+    await waitFor(client, 'document.body.innerText.includes("No ready trainings match")', `${label} no-result search`);
     await assertNoHorizontalOverflow(client, `${label} no-result search`);
   }
 }
