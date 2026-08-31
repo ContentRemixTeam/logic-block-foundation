@@ -6,7 +6,9 @@ import { readFileSync } from "node:fs";
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
 const curriculum = read("../src/data/phaseOneCurriculum.ts");
+const app = read("../src/App.tsx");
 const preview = read("../src/pages/MastermindPhaseOnePreview.tsx");
+const hub = read("../src/pages/MastermindHub.tsx");
 
 const PLAYABLE = [
   "ninety-day-goal-setting-introduction",
@@ -42,6 +44,15 @@ assert.equal(/\d+ approved items only/.test(preview), false, "hardcoded approved
 // Money Moves keep the Offer & sell support treatment and the hidden route.
 assert.ok(preview.includes("lesson.resourceId.startsWith('money-move-')"), "Money Moves must keep the Offer & sell support badge");
 assert.ok(preview.includes("?resource=${encodeURIComponent(resourceId)}&from=phase-one"), "lessons must open the hidden training preview route");
+assert.ok(
+  app.includes('path="/admin/mastermind-phase-one-preview"') &&
+    app.includes('to="/admin/mastermind-90-day-plan-preview"'),
+  "the old Phase One preview URL must redirect to the real hidden 90-day hub",
+);
+assert.ok(
+  hub.includes("navigate(`/admin/mastermind-training-preview?${params.toString()}`)"),
+  "the real hidden 90-day hub must open protected lessons through the hidden training route",
+);
 
 // Completed-last / ready-first sorting and server completion hydration preserved.
 assert.ok(

@@ -148,6 +148,15 @@ const videoSearchChunks = files
   .filter((fileName) => fileName.startsWith('MastermindVideoSearch-') && fileName.endsWith('.js'));
 assert.deepEqual(videoSearchChunks, [], 'Video Search chunk should not be emitted while VITE_ENABLE_MASTERMIND_VIDEO_SEARCH is off');
 
+const legacyPhaseOnePreviewChunks = files
+  .map((filePath) => path.basename(filePath))
+  .filter((fileName) => fileName.startsWith('MastermindPhaseOnePreview-') && fileName.endsWith('.js'));
+assert.deepEqual(
+  legacyPhaseOnePreviewChunks,
+  [],
+  'Legacy Phase One preview chunk should not be emitted; the old URL must redirect to the real hidden 90-day hub'
+);
+
 for (const group of forbiddenGroups) {
   const matches = findMatches(files, group.patterns);
   assert.deepEqual(

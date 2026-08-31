@@ -8,7 +8,9 @@ import { readFileSync } from "node:fs";
 const read = (relative) => readFileSync(new URL(relative, import.meta.url), "utf8");
 
 const curriculum = read("../src/data/phaseOneCurriculum.ts");
+const app = read("../src/App.tsx");
 const preview = read("../src/pages/MastermindPhaseOnePreview.tsx");
+const hub = read("../src/pages/MastermindHub.tsx");
 const training = read("../src/pages/MastermindTraining.tsx");
 const core = read("../src/components/replay-vault/replayVaultCore.mjs");
 
@@ -31,15 +33,29 @@ for (const { id, requirement } of EXPECTED) {
   assert.ok(hasAction, `${id} must keep its protected after-watching action metadata`);
 }
 
-// 2. Route contract: the hidden preview links every catalog lesson into the
-//    training preview route with the phase-one return context.
+// 2. Route contract: the old Phase One preview URL redirects to the real
+//    hidden 90-day hub, and the retained legacy preview file still links
+//    its lessons through the training preview route if opened in isolation.
+assert.ok(
+  app.includes('path="/admin/mastermind-phase-one-preview"') &&
+    app.includes('to="/admin/mastermind-90-day-plan-preview"'),
+  "old Phase One preview URL must redirect to the real hidden 90-day plan hub",
+);
 assert.ok(
   preview.includes("?resource=${encodeURIComponent(resourceId)}&from=phase-one"),
   "Phase One preview must link lessons through the hidden training preview route",
 );
 assert.ok(
+  hub.includes("navigate(`/admin/mastermind-training-preview?${params.toString()}`)"),
+  "real hidden 90-day hub must open protected training through the hidden training route",
+);
+assert.ok(
   training.includes("searchParams.get('from') === 'phase-one'"),
   "training preview must honor the phase-one return context",
+);
+assert.ok(
+  training.includes("? '/admin/mastermind-90-day-plan-preview'"),
+  "phase-one return context must now go back to the real hidden 90-day hub",
 );
 assert.ok(
   training.includes("surface: 'curriculum'"),

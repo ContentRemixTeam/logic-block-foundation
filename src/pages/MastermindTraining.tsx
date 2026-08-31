@@ -36,11 +36,11 @@ export default function MastermindTraining() {
   const fromPhaseOne = searchParams.get('from') === 'phase-one';
   const isAdminTrainingPreview = location.pathname.startsWith('/admin/mastermind-training-preview');
   const backHref = fromPhaseOne
-    ? '/admin/mastermind-phase-one-preview'
+    ? '/admin/mastermind-90-day-plan-preview'
     : isAdminTrainingPreview
       ? '/admin/mastermind-90-day-plan-preview'
       : '/mastermind';
-  const backLabel = fromPhaseOne ? 'Back to Phase One' : 'Back to 90-Day Plan';
+  const backLabel = 'Back to 90-Day Plan';
   const [progressSaved, setProgressSaved] = useState(false);
   // Completion is server-owned: hydrate the checkoff from the authorized
   // Phase One catalog so a reload keeps the saved completed state.
