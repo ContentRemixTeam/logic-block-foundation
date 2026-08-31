@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, PlayCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,7 @@ import {
 } from '@/components/replay-vault/replayVaultCore.mjs';
 import type { PlaybackResult, PlaybackTarget } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
-import { savePhaseOneVideoProgress } from '@/hooks/usePhaseOneCatalog';
+import { savePhaseOneVideoProgress, usePhaseOneCatalog } from '@/hooks/usePhaseOneCatalog';
 
 const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'lesson'}`;
 
@@ -34,6 +35,17 @@ export default function MastermindTraining() {
   const backHref = fromPhaseOne ? '/admin/mastermind-phase-one-preview' : '/mastermind';
   const backLabel = fromPhaseOne ? 'Back to Phase One' : 'Back to 90-Day Plan';
   const [progressSaved, setProgressSaved] = useState(false);
+  // Completion is server-owned: hydrate the checkoff from the authorized
+  // Phase One catalog so a reload keeps the saved completed state.
+  const queryClient = useQueryClient();
+  const { data: catalogRows } = usePhaseOneCatalog(isStableVaultId(resourceId));
+  const serverCompleted = useMemo(
+    () => (catalogRows ?? []).some((row) => row.portal_resource_id === resourceId && row.completed === true),
+    [catalogRows, resourceId],
+  );
+  useEffect(() => { setProgressSaved(false); }, [resourceId]);
+  useEffect(() => { if (serverCompleted) setProgressSaved(true); }, [serverCompleted]);
+
 
   const initialTarget = useMemo<PlaybackTarget | null>(() => {
     if (!isStableVaultId(resourceId)) return null;
@@ -160,8 +172,12 @@ export default function MastermindTraining() {
       completed,
       completionSource: completed ? 'member_confirmed' : 'playback',
     });
-    if (saved && completed) setProgressSaved(true);
-  }, [resourceId]);
+    if (saved && completed) {
+      setProgressSaved(true);
+      void queryClient.invalidateQueries({ queryKey: ['phase-one-catalog'] });
+    }
+  }, [queryClient, resourceId]);
+
 
   useEffect(() => {
     const media = videoRef.current;

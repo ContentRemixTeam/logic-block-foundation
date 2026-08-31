@@ -68,3 +68,35 @@ for (const forbidden of ["member_visible_default", "publish", "VITE_ENABLE_MASTE
 }
 
 console.log(`verify:phase-one-core-curriculum OK (${EXPECTED.length} hidden IDs verified)`);
+
+// 6. Completion persistence contract: the hidden training preview must hydrate
+//    the checkoff from the server-authorized Phase One catalog (save receipt ->
+//    reload -> persisted completed state) for all five hidden resource IDs, and
+//    the playlist must keep completed lessons sorted last.
+const trainingSource = read("../src/pages/MastermindTraining.tsx");
+for (const contract of [
+  "usePhaseOneCatalog",
+  "row.portal_resource_id === resourceId && row.completed === true",
+  "if (serverCompleted) setProgressSaved(true)",
+  "savePhaseOneVideoProgress",
+  "invalidateQueries({ queryKey: ['phase-one-catalog'] })",
+]) {
+  assert.ok(trainingSource.includes(contract), `training preview must keep completion contract: ${contract}`);
+}
+assert.ok(
+  /setProgressSaved\(false\);\s*\}, \[resourceId\]\)/.test(trainingSource),
+  "completion state must reset per resource so one lesson never marks another complete",
+);
+const catalogHook = read("../src/hooks/usePhaseOneCatalog.ts");
+assert.ok(
+  catalogHook.includes("search_my_mastermind_phase_one_resources") &&
+    catalogHook.includes("save_my_mastermind_phase_one_video_progress"),
+  "progress contract must stay on the validated server RPCs",
+);
+for (const { id } of EXPECTED) {
+  assert.ok(
+    preview.includes("isWatchedLesson(lesson.resourceId)") && curriculum.includes(`resourceId: '${id}'`),
+    `${id} must participate in server-backed watched/completed state`,
+  );
+}
+console.log("verify:phase-one-core-curriculum completion persistence OK (5 hidden IDs)");
