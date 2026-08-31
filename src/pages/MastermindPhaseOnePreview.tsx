@@ -205,7 +205,9 @@ export default function MastermindPhaseOnePreview() {
                           <h3 className={cn('font-semibold leading-snug', isWatched && 'text-muted-foreground line-through')}>{lesson.title}</h3>
                           {lesson.requirement === 'required'
                             ? <Badge variant="outline" className="text-[10px]">Core</Badge>
-                            : <Badge variant="outline" className="text-[10px]">Offer &amp; sell support</Badge>}
+                            : lesson.resourceId.startsWith('money-move-')
+                              ? <Badge variant="outline" className="text-[10px]">Offer &amp; sell support</Badge>
+                              : <Badge variant="outline" className="text-[10px]">Optional support</Badge>}
                           {!playbackReady && <Badge variant="secondary" className="text-[10px]">Import pending</Badge>}
                         </div>
                         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{lesson.afterWatchingAction}</p>
