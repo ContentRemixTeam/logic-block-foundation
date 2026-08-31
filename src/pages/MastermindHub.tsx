@@ -39,6 +39,7 @@ import {
   Search,
   Sparkles,
   Star,
+  Target,
   Users,
   X
 } from 'lucide-react';
@@ -190,6 +191,21 @@ export default function MastermindHub() {
     return new Set(visibleResources.map((resource) => resource.access)).size;
   }, [visibleResources]);
 
+  const curriculumSectionStats = useMemo(() => (
+    MASTERMIND_SUCCESS_STAGES.map((stage) => {
+      const videos = visibleResources.filter((resource) => resource.stages.includes(stage.id));
+      const watchedVideos = videos.filter((resource) => completedResourceIds.has(resource.id));
+      const nextVideo = videos.find((resource) => !completedResourceIds.has(resource.id)) ?? videos[0] ?? null;
+
+      return {
+        stage,
+        videos,
+        watchedVideos,
+        nextVideo,
+      };
+    })
+  ), [completedResourceIds, visibleResources]);
+
   const filteredResources = useMemo(() => {
     const resources = searchMastermindPortalResources(
       visibleResources,
@@ -299,6 +315,96 @@ export default function MastermindHub() {
                   Your previous focus is still safe. We could not save this change: {successPathError}
                 </p>
               )}
+
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <Badge variant="outline" className="mb-2 w-fit">Curriculum sections</Badge>
+                      <CardTitle>Use the section that matches the current bottleneck.</CardTitle>
+                      <CardDescription>
+                        Each section points to one outcome, one quick win, and the videos that are ready to watch now.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="secondary" className="w-fit">{visibleResources.length} videos ready now</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {curriculumSectionStats.map(({ stage, videos, watchedVideos, nextVideo }) => {
+                      const isSelected = selectedStageId === stage.id;
+                      const watchedCount = watchedVideos.length;
+                      const readyCount = videos.length;
+
+                      return (
+                        <div
+                          key={stage.id}
+                          className={cn(
+                            'flex min-h-full flex-col rounded-lg border bg-background p-4 transition',
+                            isSelected && 'border-primary bg-primary/5 shadow-sm'
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-semibold">{stage.label}</p>
+                                {isSelected && <Badge variant="secondary" className="text-[11px]">Current focus</Badge>}
+                              </div>
+                              <p className="mt-1 text-sm leading-snug text-muted-foreground">{stage.memberQuestion}</p>
+                            </div>
+                            <Target className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                          </div>
+
+                          <div className="mt-4 space-y-3">
+                            <div className="rounded-md bg-muted/45 p-3">
+                              <p className="text-xs font-semibold text-muted-foreground">Outcome</p>
+                              <p className="mt-1 text-sm leading-snug">{stage.milestone}</p>
+                            </div>
+                            <div className="rounded-md bg-muted/45 p-3">
+                              <p className="text-xs font-semibold text-muted-foreground">Quick win</p>
+                              <p className="mt-1 text-sm leading-snug">{stage.quickWin.action}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Badge variant="outline" className="text-[11px]">{readyCount} ready</Badge>
+                              <Badge variant={watchedCount > 0 ? 'success' : 'outline'} className="text-[11px]">{watchedCount} watched</Badge>
+                            </div>
+                            {nextVideo && (
+                              <p className="text-xs leading-snug text-muted-foreground">
+                                Next useful video: <span className="font-medium text-foreground">{nextVideo.title}</span>
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="mt-auto flex flex-col gap-2 pt-4 sm:flex-row">
+                            <Button
+                              type="button"
+                              variant={isSelected ? 'secondary' : 'outline'}
+                              className="min-h-10 flex-1"
+                              disabled={successPathSaving}
+                              onClick={() => void handleStageSelect(stage.id)}
+                            >
+                              {isSelected ? 'Saved focus' : 'Use this focus'}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="min-h-10 flex-1"
+                              onClick={() => {
+                                setResourceFilter('focus');
+                                setSearchQuery('');
+                                setActiveTab('training');
+                                if (!isSelected) void handleStageSelect(stage.id);
+                              }}
+                            >
+                              Show videos
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
 
               <Card>
                 <CardHeader>
