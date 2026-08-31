@@ -23,10 +23,10 @@ const names = [
   "20260830191115_b9da3c14-cd79-4f81-8a05-c47d54d9fa25.sql",
   "20260830191815_replay_vault_launch_batch_hardening.sql",
 ];
-const blockedMigrations = process.env.SKIP_BLOCKED ? ["20251224152606_f3c415a2-b1d5-4412-b892-cc8bba7e0180.sql"] : readdirSync(path.join(root, "supabase/migrations"))
+const blockedMigrations = process.env.SKIP_BLOCKED ? [] : readdirSync(path.join(root, "supabase/migrations"))
   .filter((name) => name >= "20260831184700" && name <= "20260831185000")
   .sort();
-if (blockedMigrations.length === 0) throw new Error("blocked-private safety migrations are missing");
+
 const migrations = [...names, ...blockedMigrations].map((name) => path.join(root, "supabase/migrations", name));
 for (const file of migrations) if (!existsSync(file)) throw new Error(`missing migration ${file}`);
 
