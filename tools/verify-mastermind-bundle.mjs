@@ -72,14 +72,15 @@ const forbiddenGroups = [
 const requiredMastermindHubStrings = [
   'Your 90-Day Plan',
   'Guidance',
-  'Find What I Need',
+  'Find a training',
   'Get Coached by Faith',
   'Plan stages',
-  'Visible resources',
-  'Indexed now',
-  'Access labels',
+  'Videos ready',
+  'Transcript-backed',
+  'Access scope',
   'Choose the smallest useful next resource',
-  'Bonus and vault items stay out of this finder',
+  'Watch the videos that are ready inside this app.',
+  'This private QA finder only shows protected curriculum videos',
   'Clear resource search',
 ];
 

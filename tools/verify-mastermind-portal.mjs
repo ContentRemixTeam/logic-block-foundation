@@ -22,7 +22,11 @@ import {
   getProtectedTrainingHref,
   type MastermindPortalAccess,
 } from '@/data/mastermindPortalResources';
-import { isDefaultMastermindPortalResource, searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
+import {
+  isDefaultMastermindPortalResource,
+  isReadyMastermindCurriculumVideoResource,
+  searchMastermindPortalResources,
+} from '@/lib/mastermindPortalSearch';
 import {
   getMastermindWeeklyGuidance,
   inferMastermindSuccessPath,
@@ -222,6 +226,22 @@ for (const resourceId of readyProtectedCurriculumResourceIds) {
   assert.equal(getProtectedTrainingHref(resource), '/mastermind/training?resource=' + encodeURIComponent(resourceId), resourceId + ' must open the protected Training Library player');
 }
 
+const readyCurriculumVideoIds = MASTERMIND_PORTAL_RESOURCES
+  .filter(isReadyMastermindCurriculumVideoResource)
+  .map((resource) => resource.id)
+  .sort();
+assert.deepEqual(
+  readyCurriculumVideoIds,
+  [...readyProtectedCurriculumResourceIds].sort(),
+  'the hidden Training finder should only show videos that are ready in the protected in-app player'
+);
+for (const nonVideoId of ['success-plan', 'ninety-day-planning', 'ask-faith', 'faith-ai', 'current-replays', 'messy-action-sprints']) {
+  assert.ok(
+    !readyCurriculumVideoIds.includes(nonVideoId),
+    'the hidden Training finder must not show non-video or pending resource cards: ' + nonVideoId
+  );
+}
+
 const pendingCurriculumResourceIds = [
   'success-plan',
   'ninety-day-planning',
@@ -378,9 +398,12 @@ try {
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
   const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
-  assert.ok(mastermindHubSource.includes("label: 'Indexed now'"), 'Resource filter should use clear member-facing indexed language');
+  assert.ok(mastermindHubSource.includes("label: 'Transcript-backed'"), 'Resource filter should use clear member-facing transcript language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
-  assert.ok(mastermindHubSource.includes('Bonus and vault items stay out of this finder'), 'Resource map should state restricted resources stay access-gated');
+  assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
+  assert.ok(mastermindHubSource.includes('This private QA finder only shows protected curriculum videos'), 'Training finder should not present planning/support links as playable curriculum');
+  assert.ok(mastermindHubSource.includes('MASTERMIND_PORTAL_RESOURCES.filter(isReadyMastermindCurriculumVideoResource)'), 'Training finder should only render ready protected curriculum videos');
+  assert.ok(!mastermindHubSource.includes("label: '30-day'"), 'Training finder should not show a 30-day replay filter until recent replays are integrated');
   assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main 90-day guidance card');
   assert.ok(mastermindHubSource.includes('Change this if it is not the right focus.'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
   assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');

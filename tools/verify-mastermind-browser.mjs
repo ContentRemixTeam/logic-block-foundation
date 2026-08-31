@@ -620,9 +620,11 @@ async function runChecks(client, checks, label) {
 
     await assertText(client, 'Open training');
     await clickText(client, 'Training');
-    await waitFor(client, 'document.body.innerText.includes("Find What I Need")', `${label} training tab`);
-    await assertText(client, 'Sales & Marketing');
+    await waitFor(client, 'document.body.innerText.includes("Find a training")', `${label} training tab`);
+    await assertText(client, 'Bosses Make Sales: Day One');
     await assertText(client, 'Sell focus');
+    await assertNoText(client, 'Sales & Marketing');
+    await assertNoText(client, 'Current Call Replays');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} training tab`);
   }
@@ -636,49 +638,52 @@ async function runChecks(client, checks, label) {
 
   if (checks.includes('resourceFinder')) {
     await clickText(client, 'Training');
-    await waitFor(client, 'document.body.innerText.includes("Find What I Need")', `${label} Training Finder`);
-    await assertText(client, 'Training Library map');
-    await assertText(client, 'Visible resources');
-    await assertText(client, 'Indexed now');
-    await assertText(client, 'Access labels');
+    await waitFor(client, 'document.body.innerText.includes("Find a training")', `${label} Training Finder`);
+    await assertText(client, 'Training Library');
+    await assertText(client, 'Videos ready');
+    await assertText(client, 'Transcript-backed');
+    await assertText(client, 'Access scope');
     await assertText(client, 'Sell focus');
-    await assertText(client, 'Bonus and vault items stay out of this finder');
+    await assertText(client, 'Watch the videos that are ready inside this app.');
+    await assertText(client, 'This private QA finder only shows protected curriculum videos');
+    await assertNoText(client, 'Current Call Replays');
+    await assertNoText(client, 'Faith AI');
+    await assertNoText(client, 'Ask Faith');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} Training Finder default`);
 
     await clickText(client, 'Sell focus');
-    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} Sell focus filter`);
+    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day One")', `${label} Sell focus filter`);
     await assertNoText(client, 'Grow Your Email List');
+    await assertNoText(client, 'Sales & Marketing');
+    await assertNoText(client, 'Current Call Replays');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} Sell focus filter`);
 
-    await clickText(client, '30-day');
-    await waitFor(client, 'document.body.innerText.includes("Current Call Replays")', `${label} 30-day filter`);
-    await assertNoText(client, 'Sales & Marketing');
-    await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} 30-day filter`);
-
-    await clickText(client, 'Indexed now');
-    await waitFor(client, 'document.body.innerText.includes("Start Here: Your 90-Day Plan")', `${label} indexed filter`);
+    await clickText(client, 'Transcript-backed');
+    await waitFor(client, 'document.body.innerText.includes("90-Day Goal Setting: Start Here")', `${label} transcript-backed filter`);
     await assertNoText(client, 'Products & Offers');
+    await assertNoText(client, 'Faith AI');
+    await assertNoText(client, 'Current Call Replays');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} indexed filter`);
+    await assertNoHorizontalOverflow(client, `${label} transcript-backed filter`);
 
     await clickText(client, 'All');
-    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} All filter reset`);
+    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day One")', `${label} All filter reset`);
 
     await setSearch(client, 'sales page');
-    await waitFor(client, 'document.body.innerText.includes("Sales & Marketing")', `${label} sales page search`);
+    await waitFor(client, 'document.body.innerText.includes("Launch Aligned")', `${label} sales page search`);
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} sales page search`);
 
     await setSearch(client, 'email list');
-    await waitFor(client, 'document.body.innerText.includes("Grow Your Email List")', `${label} email list search`);
+    await waitFor(client, 'document.body.innerText.includes("Get Your Freebie Done")', `${label} email list search`);
     await assertNoHorizontalOverflow(client, `${label} email list search`);
 
-    await setSearch(client, 'AI');
-    await waitFor(client, 'document.body.innerText.includes("Faith AI")', `${label} AI search`);
-    await assertNoHorizontalOverflow(client, `${label} AI search`);
+    await setSearch(client, 'claudeskillinstall');
+    await waitFor(client, 'document.body.innerText.includes("No resources found matching")', `${label} AI setup search stays video-only`);
+    await assertNoText(client, 'Faith AI');
+    await assertNoHorizontalOverflow(client, `${label} AI setup search`);
 
     await setSearch(client, 'zzzxqvblormp qyprandleston');
     await waitFor(client, 'document.body.innerText.includes("No resources found matching")', `${label} no-result search`);
