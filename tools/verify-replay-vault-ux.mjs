@@ -61,6 +61,17 @@ const aliases = (negative) => ({
   },
 });
 
+async function stopBrowser(browser, signal) {
+  if (browser.exitCode !== null || browser.signalCode !== null) return;
+
+  const exited = new Promise((resolve) => browser.once('exit', resolve));
+  browser.kill(signal);
+  await Promise.race([
+    exited,
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+  ]);
+}
+
 async function runChromeViewport(html, width) {
   const profile = path.join(tmp, `chrome-${width}-${Date.now()}`);
   const browser = spawn(chrome, [
@@ -127,17 +138,8 @@ async function runChromeViewport(html, width) {
     socket.close();
     return { passed: status === 'pass', output: `${domResult.result.value}\nviewport=${JSON.stringify(metricsResult.result.value)}\n${stderr}`, status: status ? 0 : 1 };
   } finally {
-    if (browser.exitCode === null) {
-      browser.kill('SIGTERM');
-      await Promise.race([
-        new Promise((resolve) => browser.once('exit', resolve)),
-        new Promise((resolve) => setTimeout(resolve, 2000)),
-      ]);
-    }
-    if (browser.exitCode === null) {
-      browser.kill('SIGKILL');
-      await new Promise((resolve) => browser.once('exit', resolve));
-    }
+    await stopBrowser(browser, 'SIGTERM');
+    await stopBrowser(browser, 'SIGKILL');
   }
 }
 

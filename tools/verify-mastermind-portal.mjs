@@ -385,6 +385,7 @@ try {
   assert.ok(mastermindHubSource.includes('Change this if it is not the right focus.'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
   assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');
   assert.ok(mastermindHubSource.includes("location.pathname.startsWith('/admin/mastermind-90-day-plan-preview')"), 'Admin 90-day preview should detect its hidden route');
+  assert.ok(mastermindHubSource.includes('const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate'), 'Admin 90-day preview must rely on the route allowlist instead of the inner member gate');
   assert.ok(mastermindHubSource.includes("navigate(`/admin/mastermind-training-preview?${params.toString()}`)"), 'Admin 90-day preview must keep curriculum clicks on the hidden training route');
   assert.ok(mastermindHubSource.includes('completedResourceIds.has(resource.resourceId)'), '90-day guidance should label watched recommendation videos');
   assert.ok(mastermindHubSource.includes("'Watch again'"), 'Watched recommendation videos should not look like new assignments');
