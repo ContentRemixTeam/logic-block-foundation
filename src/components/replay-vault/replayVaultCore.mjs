@@ -1,6 +1,23 @@
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
 const MEMBER_TIERS = new Set(['monthly', 'annual', 'lifetime']);
 const LAUNCH_STATES = new Set(['disabled', 'pilot', 'launched']);
+const TITLE_ACRONYMS = new Set(['AI', 'CEO', 'CFO', 'COO', 'CRM', 'DIY', 'DM', 'DMS', 'EFT', 'FAQ', 'FB', 'GHL', 'LLC', 'PDF', 'SEO', 'URL', 'VIP']);
+
+export function formatVaultTitle(value) {
+  const words = String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\.(mp4|mov|m4v|webm)$/i, '')
+    .replace(/_+/g, ' ')
+    .replace(/AskFaith/gi, 'Ask Faith')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ');
+  return words.map((word) => {
+    const upper = word.toUpperCase();
+    if (TITLE_ACRONYMS.has(upper) || /^Q[1-4]$/.test(upper)) return upper === 'DMS' ? 'DMs' : upper;
+    return /^[A-Z]{3,}$/.test(word) ? `${word[0]}${word.slice(1).toLowerCase()}` : word;
+  }).join(' ') || 'Replay';
+}
 
 export function isStableVaultId(value) {
   return typeof value === 'string' && ID_PATTERN.test(value);
@@ -90,7 +107,7 @@ function groupRecord(item) {
   if (!moments.length) return null;
   return {
     resourceId: item.resourceId,
-    title: String(item.title ?? 'Replay'),
+    title: formatVaultTitle(item.title),
     category: String(item.category ?? item.categoryTitle ?? 'Replay'),
     sourceType: String(item.sourceType ?? item.resourceType ?? 'video'),
     publishedAt: typeof item.publishedAt === 'string' ? item.publishedAt : null,
@@ -110,7 +127,7 @@ export function groupSearchResults(payload) {
     if (!moment) continue;
     const existing = groups.get(row.resourceId) ?? {
       resourceId: row.resourceId,
-      title: String(row.title ?? 'Replay'),
+      title: formatVaultTitle(row.title),
       category: String(row.category ?? row.categoryTitle ?? 'Replay'),
       sourceType: String(row.sourceType ?? row.resourceType ?? 'video'),
       publishedAt: typeof row.publishedAt === 'string' ? row.publishedAt : null,
@@ -153,6 +170,7 @@ export function validatePlaybackResponse(data, target) {
   if (target.questionId && data.questionId !== target.questionId) return null;
   return {
     ...data,
+    title: formatVaultTitle(data.title),
     startSeconds: Number.isFinite(data.startSeconds) ? Math.max(0, Number(data.startSeconds)) : null,
     endSeconds: Number.isFinite(data.endSeconds) ? Math.max(Number(data.startSeconds ?? 0), Number(data.endSeconds)) : null,
   };
