@@ -38,13 +38,16 @@ export default function MastermindTraining() {
   // Completion is server-owned: hydrate the checkoff from the authorized
   // Phase One catalog so a reload keeps the saved completed state.
   const queryClient = useQueryClient();
-  const { data: catalogRows, isPending: catalogPending } = usePhaseOneCatalog(isStableVaultId(resourceId));
+  const catalogQuery = usePhaseOneCatalog(isStableVaultId(resourceId));
+  const catalogRows = catalogQuery.data;
+  // Only "checking" while an authorized fetch is genuinely in flight.
+  const catalogPending = catalogQuery.isFetching && catalogQuery.data === undefined;
   const serverCompleted = useMemo(
     () => (catalogRows ?? []).some((row) => row.portal_resource_id === resourceId && row.completed === true),
     [catalogRows, resourceId],
   );
   useEffect(() => { setProgressSaved(false); }, [resourceId]);
-  useEffect(() => { setProgressSaved(serverCompleted); }, [serverCompleted, resourceId]);
+  useEffect(() => { if (serverCompleted) setProgressSaved(true); }, [serverCompleted]);
 
 
   const initialTarget = useMemo<PlaybackTarget | null>(() => {
