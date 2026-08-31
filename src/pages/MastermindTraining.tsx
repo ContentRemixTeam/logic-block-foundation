@@ -34,6 +34,17 @@ export default function MastermindTraining() {
   const backHref = fromPhaseOne ? '/admin/mastermind-phase-one-preview' : '/mastermind';
   const backLabel = fromPhaseOne ? 'Back to Phase One' : 'Back to 90-Day Plan';
   const [progressSaved, setProgressSaved] = useState(false);
+  // Completion is server-owned: hydrate the checkoff from the authorized
+  // Phase One catalog so a reload keeps the saved completed state.
+  const queryClient = useQueryClient();
+  const { data: catalogRows } = usePhaseOneCatalog(isStableVaultId(resourceId));
+  const serverCompleted = useMemo(
+    () => (catalogRows ?? []).some((row) => row.portal_resource_id === resourceId && row.completed === true),
+    [catalogRows, resourceId],
+  );
+  useEffect(() => { setProgressSaved(false); }, [resourceId]);
+  useEffect(() => { if (serverCompleted) setProgressSaved(true); }, [serverCompleted]);
+
 
   const initialTarget = useMemo<PlaybackTarget | null>(() => {
     if (!isStableVaultId(resourceId)) return null;
