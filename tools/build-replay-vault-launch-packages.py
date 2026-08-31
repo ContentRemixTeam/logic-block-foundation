@@ -96,12 +96,22 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--approval-csv",
+        type=Path,
+        required=True,
+        help=(
+            "Human approval ledger with portal_resource_id, privacy_state, "
+            "editorial_state, approved_by, and approval_version columns"
+        ),
+    )
     parser.add_argument("--max-records", type=int, default=10)
     parser.add_argument("--max-uncompressed-mb", type=int, default=16)
     args = parser.parse_args()
 
     source = args.source_dir.resolve()
     output = args.output_dir.resolve()
+    approval_path = args.approval_csv.resolve()
     output.mkdir(parents=True, exist_ok=True)
     os.chmod(output, 0o700)
 
@@ -125,6 +135,7 @@ def main() -> None:
     resources = load_csv_by_id(source / "vault_resources.filtered.csv")
     excluded = load_csv_by_id(source / "excluded-by-faith-2026-08-30.csv")
     repairs = load_csv_by_id(source / "transcript-repair-queue.csv")
+    approvals = load_csv_by_id(approval_path)
     checkpoint_doc = json.loads(
         (source / "vault_media_migration_checkpoint.filtered.json").read_text(encoding="utf-8")
     )
@@ -182,6 +193,18 @@ def main() -> None:
         meta = resources[portal_id]
         media = checkpoint[portal_id]
         reasons: list[str] = []
+        approval = approvals.get(portal_id)
+        if approval is None:
+            reasons.append("human_approval_missing")
+        else:
+            if approval.get("privacy_state", "").strip().lower() != "clear":
+                reasons.append("privacy_not_approved")
+            if approval.get("editorial_state", "").strip().lower() != "approved":
+                reasons.append("editorial_not_approved")
+            if not approval.get("approved_by", "").strip():
+                reasons.append("approval_reviewer_missing")
+            if not approval.get("approval_version", "").strip():
+                reasons.append("approval_version_missing")
         if not segments or [x["index"] for x in segments] != list(range(len(segments))):
             reasons.append("noncontiguous_segments")
         if any(x["start_ms"] < 0 or x["end_ms"] <= x["start_ms"] or not x["text"] for x in segments):
@@ -225,6 +248,8 @@ def main() -> None:
                     "metadata": {
                         "category": meta["category_title"],
                         "launch_batch": "2026-08-30",
+                        "approval_version": approval["approval_version"].strip(),
+                        "approved_by": approval["approved_by"].strip(),
                     },
                 },
                 "media": {
@@ -259,6 +284,8 @@ def main() -> None:
     manifest = {
         "schema_version": 1,
         "source_receipt_sha256": sha256_file(receipt_path),
+        "approval_ledger_sha256": sha256_file(approval_path),
+        "approval_ledger_resources": len(approvals),
         "source_expected_resources": expected_resources,
         "source_expected_cues": expected_cues,
         "packaged_resources": sum(b["record_count"] for b in batches),
