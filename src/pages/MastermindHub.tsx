@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, type ComponentType } from 'react';
+import { useState, useMemo, useEffect, type ComponentType, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +45,10 @@ const SHOW_AI_STUDIO = import.meta.env.VITE_ENABLE_MASTERMIND_AI_STUDIO === 'tru
 
 type ResourceFilterId = 'all' | 'focus' | 'core' | 'current_replay' | 'indexed';
 
+function PreviewAccessBoundary({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}
+
 export default function MastermindHub() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,6 +68,7 @@ export default function MastermindHub() {
   const [activeTab, setActiveTab] = useState('guidance');
   const [showMilestones, setShowMilestones] = useState(false);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
+  const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
   const catalogQuery = usePhaseOneCatalog();
   const completedResourceIds = useMemo(
     () =>
@@ -234,7 +239,7 @@ export default function MastermindHub() {
 
   return (
     <Layout>
-      <MastermindGate>
+      <AccessBoundary>
         <div className="mx-auto max-w-6xl space-y-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
@@ -593,7 +598,7 @@ export default function MastermindHub() {
             </TabsContent>
           </Tabs>
         </div>
-      </MastermindGate>
+      </AccessBoundary>
     </Layout>
   );
 }
