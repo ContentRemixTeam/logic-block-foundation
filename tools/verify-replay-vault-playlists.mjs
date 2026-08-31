@@ -16,10 +16,12 @@ for (const playlist of VAULT_PLAYLISTS) {
 }
 assert.equal(findVaultPlaylist('start-here')?.title, 'Start Here: Best of the Vault');
 assert.equal(findVaultPlaylist('missing'), null);
-assert.match(component, /search-mastermind-resources/, 'collections must use the entitlement-aware search surface');
-assert.match(component, /momentsPerReplay: 1/, 'collection results should stay compact');
+assert.doesNotMatch(component, /search-mastermind-resources/, 'collections must not wire hidden search outside the protected Vault page');
+assert.match(component, /onSearchPlaylist/, 'collections must use the protected page-owned search surface');
+assert.match(page, /search-mastermind-resources/, 'member Vault page must own the entitlement-aware search call');
+assert.match(page, /momentsPerReplay: 1/, 'collection results should stay compact');
 assert.match(component, /if \(own !== requestGeneration\.current\) return/, 'stale playlist responses must be discarded');
 assert.match(component, /Your access has not changed/, 'transport errors must not be presented as entitlement loss');
-assert.match(page, /<VaultCuratedPlaylists onOpen=\{handleOpen\} \/>/, 'member Vault must mount curated collections');
+assert.match(page, /<VaultCuratedPlaylists onOpen=\{handleOpen\} onSearchPlaylist=\{handleCuratedPlaylistSearch\} \/>/, 'member Vault must mount curated collections through the protected page search owner');
 
 console.log('Replay Vault curated playlist UI gate passed: 10 focused collections, protected search integration, stale-response guard, and member-safe errors.');

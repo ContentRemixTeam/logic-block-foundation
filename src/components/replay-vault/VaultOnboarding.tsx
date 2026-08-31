@@ -7,7 +7,7 @@ import { getStorageItem, setStorageItem } from '@/lib/storage';
 const STORAGE_KEY = 'replay-vault-tour-v1-last-seen';
 const RETURN_AFTER_MS = 60 * 24 * 60 * 60 * 1000;
 const STEPS = [
-  { title: 'Search for the problem you are solving', body: 'Type a topic or question. The Vault searches video titles and full transcripts, then takes you to the most useful moments.', icon: Search },
+  { title: 'Search for the problem you are solving', body: 'Type a topic or question. The Vault searches approved replay text, then takes you to the most useful moments.', icon: Search },
   { title: 'Browse the full library', body: 'Use Browse when you want to explore recent calls or a category. Choose Watch full replay to start from the beginning.', icon: Library },
   { title: 'Open an exact answer', body: 'Search results include the matching words and timestamp. Choose Watch answer to jump directly to that part of the video.', icon: Sparkles },
   { title: 'Save what you want to return to', body: 'Save a full video or a useful moment. Find it later under Saved without searching again.', icon: Bookmark },

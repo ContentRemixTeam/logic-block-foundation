@@ -4,11 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { groupSearchResults } from './replayVaultCore.mjs';
 import type { PlaybackTarget, VaultReplayGroup } from './types';
 import { findVaultPlaylist, VAULT_PLAYLISTS } from './vaultPlaylists.mjs';
 
-interface Props { onOpen: (target: PlaybackTarget) => void; }
+interface Props {
+  onOpen: (target: PlaybackTarget) => void;
+  onSearchPlaylist: (query: string) => Promise<VaultReplayGroup[]>;
+}
 type Playlist = { slug: string; title: string; description: string; query?: string; itemCount?: number };
 type ApprovedItem = { playlistId: string; resourceId: string; title: string; category: string; position: number; startMs: number | null; why: string; speaker: string | null };
 
@@ -28,7 +30,7 @@ function validItems(data: unknown): ApprovedItem[] {
       : []);
 }
 
-export function VaultCuratedPlaylists({ onOpen }: Props) {
+export function VaultCuratedPlaylists({ onOpen, onSearchPlaylist }: Props) {
   const requestGeneration = useRef(0);
   const [playlists, setPlaylists] = useState<Playlist[]>(VAULT_PLAYLISTS);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -57,10 +59,8 @@ export function VaultCuratedPlaylists({ onOpen }: Props) {
       const approved = approvedResponse.error ? [] : validItems(approvedResponse.data);
       if (approved.length) { setApprovedItems(approved); setState('ready'); return; }
       if (!playlist.query) { setState('empty'); return; }
-      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: playlist.query, limit: 8, momentsPerReplay: 1, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1', preview: true } });
+      const next = await onSearchPlaylist(playlist.query);
       if (own !== requestGeneration.current) return;
-      if (error) { setState('error'); return; }
-      const next = groupSearchResults(data).slice(0, 8);
       setGroups(next); setState(next.length ? 'ready' : 'empty');
     } catch { if (own === requestGeneration.current) setState('error'); }
   };
