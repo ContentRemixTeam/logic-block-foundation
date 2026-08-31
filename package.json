@@ -47,7 +47,8 @@
     "verify:replay-vault-edge-lint": "deno lint supabase/functions/_shared/replayVaultAccess.ts supabase/functions/_shared/replayVaultAccess.test.ts supabase/functions/_shared/vaultInteractionsR2.ts supabase/functions/_shared/vaultInteractionsR2.test.ts supabase/functions/_shared/vaultMemberLibraryR4.ts supabase/functions/_shared/vaultMemberLibraryR4.test.ts supabase/functions/_shared/replayVaultCommercialWebhook.ts supabase/functions/_shared/replayVaultCommercialWebhook.test.ts",
     "verify:replay-vault-parity-manifest": "node tools/verify-replay-vault-parity-manifest.mjs",
     "verify:replay-vault-playlists-pg": "node tools/verify-replay-vault-playlists-pg.mjs",
-    "verify:replay-vault-playlists-edge": "deno test --no-lock -A supabase/functions/_shared/vaultPlaylists.test.ts"
+    "verify:replay-vault-playlists-edge": "deno test --no-lock -A supabase/functions/_shared/vaultPlaylists.test.ts",
+    "verify:replay-vault-blocked-private-pg": "node tools/verify-replay-vault-blocked-private-pg.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

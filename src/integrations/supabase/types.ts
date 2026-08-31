@@ -7800,6 +7800,59 @@ export type Database = {
           },
         ]
       }
+      replay_vault_blocked_private_sources: {
+        Row: {
+          portal_resource_id: string
+          provenance: string
+          reason: string
+          recorded_at: string
+          resource_id: string
+        }
+        Insert: {
+          portal_resource_id: string
+          provenance: string
+          reason?: string
+          recorded_at?: string
+          resource_id: string
+        }
+        Update: {
+          portal_resource_id?: string
+          provenance?: string
+          reason?: string
+          recorded_at?: string
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_vault_blocked_private_sources_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: true
+            referencedRelation: "mastermind_portal_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_blocked_private_sources_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: true
+            referencedRelation: "replay_admin_preview_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_blocked_private_sources_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: true
+            referencedRelation: "replay_authorized_resource_projection"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replay_vault_blocked_private_sources_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: true
+            referencedRelation: "replay_published_resource_projection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replay_vault_bookmarks: {
         Row: {
           created_at: string
@@ -12510,6 +12563,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      replay_vault_source_blocked: {
+        Args: { p_resource_id: string }
+        Returns: boolean
       }
       replay_vault_transcript_authorized: {
         Args: {

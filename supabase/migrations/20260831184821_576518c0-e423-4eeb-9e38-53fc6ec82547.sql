@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.replay_vault_source_blocked(uuid) FROM authenticated;
