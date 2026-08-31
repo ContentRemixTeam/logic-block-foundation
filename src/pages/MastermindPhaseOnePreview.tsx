@@ -289,12 +289,13 @@ const COACHING_MODES: Array<{ id: CoachingMode; label: string }> = [
 
 const COACHING_RESPONSES: Record<CoachingMode, { diagnosis: string; action: string; evidence: string; resourceId: string }> = {
   next: { diagnosis: 'The plan needs a real-world attempt before it needs more strategy.', action: 'Write your one-sentence 90-day result and schedule the first 20-minute action.', evidence: 'A saved result plus one dated attempt within 48 hours.', resourceId: 'ninety-day-goal-setting-introduction' },
-  smaller: { diagnosis: 'The move is probably too large for the capacity available this week.', action: 'Reduce the next move to one 20-minute draft, message, or decision.', evidence: 'One completed small version and what happened next.', resourceId: 'wibn-ceo-embodiment' },
-  evidence: { diagnosis: 'One data point is useful, but it is not yet a reason to replace the plan.', action: 'Record what you tried, who saw it, and the response before choosing continue or adjust.', evidence: 'Attempt count plus replies, clicks, conversations, sales, or no-response.', resourceId: 'wibn-week-one-qa' },
-  stuck: { diagnosis: 'You may need a decision or emotional support—not another long playlist.', action: 'Name the exact step you are avoiding and do the smallest visible version.', evidence: 'The smallest version attempted once.', resourceId: 'wibn-ceo-embodiment' },
-  coaching: { diagnosis: 'Faith can coach this faster when the plan, attempt, and decision are clear.', action: 'Bring one decision, what you tried, and what happened to coaching.', evidence: 'A specific coaching question with one evidence receipt.', resourceId: 'wibn-week-one-qa' },
+  smaller: { diagnosis: 'The move is probably too large for the capacity available this week.', action: 'Reduce the next move to one 20-minute draft, message, or decision.', evidence: 'One completed small version and what happened next.', resourceId: 'money-move-day-one' },
+  evidence: { diagnosis: 'One data point is useful, but it is not yet a reason to replace the plan.', action: 'Record what you tried, who saw it, and the response before choosing continue or adjust.', evidence: 'Attempt count plus replies, clicks, conversations, sales, or no-response.', resourceId: 'money-move-day-three' },
+  stuck: { diagnosis: 'You may need a decision or emotional support—not another long playlist.', action: 'Name the exact step you are avoiding and do the smallest visible version.', evidence: 'The smallest version attempted once.', resourceId: 'money-move-day-two' },
+  coaching: { diagnosis: 'Faith can coach this faster when the plan, attempt, and decision are clear.', action: 'Bring one decision, what you tried, and what happened to coaching.', evidence: 'A specific coaching question with one evidence receipt.', resourceId: 'ninety-day-goal-setting-workshop' },
   restart: { diagnosis: 'Missing a week does not mean the strategy failed.', action: 'Keep the same result and choose one reduced move for the next 48 hours.', evidence: 'One restart action completed without adding curriculum debt.', resourceId: 'ninety-day-goal-setting-introduction' },
 };
+
 
 function CoachingPreviewPanel({ onProposeTask }: { onProposeTask: () => void }) {
   const saved = (() => { try { return JSON.parse(window.localStorage.getItem(COACHING_KEY) ?? '{}'); } catch { return {}; } })() as { mode?: CoachingMode; context?: string };
