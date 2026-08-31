@@ -96,7 +96,9 @@ export default function MastermindPhaseOnePreview() {
   );
 
   const watchedCount = PHASE_ONE_LESSONS.filter((lesson) => isWatchedLesson(lesson.resourceId)).length;
-  const requiredComplete = PHASE_ONE_REQUIRED_LESSONS.every((lesson) => isWatchedLesson(lesson.resourceId));
+  const requiredLessons = PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required');
+  const requiredComplete = requiredLessons.every((lesson) => isWatchedLesson(lesson.resourceId));
+  const hasOptionalLessons = PHASE_ONE_LESSONS.some((lesson) => lesson.requirement !== 'required');
   const phaseProgress = [requiredComplete, workspaceReady, connectionTested].filter(Boolean).length;
 
   const toggleWatched = (lessonId: string) => {
