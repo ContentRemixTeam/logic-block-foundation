@@ -89,7 +89,7 @@ export function useMastermindPhaseOne() {
       if (!auth.user) throw new Error('Sign in to continue Phase One.');
       const [stateResult, resourceResult, proposalResult, contextResult, keyResult, connectionKeyResult] = await Promise.all([
         db.from('mastermind_phase_one_state').select('*').eq('user_id', auth.user.id).maybeSingle(),
-        db.rpc('search_my_mastermind_phase_one_resources', { p_query: null, p_stage: successPath.data?.selectedStageId ?? null, p_limit: 20 }),
+        db.rpc('search_my_mastermind_phase_one_resources', { p_query: null, p_stage: null, p_limit: 20 }),
         db.from('ai_planner_task_proposals').select('proposal_id,task_text,task_description,why_this_task,done_enough,evidence_target,suggested_date,priority,status,approved_task_id,connection_key_id').eq('user_id', auth.user.id).order('created_at', { ascending: false }).limit(20),
         db.rpc('get_my_mastermind_phase_one_coaching_context'),
         db.from('user_api_keys').select('provider,key_status').eq('user_id', auth.user.id),
