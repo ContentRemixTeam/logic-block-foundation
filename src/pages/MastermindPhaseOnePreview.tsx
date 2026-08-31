@@ -210,7 +210,6 @@ export default function MastermindPhaseOnePreview() {
                         </div>
                         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{lesson.afterWatchingAction}</p>
                         {lesson.requirement !== 'required' && <p className="mt-2 text-xs font-medium text-primary">Show this: {lesson.showWhen}</p>}
-
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />{lesson.durationLabel ?? 'Duration pending'}</span>
                           <Button size="sm" variant={isWatched ? 'outline' : 'secondary'} disabled={!playbackReady} onClick={() => navigate(trainingHref(lesson.resourceId))}>
