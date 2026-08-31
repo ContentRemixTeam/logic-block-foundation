@@ -246,9 +246,10 @@ export default function MastermindPhaseOnePreview() {
         </section>
 
         <section className="grid gap-5 lg:grid-cols-2" aria-label="Phase One AI support previews">
-          <CoachingPreviewPanel onProposeTask={() => setProposalState('pending')} />
-          <FindWhatINeedPanel onOpenResource={(resourceId) => navigate(trainingHref(resourceId))} />
+          <CoachingPreviewPanel onProposeTask={() => setProposalState('pending')} isPlaybackReady={(id) => catalogById.has(id)} />
+          <FindWhatINeedPanel onOpenResource={(resourceId) => navigate(trainingHref(resourceId))} isPlaybackReady={(id) => catalogById.has(id)} />
         </section>
+
 
         <Card className="border-primary/20 bg-primary/[0.04]">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
