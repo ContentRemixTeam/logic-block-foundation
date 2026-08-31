@@ -171,8 +171,12 @@ export default function MastermindTraining() {
       completed,
       completionSource: completed ? 'member_confirmed' : 'playback',
     });
-    if (saved && completed) setProgressSaved(true);
-  }, [resourceId]);
+    if (saved && completed) {
+      setProgressSaved(true);
+      void queryClient.invalidateQueries({ queryKey: ['phase-one-catalog'] });
+    }
+  }, [queryClient, resourceId]);
+
 
   useEffect(() => {
     const media = videoRef.current;
