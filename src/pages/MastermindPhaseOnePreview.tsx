@@ -169,13 +169,19 @@ export default function MastermindPhaseOnePreview() {
                     <span className="text-xs text-muted-foreground">{watchedCount} watched</span>
                   </div>
                   <CardTitle className="text-xl">Watch only what helps you build the plan.</CardTitle>
-                  <CardDescription className="mt-1">Two core lessons are shown first. Your answers can reveal extra support.</CardDescription>
+                  <CardDescription className="mt-1">
+                    {hasOptionalLessons
+                      ? 'Core lessons are shown first. Your answers can reveal extra support.'
+                      : 'These are the core Phase One lessons. Completed lessons move below what is still next.'}
+                  </CardDescription>
                 </div>
-                <label className="flex shrink-0 items-center gap-2 rounded-xl border bg-background px-3 py-2 text-sm font-medium">
-                  <ListFilter className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Show all options
-                  <Switch checked={showFullLibrary} onCheckedChange={setShowFullLibrary} aria-label="Show all optional Phase One videos" />
-                </label>
+                {hasOptionalLessons && (
+                  <label className="flex shrink-0 items-center gap-2 rounded-xl border bg-background px-3 py-2 text-sm font-medium">
+                    <ListFilter className="h-4 w-4 text-primary" aria-hidden="true" />
+                    Show all options
+                    <Switch checked={showFullLibrary} onCheckedChange={setShowFullLibrary} aria-label="Show all optional Phase One videos" />
+                  </label>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3 p-4 sm:p-5">
