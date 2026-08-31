@@ -406,6 +406,7 @@ try {
   assert.ok(mastermindHubSource.includes('Curriculum sections'), '90-day page should show the member the curriculum sections before the full finder');
   assert.ok(mastermindHubSource.includes('videos ready now'), 'Curriculum section map should count only videos that are ready now');
   assert.ok(mastermindHubSource.includes('Next useful video'), 'Curriculum section map should point to the next useful video');
+  assert.ok(mastermindHubSource.includes('Section complete'), 'Curriculum section map should not reassign watched videos after a section is complete');
   assert.ok(mastermindHubSource.includes("setResourceFilter('focus')"), 'Curriculum section map should jump directly to the selected section videos');
   assert.ok(!mastermindHubSource.includes("label: '30-day'"), 'Training finder should not show a 30-day replay filter until recent replays are integrated');
   assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main 90-day guidance card');

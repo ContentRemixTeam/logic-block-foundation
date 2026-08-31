@@ -195,7 +195,7 @@ export default function MastermindHub() {
     MASTERMIND_SUCCESS_STAGES.map((stage) => {
       const videos = visibleResources.filter((resource) => resource.stages.includes(stage.id));
       const watchedVideos = videos.filter((resource) => completedResourceIds.has(resource.id));
-      const nextVideo = videos.find((resource) => !completedResourceIds.has(resource.id)) ?? videos[0] ?? null;
+      const nextVideo = videos.find((resource) => !completedResourceIds.has(resource.id)) ?? null;
 
       return {
         stage,
@@ -368,9 +368,17 @@ export default function MastermindHub() {
                               <Badge variant="outline" className="text-[11px]">{readyCount} ready</Badge>
                               <Badge variant={watchedCount > 0 ? 'success' : 'outline'} className="text-[11px]">{watchedCount} watched</Badge>
                             </div>
-                            {nextVideo && (
+                            {nextVideo ? (
                               <p className="text-xs leading-snug text-muted-foreground">
                                 Next useful video: <span className="font-medium text-foreground">{nextVideo.title}</span>
+                              </p>
+                            ) : readyCount > 0 ? (
+                              <p className="text-xs leading-snug text-muted-foreground">
+                                Section complete. Use the next section or ask Faith what needs pressure-tested next.
+                              </p>
+                            ) : (
+                              <p className="text-xs leading-snug text-muted-foreground">
+                                No videos are ready in this section yet.
                               </p>
                             )}
                           </div>
