@@ -93,6 +93,7 @@ function ProtectedReplayVault() {
         if (options.recovery) setRecoveryFailed(true); else setPlaybackError('This protected answer is temporarily unavailable. Your access has not changed.');
         return false;
       }
+      if (!options.recovery) recoverySnapshotRef.current = { time: 0, shouldResume: false };
       resetForSource();
       setSourceGeneration((value) => value + 1);
       setPlayback(result);
