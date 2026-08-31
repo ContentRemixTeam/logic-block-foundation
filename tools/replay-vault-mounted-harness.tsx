@@ -181,7 +181,7 @@ async function playbackRaceAndSameTargetSeek() {
   first.resolve(nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r3/public/sounds/timer-complete.mp3?source=stale.mp4', momentOne, 42));
   await tick();
   const video = document.querySelector<HTMLVideoElement>('video')!;
-  assert(video.querySelector('source')?.getAttribute('src')?.includes('newest.mp4'), 'stale playback must not overwrite newest target');
+  assert(video.getAttribute('src')?.includes('newest.mp4'), 'stale playback must not overwrite newest target');
   Object.defineProperty(video, 'duration', { configurable: true, value: 1200 });
   video.dispatchEvent(new Event('loadedmetadata'));
   await tick();
@@ -221,7 +221,7 @@ async function nativeRecoveryHandlesSameAndNewUrlOnce() {
   assert(document.body.textContent?.includes('Refresh video'), 'bounded failure must offer manual refresh');
   __vaultMock.enqueue('get-mastermind-playback-link', nativePlayback('file:///Users/faithhawks/Developer/Mastermind%20Scaling/worktrees/replay-vault-ux-r3/public/sounds/timer-complete.mp3?source=replaced.mp4'));
   await click(byText('Refresh video'));
-  assert(document.querySelector('source')?.getAttribute('src')?.includes('replaced.mp4'), 'manual recovery must accept a new URL');
+  assert(document.querySelector('video')?.getAttribute('src')?.includes('replaced.mp4'), 'manual recovery must accept a new URL');
 }
 
 async function youtubeRecoveryIsHonest() {
