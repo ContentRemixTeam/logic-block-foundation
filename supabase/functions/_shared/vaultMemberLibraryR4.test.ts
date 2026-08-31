@@ -74,3 +74,41 @@ Deno.test('authorized requests use authenticated user only and RPC failures stay
 });
 
 Deno.test('limit plus one emits an explicit stable cursor and strips row cursor', async()=>{const calls:{name:string;args:Record<string,unknown>}[]=[];const handler=createMemberLibraryHandler({isAllowedOrigin:()=>true,authenticate:()=>Promise.resolve({id:'11111111-1111-4111-8111-111111111111'}),rpc:(name,args)=>{calls.push({name,args});return Promise.resolve({data:[{portal_resource_id:'a',title:'A',category:'C',duration_seconds:1,question_count:0,row_cursor:'{\"publishedAt\":\"2026-08-09T00:00:00Z\",\"id\":\"11111111-1111-4111-8111-111111111111\"}'},{portal_resource_id:'b',title:'B',category:'C',duration_seconds:1,question_count:0,row_cursor:'{\"publishedAt\":\"2026-08-08T00:00:00Z\",\"id\":\"22222222-2222-4222-8222-222222222222\"}'}]});},log:()=>{}});const response=await handler(request({action:'browse',limit:1}));const body=await response.json();assertEquals(response.status,200);assertEquals(body.items.length,1);assert(typeof body.nextCursor==='string');assertEquals(calls[0].args.p_limit,2);assert(!JSON.stringify(body).includes('row_cursor'));assert(mapLibraryRequest({action:'browse',cursor:body.nextCursor,limit:1},'11111111-1111-4111-8111-111111111111'));});
+
+Deno.test('saved list requests preview parity and supports all/moments filters plus unsave', async () => {
+  const userId = '11111111-1111-4111-8111-111111111111';
+  const mappedAll = mapLibraryRequest({ action: 'saved', filter: 'all' }, userId);
+  assertEquals(mappedAll?.rpc, 'replay_vault_saved_member');
+  assertEquals(mappedAll?.args.p_preview, true);
+  assertEquals(mapLibraryRequest({ action: 'saved', filter: 'moments' }, userId)?.args.p_preview, true);
+  assertEquals(mapLibraryRequest({ action: 'saved', filter: 'private' }, userId), null);
+
+  const saved = new Set<string>(['f0d16f03-9978-4c07-b93d-aecc08cc7f5f']);
+  const row = (id: string) => ({ bookmark_id: '88adfed3-cc28-4f91-911a-fafe521d0fa9', portal_resource_id: 'membershipio:6Dbd59bgqz', title: 'Profitable Pricing with Whitney Morrison', category: 'Replay', target_kind: 'moment', target_id: id, cue_seconds: 519, saved_at: '2026-08-31T00:00:00Z', label: 'pricing moment' });
+  const handler = createMemberLibraryHandler({
+    isAllowedOrigin: (req) => req.headers.get('origin') === origin,
+    authenticate: (bearer) => Promise.resolve(bearer === 'Bearer token' ? { id: userId } : null),
+    rpc: (_name, args) => Promise.resolve({ data: args.p_preview === true ? [...saved].map(row) : [] }),
+    log: () => {},
+  });
+  for (const filter of ['all', 'moments']) {
+    const response = await handler(request({ action: 'saved', filter }));
+    const body = await response.json();
+    assertEquals(response.status, 200);
+    assertEquals(body.items.length, 1);
+    assertEquals(body.items[0].resourceId, 'membershipio:6Dbd59bgqz');
+    assertEquals(body.items[0].startSeconds, 519);
+  }
+  saved.clear();
+  const afterUnsave = await handler(request({ action: 'saved', filter: 'all' }));
+  assertEquals((await afterUnsave.json()).items.length, 0);
+
+  const signedOut = createMemberLibraryHandler({
+    isAllowedOrigin: () => true,
+    authenticate: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: [row('f0d16f03-9978-4c07-b93d-aecc08cc7f5f')] }),
+    log: () => {},
+  });
+  const denied = await signedOut(request({ action: 'saved', filter: 'all' }));
+  assertEquals(denied.status, 401);
+});
