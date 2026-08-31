@@ -79,7 +79,7 @@ serve(async (req: Request) => {
       p_surface: surface as PlaybackSurface,
       p_question_id: questionId || null, p_moment_id: momentId || null, p_preview: body.preview === true,
     });
-    if (playbackDecision.error && surface === "vault") {
+    if (surface === "vault" && (playbackDecision.error || !(playbackDecision.data as unknown[] | null)?.length)) {
       playbackDecision = await service.rpc("resolve_replay_vault_playback", {
         p_user_id: authData.user.id, p_email: authData.user.email, p_resource_id: resourceId,
         p_question_id: questionId || null, p_moment_id: momentId || null, p_preview: body.preview === true,
