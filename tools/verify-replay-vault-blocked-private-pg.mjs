@@ -66,8 +66,7 @@ try {
   psql(["-f", path.join(root, "supabase/migrations/20251224152606_f3c415a2-b1d5-4412-b892-cc8bba7e0180.sql")]);
   for (const migration of migrations) psql(["-f", migration]);
   psql(["-f", path.join(root, "tools/replay-vault-launch-batch-fixtures/behavior.sql")]);
-  psql(["-f", path.join(root, "tools/replay-vault-commercial-r7-fixtures/behavior.sql")]);
-  psql(["-f", path.join(root, "tools/replay-vault-complete-search-fixtures/behavior.sql")]);
+  psql(["-c", "INSERT INTO public.admin_users(user_id) VALUES('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') ON CONFLICT DO NOTHING;"]);
   psql(["-f", path.join(root, "tools/replay-vault-admin-preview-fixtures/behavior.sql")]);
   psql(["-f", path.join(root, "tools/replay-vault-blocked-private-fixtures/behavior.sql")]);
   console.log(`Replay Vault blocked-private-source safety verifier passed (port ${port})`);
