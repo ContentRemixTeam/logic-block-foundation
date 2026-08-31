@@ -4,7 +4,7 @@ import "./index.css";
 import { ErrorBoundary } from "./components/system/ErrorBoundary";
 import { initStorageDurability } from "./lib/storageDurability";
 
-const APP_CACHE_RELEASE = "quarter-debrief-2026-06-22-v1";
+const APP_CACHE_RELEASE = "mastermind-training-transcript-2026-08-31-v1";
 
 const isInIframe = () => {
   try {
