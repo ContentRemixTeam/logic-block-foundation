@@ -20,13 +20,15 @@ interface VaultPlayerProps {
   onMediaError: () => void;
   onManualRefresh: () => void;
   onOpen: (target: PlaybackTarget) => void;
+  onCurrentTimeChange?: (seconds: number) => void;
   showVaultTools?: boolean;
   footer?: ReactNode;
 }
-export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh, onOpen, showVaultTools = true, footer }: VaultPlayerProps) {
+export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh, onOpen, onCurrentTimeChange, showVaultTools = true, footer }: VaultPlayerProps) {
   const isYouTube = playback.provider === 'youtube';
   const [currentTime, setCurrentTime] = useState(0);
   useEffect(() => { setCurrentTime(0); }, [sourceGeneration]);
+  useEffect(() => { onCurrentTimeChange?.(currentTime); }, [currentTime, onCurrentTimeChange]);
   const youtubeUrl = isYouTube ? `${playback.playbackUrl}${playback.playbackUrl.includes('?') ? '&' : '?'}start=${Math.max(0, Math.floor(target.startSeconds ?? 0))}` : null;
   return (
     <Card id="vault-player" className="min-w-0 scroll-mt-4 overflow-hidden" data-motion-safe tabIndex={-1}>

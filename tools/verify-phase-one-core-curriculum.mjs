@@ -96,6 +96,7 @@ console.log(`verify:phase-one-core-curriculum OK (${EXPECTED.length} hidden IDs 
 //    reload -> persisted completed state) for all five hidden resource IDs, and
 //    the playlist must keep completed lessons sorted last.
 const trainingSource = read("../src/pages/MastermindTraining.tsx");
+const curriculumTranscript = read("../src/components/mastermind/MastermindCurriculumTranscript.tsx");
 for (const contract of [
   "usePhaseOneCatalog",
   "row.portal_resource_id === resourceId && row.completed === true",
@@ -114,6 +115,22 @@ assert.ok(
   catalogHook.includes("search_my_mastermind_phase_one_resources") &&
     catalogHook.includes("save_my_mastermind_phase_one_video_progress"),
   "progress contract must stay on the validated server RPCs",
+);
+assert.ok(
+  trainingSource.includes("isAdminTrainingPreview &&") &&
+    trainingSource.includes("<MastermindCurriculumTranscript"),
+  "curriculum transcript timestamps must stay hidden-admin-preview only until member transcript access is explicitly approved",
+);
+assert.ok(
+  curriculumTranscript.includes("supabase.functions.invoke('vault-member-library'") &&
+    curriculumTranscript.includes("action: 'transcript'") &&
+    curriculumTranscript.includes("data-curriculum-transcript"),
+  "curriculum training transcript must reuse the protected transcript endpoint and mount with a QA selector",
+);
+assert.equal(
+  curriculumTranscript.includes("get_my_mastermind_curriculum_transcript"),
+  false,
+  "curriculum transcript UI must not depend on a broad direct transcript RPC",
 );
 for (const { id } of EXPECTED) {
   assert.ok(

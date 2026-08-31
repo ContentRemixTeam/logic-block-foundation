@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { VaultPlayer } from '@/components/replay-vault/VaultPlayer';
+import { MastermindCurriculumTranscript } from '@/components/mastermind/MastermindCurriculumTranscript';
 import {
   formatCompactTime,
   isStableVaultId,
@@ -71,6 +72,7 @@ export default function MastermindTraining() {
   const [loading, setLoading] = useState(false);
   const [sourceGeneration, setSourceGeneration] = useState(0);
   const [activationNonce, setActivationNonce] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [recoveryBusy, setRecoveryBusy] = useState(false);
   const [recoveryFailed, setRecoveryFailed] = useState(false);
@@ -83,6 +85,7 @@ export default function MastermindTraining() {
 
   useEffect(() => () => { playbackRequest.current.controller?.abort(); }, []);
   useEffect(() => { setTarget(initialTarget); }, [initialTarget]);
+  useEffect(() => { setCurrentTime(0); }, [resourceId]);
 
   const resolvePlayback = useCallback(async (nextTarget: PlaybackTarget, options: { recovery?: boolean } = {}) => {
     playbackRequest.current.controller?.abort();
@@ -298,6 +301,7 @@ export default function MastermindTraining() {
             onMediaError={handleMediaError}
             onManualRefresh={() => void refreshPlayback(true)}
             onOpen={openTarget}
+            onCurrentTimeChange={setCurrentTime}
             showVaultTools={false}
             footer={(
               <div className="rounded-md border bg-primary/5 p-3">
@@ -319,6 +323,15 @@ export default function MastermindTraining() {
               </div>
             )}
 
+          />
+        )}
+
+        {playback && isAdminTrainingPreview && (
+          <MastermindCurriculumTranscript
+            resourceId={playback.resourceId}
+            title={playback.title}
+            currentTime={currentTime}
+            onOpen={openTarget}
           />
         )}
 
