@@ -166,7 +166,7 @@ export default function MastermindPhaseOnePreview() {
                 <div>
                   <div className="mb-2 flex items-center gap-2">
                     <Badge variant="secondary">Your playlist</Badge>
-                    <span className="text-xs text-muted-foreground">{watchedCount} watched</span>
+                    <span className="text-xs text-muted-foreground">{PHASE_ONE_LESSONS.length} approved items · {watchedCount} watched</span>
                   </div>
                   <CardTitle className="text-xl">Watch only what helps you build the plan.</CardTitle>
                   <CardDescription className="mt-1">
