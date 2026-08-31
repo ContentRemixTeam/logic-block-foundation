@@ -99,5 +99,8 @@ verify_jwt = false
 [functions.vault-member-interactions]
 verify_jwt = false
 
+[functions.vault-playlists]
+verify_jwt = false
+
 [functions.replay-launch-batch-import]
 verify_jwt = false

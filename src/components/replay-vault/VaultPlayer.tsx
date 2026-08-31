@@ -1,12 +1,13 @@
 import { RefObject, ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { formatCompactTime } from './replayVaultCore.mjs';
 import type { PlaybackResult, PlaybackTarget } from './types';
 import { VaultInteractionBar } from './VaultInteractionBar';
 import { VaultTranscript } from './VaultTranscript';
 import { VaultCallQuestions } from './VaultCallQuestions';
+import { VaultTakeawayPrompt } from './VaultTakeawayPrompt';
 interface VaultPlayerProps {
   playback: PlaybackResult;
   target: PlaybackTarget;
@@ -29,7 +30,11 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
   const youtubeUrl = isYouTube ? `${playback.playbackUrl}${playback.playbackUrl.includes('?') ? '&' : '?'}start=${Math.max(0, Math.floor(target.startSeconds ?? 0))}` : null;
   return (
     <Card id="vault-player" className="min-w-0 scroll-mt-4 overflow-hidden" data-motion-safe tabIndex={-1}>
-      <CardHeader><CardTitle className="break-words">{playback.title}</CardTitle><CardDescription>{!target.momentId && !target.questionId ? 'Playing from the start' : `Playing answer at ${formatCompactTime(target.startSeconds)}`}</CardDescription></CardHeader>
+      <CardHeader>
+        <a href="#vault-search-area" className="inline-flex min-h-11 w-fit items-center text-sm font-medium underline underline-offset-4"><ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />Back to search and library</a>
+        <CardTitle className="break-words">{playback.title}</CardTitle>
+        <CardDescription>{!target.momentId && !target.questionId ? 'Playing from the start' : `Playing answer at ${formatCompactTime(target.startSeconds)}`}</CardDescription>
+      </CardHeader>
       <CardContent className="space-y-3">
         {isYouTube ? (
           <>
@@ -41,6 +46,7 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
             Protected replay video: {playback.title}. If the video does not appear, refresh the page or open this replay again.
           </video>
         )}
+        {showVaultTools && <VaultTakeawayPrompt />}
         {showVaultTools && (target.momentId || target.questionId
           ? <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />
           : <p className="rounded-md border p-3 text-sm text-muted-foreground">Full-replay saving is available from Browse and Saved. Answer notes, sharing, and watch progress start when you open an exact transcript moment or approved question.</p>)}

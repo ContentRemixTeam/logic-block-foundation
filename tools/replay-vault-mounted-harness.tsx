@@ -182,6 +182,11 @@ async function playbackRaceAndSameTargetSeek() {
   await tick();
   const video = document.querySelector<HTMLVideoElement>('video')!;
   assert(video.getAttribute('src')?.includes('newest.mp4'), 'stale playback must not overwrite newest target');
+  const backLink = [...document.querySelectorAll<HTMLAnchorElement>('a')].find((node) => node.textContent?.includes('Back to search and library'));
+  assert(backLink?.getAttribute('href') === '#vault-search-area', 'player must provide a return link to search and library');
+  const shareLink = [...document.querySelectorAll<HTMLAnchorElement>('a')].find((node) => node.textContent?.includes('Share your takeaway'));
+  assert(Boolean(shareLink?.getAttribute('href')?.includes('/communities/groups/mastermind/home')), 'takeaway prompt must link to the community');
+  assert(document.body.textContent?.includes('Make this replay stick'), 'takeaway prompt must mount below the player');
   Object.defineProperty(video, 'duration', { configurable: true, value: 1200 });
   video.dispatchEvent(new Event('loadedmetadata'));
   await tick();
