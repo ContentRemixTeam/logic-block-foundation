@@ -27,14 +27,13 @@ for (const required of [
   if (!restoreSql.includes(required)) throw new Error(`restore migration is missing: ${required}`);
 }
 for (const forbidden of [
-  "editorial_approved_at IS NULL",
-  "blocked_private_source",
-  "do_not_index",
+  /editorial_approved_at\s+IS\s+NULL/i,
+  /ingestion_status\s+NOT\s+IN/i,
+  /EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+public\.replay_vault_blocked_private_sources/i,
 ]) {
-  // only the audit-only COMMENT may mention these words
-  const body = restoreSql.split("COMMENT ON TABLE")[0];
-  if (body.includes(forbidden)) throw new Error(`restore migration still filters on: ${forbidden}`);
+  if (forbidden.test(restoreSql)) throw new Error(`restore migration still filters on: ${forbidden}`);
 }
+
 
 // No later migration may re-introduce the blanket predicate on the projections.
 const later = files.filter((f) => f > RESTORE);
