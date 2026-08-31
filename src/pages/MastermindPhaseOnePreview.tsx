@@ -32,10 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  PHASE_ONE_LESSONS,
-  PHASE_ONE_REQUIRED_LESSONS,
-} from '@/data/phaseOneCurriculum';
+import { PHASE_ONE_LESSONS } from '@/data/phaseOneCurriculum';
 import { usePhaseOneCatalog, savePhaseOneVideoProgress } from '@/hooks/usePhaseOneCatalog';
 import { cn } from '@/lib/utils';
 
