@@ -31,7 +31,7 @@
     "verify:replay-vault-import": "python3 tools/verify-replay-vault-import.py",
     "enrich:replay-vault-import": "python3 tools/enrich-replay-vault-media-manifest.py",
     "migrate:replay-vault-media": "python3 tools/migrate-replay-vault-media-to-dropbox.py",
-    "verify": "npm run verify:phase-one-core-curriculum && npm run verify:phase-one-playable-ids && npm run verify:replay-vault-edge-lint && npm run verify:mastermind-portal && npm run verify:mastermind-success-path && npm run verify:replay-vault && npm run verify:replay-vault-pilot && npm run verify:replay-vault-pilot-bundle && npm run verify:replay-vault-pilot-mounted && npm run verify:replay-vault-contrast && npm run verify:replay-vault-commercial && npm run verify:mastermind-server-search && npm run verify:mastermind-playback-link && npm run qa:mastermind-live-gates:mock && tsc --noEmit && npm run build && npm run verify:mastermind-bundle && npm run verify:mastermind-browser",
+    "verify": "npm run verify:replay-vault-no-blanket-draft-block && npm run verify:phase-one-core-curriculum && npm run verify:phase-one-playable-ids && npm run verify:replay-vault-edge-lint && npm run verify:mastermind-portal && npm run verify:mastermind-success-path && npm run verify:replay-vault && npm run verify:replay-vault-pilot && npm run verify:replay-vault-pilot-bundle && npm run verify:replay-vault-pilot-mounted && npm run verify:replay-vault-contrast && npm run verify:replay-vault-commercial && npm run verify:mastermind-server-search && npm run verify:mastermind-playback-link && npm run qa:mastermind-live-gates:mock && tsc --noEmit && npm run build && npm run verify:mastermind-bundle && npm run verify:mastermind-browser",
     "verify:replay-vault-access-edge": "deno test --no-lock -A supabase/functions/_shared/replayVaultAccess.test.ts",
     "verify:replay-vault-access-pg": "node tools/verify-replay-vault-access-pg.mjs",
     "verify:replay-vault-access-security": "node tools/verify-replay-vault-access-security.mjs",
@@ -48,7 +48,7 @@
     "verify:replay-vault-parity-manifest": "node tools/verify-replay-vault-parity-manifest.mjs",
     "verify:replay-vault-playlists-pg": "node tools/verify-replay-vault-playlists-pg.mjs",
     "verify:replay-vault-playlists-edge": "deno test --no-lock -A supabase/functions/_shared/vaultPlaylists.test.ts",
-    "verify:replay-vault-blocked-private-pg": "node tools/verify-replay-vault-blocked-private-pg.mjs"
+    "verify:replay-vault-no-blanket-draft-block": "node tools/verify-replay-vault-no-blanket-draft-block.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
