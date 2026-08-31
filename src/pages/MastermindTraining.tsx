@@ -15,7 +15,7 @@ import {
 } from '@/components/replay-vault/replayVaultCore.mjs';
 import type { PlaybackResult, PlaybackTarget } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
-import { savePhaseOneVideoProgress } from '@/hooks/usePhaseOneCatalog';
+import { savePhaseOneVideoProgress, usePhaseOneCatalog } from '@/hooks/usePhaseOneCatalog';
 
 const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'lesson'}`;
 
