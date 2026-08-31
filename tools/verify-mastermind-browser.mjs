@@ -339,6 +339,32 @@ function buildMockScript(cycle) {
     theme_unlocked: false,
     progress: null
   };
+  const phaseOneCatalog = [
+    {
+      portal_resource_id: 'ninety-day-goal-setting-introduction',
+      title: '90 Day Goal Setting Introduction',
+      product_title: 'Mastermind Core Curriculum',
+      category_title: 'Start Here',
+      resource_type: 'training',
+      duration_seconds: 663.37,
+      stages: ['foundation'],
+      success_paths: ['phase_one'],
+      completed: true,
+      last_position_seconds: 663
+    },
+    {
+      portal_resource_id: 'bosses-make-sales-day-one',
+      title: 'Bosses Make Sales: Day One',
+      product_title: 'Mastermind Core Curriculum',
+      category_title: 'Sales',
+      resource_type: 'training',
+      duration_seconds: 6891.765,
+      stages: ['sell'],
+      success_paths: ['sell'],
+      completed: true,
+      last_position_seconds: 6891
+    }
+  ];
   const json = (body, status = 200) => Promise.resolve(new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' }
@@ -383,6 +409,12 @@ function buildMockScript(cycle) {
     }
     if (url.includes('/rest/v1/rpc/log_low_battery_planner_login')) {
       return json(null);
+    }
+    if (url.includes('/rest/v1/rpc/search_my_mastermind_phase_one_resources')) {
+      return json(phaseOneCatalog);
+    }
+    if (url.includes('/rest/v1/rpc/save_my_mastermind_phase_one_video_progress')) {
+      return json(true);
     }
     if (url.includes('/functions/v1/get-projects')) {
       return json({ data: [] });

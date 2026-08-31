@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
 import { AiStudioPlanCard } from '@/components/mastermind/AiStudioPlanCard';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
+import { usePhaseOneCatalog } from '@/hooks/usePhaseOneCatalog';
 import {
   MASTERMIND_PORTAL_RESOURCES,
   getProtectedTrainingHref,
@@ -63,6 +64,16 @@ export default function MastermindHub() {
   const [activeTab, setActiveTab] = useState('guidance');
   const [showMilestones, setShowMilestones] = useState(false);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
+  const catalogQuery = usePhaseOneCatalog();
+  const completedResourceIds = useMemo(
+    () =>
+      new Set(
+        (catalogQuery.data ?? [])
+          .filter((row) => row.completed === true)
+          .map((row) => row.portal_resource_id)
+      ),
+    [catalogQuery.data]
+  );
 
   useEffect(() => {
     const stored = getStorageItem(STORAGE_KEY);
@@ -105,8 +116,13 @@ export default function MastermindHub() {
       !resource.milestoneIds || resource.milestoneIds.includes(currentMilestone.id)
     );
 
-    return milestoneResources.length > 0 ? milestoneResources : selectedStage.resources;
-  }, [currentMilestone.id, selectedStage]);
+    const resources = milestoneResources.length > 0 ? milestoneResources : selectedStage.resources;
+    return [...resources].sort((a, b) => {
+      const completedA = completedResourceIds.has(a.resourceId) ? 1 : 0;
+      const completedB = completedResourceIds.has(b.resourceId) ? 1 : 0;
+      return completedA - completedB;
+    });
+  }, [completedResourceIds, currentMilestone.id, selectedStage]);
 
   const handleStageSelect = async (stageId: typeof selectedStageId) => {
     if (!successPathData?.cycle) {
@@ -168,16 +184,27 @@ export default function MastermindHub() {
   }, [visibleResources]);
 
   const filteredResources = useMemo(() => {
-    return searchMastermindPortalResources(
+    const resources = searchMastermindPortalResources(
       MASTERMIND_PORTAL_RESOURCES,
       searchQuery,
       resourceSearchOptions
     );
-  }, [searchQuery, resourceSearchOptions]);
+    return [...resources].sort((a, b) => {
+      const completedA = completedResourceIds.has(a.id) ? 1 : 0;
+      const completedB = completedResourceIds.has(b.id) ? 1 : 0;
+      return completedA - completedB;
+    });
+  }, [completedResourceIds, searchQuery, resourceSearchOptions]);
 
   const pinnedResources = useMemo(() => {
-    return visibleResources.filter((r) => pinnedIds.includes(r.id));
-  }, [pinnedIds, visibleResources]);
+    return visibleResources
+      .filter((r) => pinnedIds.includes(r.id))
+      .sort((a, b) => {
+        const completedA = completedResourceIds.has(a.id) ? 1 : 0;
+        const completedB = completedResourceIds.has(b.id) ? 1 : 0;
+        return completedA - completedB;
+      });
+  }, [completedResourceIds, pinnedIds, visibleResources]);
 
   const unpinnedResources = useMemo(() => {
     return filteredResources.filter((r) => !pinnedIds.includes(r.id));
@@ -358,6 +385,9 @@ export default function MastermindHub() {
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="font-medium leading-snug">{resource.title}</p>
                                 <Badge variant="outline" className="text-[11px]">{resource.access}</Badge>
+                                {completedResourceIds.has(resource.resourceId) && (
+                                  <Badge variant="success" className="text-[11px]">Watched</Badge>
+                                )}
                               </div>
                               <p className="mt-1 text-sm text-muted-foreground">{resource.useWhen}</p>
                               {resource.afterWatching && (
@@ -370,7 +400,7 @@ export default function MastermindHub() {
                                 className="mt-2 h-auto p-0"
                                 onClick={() => handleOpenRecommendedResource(resource)}
                               >
-                                Open resource
+                                {completedResourceIds.has(resource.resourceId) ? 'Watch again' : 'Open resource'}
                                 <ArrowRight className="ml-1 h-3.5 w-3.5" />
                               </Button>
                             </div>
@@ -527,6 +557,7 @@ export default function MastermindHub() {
                         key={resource.id}
                         resource={resource}
                         isPinned
+                        isCompleted={completedResourceIds.has(resource.id)}
                         onTogglePin={() => togglePin(resource.id)}
                         onOpen={() => handleOpen(resource)}
                       />
@@ -545,6 +576,7 @@ export default function MastermindHub() {
                       key={resource.id}
                       resource={resource}
                       isPinned={pinnedIds.includes(resource.id)}
+                      isCompleted={completedResourceIds.has(resource.id)}
                       canPin={pinnedIds.length < 3}
                       onTogglePin={() => togglePin(resource.id)}
                       onOpen={() => handleOpen(resource)}
@@ -628,12 +660,13 @@ function SupportCard({ icon: Icon, title, description, buttonLabel, onClick }: S
 interface ResourceCardProps {
   resource: MastermindPortalResource;
   isPinned: boolean;
+  isCompleted: boolean;
   canPin?: boolean;
   onTogglePin: () => void;
   onOpen: () => void;
 }
 
-function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }: ResourceCardProps) {
+function ResourceCard({ resource, isPinned, isCompleted, canPin = true, onTogglePin, onOpen }: ResourceCardProps) {
   const Icon = resource.icon;
 
   return (
@@ -661,6 +694,9 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
                 <Badge variant={getAccessBadgeVariant(resource.access)} className="text-[11px]">
                   {resource.accessLabel}
                 </Badge>
+                {isCompleted && (
+                  <Badge variant="success" className="text-[11px]">Watched</Badge>
+                )}
                 <Badge variant="outline" className="text-[11px]">
                   {formatResourceType(resource.type)}
                 </Badge>
@@ -723,7 +759,7 @@ function ResourceCard({ resource, isPinned, canPin = true, onTogglePin, onOpen }
             className="w-full"
             variant={isPinned ? 'default' : 'secondary'}
           >
-            {resource.primaryAction}
+            {isCompleted ? 'Watch Again' : resource.primaryAction}
             {resource.isExternal && <ExternalLink className="ml-2 h-3.5 w-3.5" />}
           </Button>
         </div>
