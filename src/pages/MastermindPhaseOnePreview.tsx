@@ -203,11 +203,14 @@ export default function MastermindPhaseOnePreview() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-semibold text-muted-foreground">{index + 1}</span>
                           <h3 className={cn('font-semibold leading-snug', isWatched && 'text-muted-foreground line-through')}>{lesson.title}</h3>
-                          {lesson.requirement === 'required' && <Badge variant="outline" className="text-[10px]">Core</Badge>}
+                          {lesson.requirement === 'required'
+                            ? <Badge variant="outline" className="text-[10px]">Core</Badge>
+                            : <Badge variant="outline" className="text-[10px]">Offer &amp; sell support</Badge>}
                           {!playbackReady && <Badge variant="secondary" className="text-[10px]">Import pending</Badge>}
                         </div>
                         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{lesson.afterWatchingAction}</p>
                         {lesson.requirement !== 'required' && <p className="mt-2 text-xs font-medium text-primary">Show this: {lesson.showWhen}</p>}
+
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />{lesson.durationLabel ?? 'Duration pending'}</span>
                           <Button size="sm" variant={isWatched ? 'outline' : 'secondary'} disabled={!playbackReady} onClick={() => navigate(trainingHref(lesson.resourceId))}>
