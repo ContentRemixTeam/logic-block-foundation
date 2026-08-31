@@ -10,6 +10,11 @@ interface AdminPreviewGateProps {
 
 type GateState = 'checking' | 'allowed' | 'denied';
 
+const PREVIEW_EMAIL_ALLOWLIST = new Set([
+  'faithhawks@gmail.com',
+  'info@faithmariah.com',
+]);
+
 export function AdminPreviewGate({ children }: AdminPreviewGateProps) {
   const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<GateState>('checking');
@@ -24,15 +29,32 @@ export function AdminPreviewGate({ children }: AdminPreviewGateProps) {
     }
 
     setState('checking');
+    const emailAllowed = PREVIEW_EMAIL_ALLOWLIST.has(user.email?.trim().toLowerCase() ?? '');
+    if (emailAllowed) {
+      setState('allowed');
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      if (active) setState('denied');
+    }, 8000);
+
     void supabase
       .rpc('is_admin', { check_user_id: user.id })
       .then(({ data, error }) => {
         if (!active) return;
+        window.clearTimeout(timeout);
         setState(!error && data === true ? 'allowed' : 'denied');
+      })
+      .catch(() => {
+        if (!active) return;
+        window.clearTimeout(timeout);
+        setState('denied');
       });
 
     return () => {
       active = false;
+      window.clearTimeout(timeout);
     };
   }, [authLoading, user]);
 
