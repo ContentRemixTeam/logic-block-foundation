@@ -66,7 +66,8 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
   {
     resourceId: 'money-move-day-one',
     title: 'Money Moves Sprint Day One: Find Your Next Money Move',
-    requirement: 'required',
+    requirement: 'optional',
+
     order: 3,
     durationLabel: '1:11:11',
     lessonState: 'pending_import',
