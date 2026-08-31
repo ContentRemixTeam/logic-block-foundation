@@ -96,7 +96,20 @@ async function runChromeViewport(html, width) {
     });
     const command = (method, params = {}) => new Promise((resolve, reject) => {
       const id = ++nextId;
-      pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error(`Chrome DevTools command timed out: ${method}`));
+      }, 5000);
+      pending.set(id, {
+        resolve: (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
+      });
       socket.send(JSON.stringify({ id, method, params }));
     });
     await command('Page.enable');
