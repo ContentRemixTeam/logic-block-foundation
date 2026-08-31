@@ -32,10 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  PHASE_ONE_LESSONS,
-  PHASE_ONE_REQUIRED_LESSONS,
-} from '@/data/phaseOneCurriculum';
+import { PHASE_ONE_LESSONS } from '@/data/phaseOneCurriculum';
 import { usePhaseOneCatalog, savePhaseOneVideoProgress } from '@/hooks/usePhaseOneCatalog';
 import { cn } from '@/lib/utils';
 
@@ -99,7 +96,9 @@ export default function MastermindPhaseOnePreview() {
   );
 
   const watchedCount = PHASE_ONE_LESSONS.filter((lesson) => isWatchedLesson(lesson.resourceId)).length;
-  const requiredComplete = PHASE_ONE_REQUIRED_LESSONS.every((lesson) => isWatchedLesson(lesson.resourceId));
+  const requiredLessons = PHASE_ONE_LESSONS.filter((lesson) => lesson.requirement === 'required');
+  const requiredComplete = requiredLessons.every((lesson) => isWatchedLesson(lesson.resourceId));
+  const hasOptionalLessons = PHASE_ONE_LESSONS.some((lesson) => lesson.requirement !== 'required');
   const phaseProgress = [requiredComplete, workspaceReady, connectionTested].filter(Boolean).length;
 
   const toggleWatched = (lessonId: string) => {
@@ -170,13 +169,19 @@ export default function MastermindPhaseOnePreview() {
                     <span className="text-xs text-muted-foreground">{watchedCount} watched</span>
                   </div>
                   <CardTitle className="text-xl">Watch only what helps you build the plan.</CardTitle>
-                  <CardDescription className="mt-1">Two core lessons are shown first. Your answers can reveal extra support.</CardDescription>
+                  <CardDescription className="mt-1">
+                    {hasOptionalLessons
+                      ? 'Core lessons are shown first. Your answers can reveal extra support.'
+                      : 'These are the core Phase One lessons. Completed lessons move below what is still next.'}
+                  </CardDescription>
                 </div>
-                <label className="flex shrink-0 items-center gap-2 rounded-xl border bg-background px-3 py-2 text-sm font-medium">
-                  <ListFilter className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Show all options
-                  <Switch checked={showFullLibrary} onCheckedChange={setShowFullLibrary} aria-label="Show all optional Phase One videos" />
-                </label>
+                {hasOptionalLessons && (
+                  <label className="flex shrink-0 items-center gap-2 rounded-xl border bg-background px-3 py-2 text-sm font-medium">
+                    <ListFilter className="h-4 w-4 text-primary" aria-hidden="true" />
+                    Show all options
+                    <Switch checked={showFullLibrary} onCheckedChange={setShowFullLibrary} aria-label="Show all optional Phase One videos" />
+                  </label>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3 p-4 sm:p-5">
