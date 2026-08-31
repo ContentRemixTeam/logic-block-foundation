@@ -64,7 +64,7 @@ export default function MastermindPhaseOnePreview() {
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [workspaceReady, setWorkspaceReady] = useState(() => window.localStorage.getItem(WORKSPACE_READY_KEY) === 'true');
   const [proposalState, setProposalState] = useState<'pending' | 'approved' | 'rejected'>('pending');
-  const { data: catalog } = usePhaseOneCatalog();
+  const { data: catalog, isError: catalogError } = usePhaseOneCatalog();
 
   // Playable state is server-authorized: only lessons returned by
   // search_my_mastermind_phase_one_resources can be opened for playback.
@@ -168,6 +168,11 @@ export default function MastermindPhaseOnePreview() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3 p-4 sm:p-5">
+              {catalogError && (
+                <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50/70 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+                  Private preview notice: playback status could not be checked with the server just now, so lessons are shown as import pending. Try again in a moment.
+                </div>
+              )}
               {visibleLessons.map((lesson, index) => {
                 const isWatched = isWatchedLesson(lesson.resourceId);
                 const playbackReady = catalogById.has(lesson.resourceId);
