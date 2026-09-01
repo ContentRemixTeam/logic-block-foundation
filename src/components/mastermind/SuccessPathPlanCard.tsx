@@ -29,6 +29,7 @@ interface SuccessPathPlanCardProps {
   onAddToPlan: () => void;
   onAskFaith: () => void;
   onFindSupport: () => void;
+  onChangeFocus?: () => void;
   onOpenAiStudio?: () => void;
   aiStudioEnabled?: boolean;
 }
@@ -82,6 +83,7 @@ export function SuccessPathPlanCard({
   onAddToPlan,
   onAskFaith,
   onFindSupport,
+  onChangeFocus,
   onOpenAiStudio,
   aiStudioEnabled = false,
 }: SuccessPathPlanCardProps) {
@@ -198,10 +200,24 @@ export function SuccessPathPlanCard({
     <Card className="overflow-hidden border-primary/30 bg-primary/5">
       <CardContent className="p-0">
         <div className="space-y-5 p-6 md:p-8">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="text-[11px]">Your 90-day plan</Badge>
-            <Badge variant="outline" className="text-[11px]">Current focus: {stage.label}</Badge>
-            <Badge variant="outline" className="text-[11px]">{roundMode === 'build' ? 'Build round' : 'Improve round'}</Badge>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="text-[11px]">Your 90-day plan</Badge>
+              <Badge variant="outline" className="text-[11px]">Current focus: {stage.label}</Badge>
+              <Badge variant="outline" className="text-[11px]">{roundMode === 'build' ? 'Build round' : 'Improve round'}</Badge>
+            </div>
+            {onChangeFocus && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="w-fit border-primary text-primary hover:bg-primary/10 hover:text-primary"
+                onClick={onChangeFocus}
+              >
+                <Target className="mr-2 h-4 w-4" aria-hidden="true" />
+                Choose/change focus
+              </Button>
+            )}
           </div>
 
           <div className="max-w-3xl">

@@ -511,7 +511,7 @@ try {
   assert.ok(mastermindHubSource.includes("setResourceFilter('focus')"), 'Curriculum section map should jump directly to the selected section videos');
   assert.ok(!mastermindHubSource.includes("label: '30-day'"), 'Training finder should not show a 30-day replay filter until recent replays are integrated');
   assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main 90-day guidance card');
-  assert.ok(mastermindHubSource.includes('Change this if it is not the right focus.'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
+  assert.ok(mastermindHubSource.includes('Choose or change the focus for this 90-day plan.'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
   assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');
   assert.ok(mastermindHubSource.includes("location.pathname.startsWith('/admin/mastermind-90-day-plan-preview')"), 'Admin 90-day preview should detect its hidden route');
   assert.ok(mastermindHubSource.includes('const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview'), 'Hidden admin QA route should show AI Studio without enabling the public feature flag');
@@ -805,6 +805,8 @@ try {
     'No ready trainings match',
     'className="min-w-0 flex-1 break-words leading-snug"',
     'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
+    'id="mastermind-focus-chooser"',
+    'focusChooserRef.current?.scrollIntoView',
   ];
   for (const guard of requiredMastermindHubLayoutGuards) {
     assert.ok(mastermindHubSource.includes(guard), 'MastermindHub is missing responsive/accessibility guard: ' + guard);
@@ -816,6 +818,7 @@ try {
     'className="rounded-lg border bg-background p-4"',
     'className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"',
     'className="border-t bg-background/60 px-6 py-4 md:px-8"',
+    'Choose/change focus',
   ];
   for (const guard of requiredSuccessPathLayoutGuards) {
     assert.ok(successPathPlanCardSource.includes(guard), 'SuccessPathPlanCard is missing responsive layout guard: ' + guard);

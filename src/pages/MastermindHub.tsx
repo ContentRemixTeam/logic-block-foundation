@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, type ComponentType, type ReactNode } from 'react';
+import { useState, useMemo, useEffect, useRef, type ComponentType, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -165,6 +165,7 @@ export default function MastermindHub() {
   const [nextMoveMode, setNextMoveMode] = useState<'standard' | 'low'>('standard');
   const [weeklyTrainingMinutes, setWeeklyTrainingMinutes] = useState(180);
   const [dashboardWeeklyMoveTaskState, setDashboardWeeklyMoveTaskState] = useState<DashboardWeeklyMoveTaskState>('idle');
+  const focusChooserRef = useRef<HTMLDivElement | null>(null);
   const dashboardCycle = useMemo<MastermindPlanCycle | null>(() => {
     if (successPathData?.cycle) return successPathData.cycle;
     const activeCycle = activeCycleQuery.data;
@@ -647,6 +648,13 @@ export default function MastermindHub() {
     navigate(`/admin/mastermind-training-preview?${params.toString()}`);
   };
 
+  const scrollToFocusChooser = () => {
+    setActiveTab('guidance');
+    window.requestAnimationFrame(() => {
+      focusChooserRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
   const copyAskFaithBrief = async () => {
     try {
       await navigator.clipboard.writeText(askFaithBrief);
@@ -702,6 +710,7 @@ export default function MastermindHub() {
                 }}
                 onAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
                 onFindSupport={() => setActiveTab('training')}
+                onChangeFocus={scrollToFocusChooser}
                 onOpenAiStudio={() => setActiveTab('support')}
                 aiStudioEnabled={aiStudioEnabled}
               />
@@ -1073,11 +1082,11 @@ export default function MastermindHub() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card ref={focusChooserRef} id="mastermind-focus-chooser" className="scroll-mt-24">
                 <CardHeader>
-                  <CardTitle>Change this if it is not the right focus.</CardTitle>
+                  <CardTitle>Choose or change the focus for this 90-day plan.</CardTitle>
                   <CardDescription>
-                    Choose the area that needs attention first. Your choice is saved to this 90-day cycle and stays here when you return.
+                    The app can suggest a starting point from the plan, but the member makes the final call. This choice is saved to the current 90-day cycle.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
