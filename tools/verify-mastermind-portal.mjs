@@ -539,6 +539,16 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('Starter packet'), 'AI Studio should provide a usable starter packet, not just a theoretical feature card');
   assert.ok(aiStudioPlanCardSource.includes('Previewing packs, saving setup answers, copying install docs, or hitting a generation error does not use the monthly unlock'), 'AI Studio should clarify that previews/copy/errors do not consume a monthly unlock');
   assert.ok(aiStudioPlanCardSource.includes('explicit pack confirmation'), 'AI Studio should clarify that a monthly unlock needs explicit pack confirmation');
+  assert.ok(aiStudioPlanCardSource.includes('AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY'), 'AI Studio should keep monthly unlock confirmations separate from setup drafts');
+  assert.ok(aiStudioPlanCardSource.includes('mastermind-ai-studio-unlock-confirmations-v1'), 'AI Studio should use a stable monthly unlock confirmation storage key');
+  assert.ok(aiStudioPlanCardSource.includes('requiresMonthlyUnlockConfirmation'), 'AI Studio should gate monthly install docs behind explicit confirmation');
+  assert.ok(aiStudioPlanCardSource.includes('Confirm this monthly unlock'), 'AI Studio should show a monthly unlock confirmation state');
+  assert.ok(aiStudioPlanCardSource.includes('Confirm project pack'), 'AI Studio should require an explicit pack confirmation action');
+  assert.ok(aiStudioPlanCardSource.includes('Monthly unlock confirmed'), 'AI Studio should show when the local monthly unlock confirmation is complete');
+  assert.ok(aiStudioPlanCardSource.includes('Confirm this monthly unlock to generate this section'), 'AI Studio should hide custom install doc bodies until monthly unlock confirmation');
+  assert.ok(aiStudioPlanCardSource.includes('Confirm this monthly unlock to copy the install-ready version'), 'AI Studio should hide starter packet bodies until monthly unlock confirmation');
+  assert.ok(aiStudioPlanCardSource.includes('disabled={requiresMonthlyUnlockConfirmation}'), 'AI Studio copy/download actions should be disabled until monthly unlock confirmation');
+  assert.ok(aiStudioPlanCardSource.includes('confirmMonthlyUnlock'), 'AI Studio should have a dedicated monthly unlock confirmation handler');
   for (const packetSection of ['Start Here', 'Business Profile', 'Project Instructions', 'First Test', 'Review Checklist']) {
     assert.ok(aiStudioPlanCardSource.includes(packetSection), 'AI Studio starter packet is missing section: ' + packetSection);
   }

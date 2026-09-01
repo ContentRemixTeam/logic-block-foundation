@@ -402,6 +402,7 @@ function buildMockScript(cycle) {
     localStorage.setItem('install_nudge_dismissed_at', String(Date.now()));
     localStorage.setItem('install_banner_dismissed_at', String(Date.now()));
     localStorage.setItem('mastermind-pinned-resources', JSON.stringify([]));
+    localStorage.removeItem('mastermind-ai-studio-unlock-confirmations-v1');
   } catch {}
 
   try {
@@ -683,7 +684,32 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'SETUP INTERVIEW');
     await assertText(client, 'What is the revenue target, offer price, and number of sales needed this cycle?');
     await assertText(client, 'Download .md');
+    await assertText(client, 'Confirm this monthly unlock');
+    await assertText(client, 'Confirm project pack');
+    await assertNoText(client, 'Advanced install docs');
+    const installActionsLocked = await evaluate(client, `
+(() => {
+  const buttons = Array.from(document.querySelectorAll('button'));
+  const copyButton = buttons.find((element) => (element.textContent || '').includes('Copy install packet'));
+  const downloadButton = buttons.find((element) => (element.textContent || '').includes('Download .md'));
+  const starterButton = buttons.find((element) => (element.textContent || '').includes('Copy packet'));
+  return Boolean(copyButton?.disabled && downloadButton?.disabled && starterButton?.disabled);
+})()
+`);
+    assert.equal(installActionsLocked, true, 'Monthly AI Studio install actions should stay locked before explicit pack confirmation');
+    await clickText(client, 'Confirm project pack');
+    await waitFor(client, 'document.body.innerText.includes("Monthly unlock confirmed")', `${label} monthly unlock confirmation`);
     await assertText(client, 'Advanced install docs');
+    const installActionsUnlocked = await evaluate(client, `
+(() => {
+  const buttons = Array.from(document.querySelectorAll('button'));
+  const copyButton = buttons.find((element) => (element.textContent || '').includes('Copy install packet'));
+  const downloadButton = buttons.find((element) => (element.textContent || '').includes('Download .md'));
+  const starterButton = buttons.find((element) => (element.textContent || '').includes('Copy packet'));
+  return Boolean(copyButton && downloadButton && starterButton && !copyButton.disabled && !downloadButton.disabled && !starterButton.disabled);
+})()
+`);
+    assert.equal(installActionsUnlocked, true, 'Monthly AI Studio install actions should unlock after explicit pack confirmation');
     const advancedDocsOpened = await evaluate(client, `
 (() => {
   const summary = Array.from(document.querySelectorAll('summary'))

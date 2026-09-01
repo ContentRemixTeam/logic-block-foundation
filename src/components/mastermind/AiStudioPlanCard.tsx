@@ -40,6 +40,7 @@ const visibilityLabel: Record<VisibleAiPackState, string> = {
 
 const AI_STUDIO_CUSTOMIZATION_STORAGE_KEY = 'mastermind-ai-studio-customization-v1';
 const AI_STUDIO_WORKSPACE_TRACKER_STORAGE_KEY = 'mastermind-ai-studio-workspace-tracker-v1';
+const AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY = 'mastermind-ai-studio-unlock-confirmations-v1';
 
 interface AiStudioCustomization {
   installHome: string;
@@ -56,6 +57,7 @@ interface AiStudioWorkspaceProgress {
 }
 
 type AiStudioWorkspaceTracker = Record<string, AiStudioWorkspaceProgress>;
+type AiStudioUnlockConfirmations = Record<string, string>;
 
 const DEFAULT_CUSTOMIZATION: AiStudioCustomization = {
   installHome: 'Claude Project, ChatGPT Project, custom GPT, or Codex workspace',
@@ -294,6 +296,7 @@ export function AiStudioPlanCard({
   const [serverSyncStatus, setServerSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const [customization, setCustomization] = useState<AiStudioCustomization>(DEFAULT_CUSTOMIZATION);
   const [workspaceTracker, setWorkspaceTracker] = useState<AiStudioWorkspaceTracker>({});
+  const [unlockConfirmations, setUnlockConfirmations] = useState<AiStudioUnlockConfirmations>({});
   const phaseOneStateQuery = usePhaseOneState(Boolean(cycle?.cycle_id));
   const access = getAiStudioAccessSummary(membershipTier, isMastermind, memberScopes, previewCapabilities);
   const recommendedPack = getRecommendedAiProjectPack(selectedStageId, cycle);
@@ -331,6 +334,17 @@ export function AiStudioPlanCard({
       ].join('\n\n'),
     [advancedInstallDocs, customInstallPacket, selectedPack.title]
   );
+  const unlockConfirmationKey = `${cycle?.cycle_id || 'active-cycle'}:${selectedPack.id}`;
+  const requiresMonthlyUnlockConfirmation =
+    selectedPack.visibility === 'recommended_unlock' && !unlockConfirmations[unlockConfirmationKey];
+  const previewPacketSections = customInstallPacket.map((section) => ({
+    title: section.title,
+    body: 'Confirm this monthly unlock to generate this section for your own AI workspace.',
+  }));
+  const previewStarterSections = starterPacket.map((section) => ({
+    title: section.title,
+    body: 'Confirm this monthly unlock to copy the install-ready version of this section.',
+  }));
 
   useEffect(() => {
     const stored = getStorageItem(AI_STUDIO_CUSTOMIZATION_STORAGE_KEY);
@@ -354,6 +368,15 @@ export function AiStudioPlanCard({
         setWorkspaceTracker(JSON.parse(storedTracker) as AiStudioWorkspaceTracker);
       } catch {
         setWorkspaceTracker({});
+      }
+    }
+
+    const storedUnlocks = getStorageItem(AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY);
+    if (storedUnlocks) {
+      try {
+        setUnlockConfirmations(JSON.parse(storedUnlocks) as AiStudioUnlockConfirmations);
+      } catch {
+        setUnlockConfirmations({});
       }
     }
   }, []);
@@ -405,6 +428,7 @@ export function AiStudioPlanCard({
   };
 
   const copyStarterPacket = async () => {
+    if (requiresMonthlyUnlockConfirmation) return;
     try {
       await navigator.clipboard.writeText(starterPacketText);
       setCopied(true);
@@ -415,6 +439,7 @@ export function AiStudioPlanCard({
   };
 
   const copyCustomInstallPacket = async () => {
+    if (requiresMonthlyUnlockConfirmation) return;
     try {
       await navigator.clipboard.writeText(fullInstallPacketText);
       updateWorkspaceProgress({ customDocsCopiedAt: new Date().toISOString() });
@@ -427,6 +452,7 @@ export function AiStudioPlanCard({
   };
 
   const downloadCustomInstallPacket = () => {
+    if (requiresMonthlyUnlockConfirmation) return;
     downloadMarkdownFile(`${slugifyFilePart(selectedPack.title)}-install-packet.md`, fullInstallPacketText);
     updateWorkspaceProgress({ customDocsCopiedAt: new Date().toISOString() });
     void syncPhaseOneWorkspace('in_progress');
@@ -441,6 +467,15 @@ export function AiStudioPlanCard({
 
   const markFirstTestComplete = () => {
     updateWorkspaceProgress({ firstAssetTestedAt: new Date().toISOString() });
+  };
+
+  const confirmMonthlyUnlock = () => {
+    const next = {
+      ...unlockConfirmations,
+      [unlockConfirmationKey]: new Date().toISOString(),
+    };
+    setUnlockConfirmations(next);
+    setStorageItem(AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY, JSON.stringify(next));
   };
 
   const localProgress = workspaceTracker[workspaceTrackerKey] ?? {};
@@ -623,35 +658,68 @@ export function AiStudioPlanCard({
                 </p>
               </div>
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={copyCustomInstallPacket}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                  disabled={requiresMonthlyUnlockConfirmation}
+                  onClick={copyCustomInstallPacket}
+                >
                   <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
                   {customCopied ? 'Copied' : 'Copy install packet'}
                 </Button>
-                <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={downloadCustomInstallPacket}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  disabled={requiresMonthlyUnlockConfirmation}
+                  onClick={downloadCustomInstallPacket}
+                >
                   <Download className="mr-2 h-4 w-4" aria-hidden="true" />
                   {customDownloaded ? 'Downloaded' : 'Download .md'}
                 </Button>
               </div>
             </div>
+            {selectedPack.visibility === 'recommended_unlock' && (
+              <div className="mt-4 rounded-md border bg-background p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">
+                      {requiresMonthlyUnlockConfirmation ? 'Confirm this monthly unlock' : 'Monthly unlock confirmed'}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                      This confirms which project pack you are choosing to build next. Previewing the pack, saving setup answers, copying install docs, or hitting a generation error does not create a second unlock.
+                    </p>
+                  </div>
+                  {requiresMonthlyUnlockConfirmation && (
+                    <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={confirmMonthlyUnlock}>
+                      Confirm project pack
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="mt-4 grid gap-3">
-              {customInstallPacket.map((section) => (
+              {(requiresMonthlyUnlockConfirmation ? previewPacketSections : customInstallPacket).map((section) => (
                 <div key={section.title} className="rounded-md bg-background p-3">
                   <p className="text-xs font-semibold uppercase text-muted-foreground">{section.title}</p>
                   <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{section.body}</p>
                 </div>
               ))}
             </div>
-            <details className="mt-4 rounded-md border bg-background p-3">
-              <summary className="cursor-pointer text-sm font-semibold">Advanced install docs</summary>
-              <div className="mt-3 grid gap-3">
-                {advancedInstallDocs.map((section) => (
-                  <div key={section.title} className="rounded-md bg-muted/35 p-3">
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">{section.title}</p>
-                    <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{section.body}</p>
-                  </div>
-                ))}
-              </div>
-            </details>
+            {!requiresMonthlyUnlockConfirmation && (
+              <details className="mt-4 rounded-md border bg-background p-3">
+                <summary className="cursor-pointer text-sm font-semibold">Advanced install docs</summary>
+                <div className="mt-3 grid gap-3">
+                  {advancedInstallDocs.map((section) => (
+                    <div key={section.title} className="rounded-md bg-muted/35 p-3">
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">{section.title}</p>
+                      <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{section.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         </div>
 
@@ -663,13 +731,13 @@ export function AiStudioPlanCard({
                 Copy this into a Claude Project, ChatGPT Project, or custom GPT to create the first useful version without spending app credits.
               </p>
             </div>
-            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={copyStarterPacket}>
+            <Button type="button" variant="outline" className="w-full sm:w-auto" disabled={requiresMonthlyUnlockConfirmation} onClick={copyStarterPacket}>
               <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
               {copied ? 'Copied' : 'Copy packet'}
             </Button>
           </div>
           <div className="mt-4 grid gap-3">
-            {starterPacket.map((section) => (
+            {(requiresMonthlyUnlockConfirmation ? previewStarterSections : starterPacket).map((section) => (
               <div key={section.title} className="rounded-md bg-muted/35 p-3">
                 <p className="text-xs font-semibold uppercase text-muted-foreground">{section.title}</p>
                 <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{section.body}</p>
@@ -766,6 +834,8 @@ export function AiStudioPlanCard({
             {visiblePacks.slice(0, 6).map((pack) => {
               const canSelectPack = pack.visibility !== 'locked';
               const isSelected = selectedPack.id === pack.id;
+              const confirmationKey = `${cycle?.cycle_id || 'active-cycle'}:${pack.id}`;
+              const isConfirmedUnlock = pack.visibility === 'recommended_unlock' && Boolean(unlockConfirmations[confirmationKey]);
 
               return (
                 <button
@@ -791,7 +861,7 @@ export function AiStudioPlanCard({
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="break-words text-sm font-semibold leading-snug">{pack.title}</p>
                       <Badge variant={pack.visibility === 'locked' ? 'outline' : 'secondary'} className="text-[11px]">
-                        {isSelected ? 'Selected' : visibilityLabel[pack.visibility]}
+                        {isConfirmedUnlock ? 'Confirmed' : isSelected ? 'Selected' : visibilityLabel[pack.visibility]}
                       </Badge>
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{pack.recommendedWhen}</p>
