@@ -738,7 +738,7 @@ html.theme-transitioning * {
   }
 
   .mastermind-brand__hero {
-    box-shadow: 7px 7px 0 var(--mastermind-ink);
+    box-shadow: none;
   }
 
   .mastermind-brand__title {
@@ -803,7 +803,7 @@ html.theme-transitioning * {
     background-color: var(--mastermind-pink-soft) !important;
   }
 
-  .mastermind-brand [class*="text-primary"] {
+  .mastermind-brand [class~="text-primary"] {
     color: var(--mastermind-pink) !important;
   }
 
@@ -818,25 +818,46 @@ html.theme-transitioning * {
     letter-spacing: 0;
   }
 
-  .mastermind-brand :where(.bg-primary, [data-state="active"]) {
+  .mastermind-brand :where(.bg-primary) {
     background-color: var(--mastermind-pink) !important;
     color: #ffffff !important;
   }
 
-  .mastermind-brand :where(.bg-primary, [data-state="active"]):hover {
+  .mastermind-brand :where(.bg-primary):hover {
     background-color: var(--mastermind-pink-hover) !important;
   }
 
-  .mastermind-brand [role="tablist"] {
+  .mastermind-brand__tabs {
     border: 2px solid var(--mastermind-ink);
     border-radius: 0 !important;
     background: #ffffff;
-    padding: 0.25rem;
+    padding: 0;
   }
 
-  .mastermind-brand [role="tab"] {
+  .mastermind-brand__tab {
+    min-height: 2.75rem;
+    border-left: 2px solid var(--mastermind-ink);
     border-radius: 0 !important;
+    background: #ffffff !important;
+    color: var(--mastermind-ink) !important;
     font-weight: 700;
+    letter-spacing: 0;
+    transition: background-color 0.18s, color 0.18s;
+  }
+
+  .mastermind-brand__tab:first-child {
+    border-left: 0;
+  }
+
+  .mastermind-brand__tab[data-state="active"] {
+    background-color: var(--mastermind-pink) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .mastermind-brand__tab:not([data-state="active"]):hover {
+    background-color: var(--mastermind-pink-soft) !important;
+    color: var(--mastermind-pink) !important;
   }
 }
 

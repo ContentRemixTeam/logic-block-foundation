@@ -31,6 +31,7 @@ const offlineSyncSourcePath = path.join(projectRoot, 'src/lib/offlineSync.ts');
 const authSourcePath = path.join(projectRoot, 'src/hooks/useAuth.tsx');
 const protectedRouteSourcePath = path.join(projectRoot, 'src/components/ProtectedRoute.tsx');
 const adminPreviewGateSourcePath = path.join(projectRoot, 'src/components/admin/AdminPreviewGate.tsx');
+const indexCssSourcePath = path.join(projectRoot, 'src/index.css');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -455,6 +456,7 @@ try {
   const authSource = readFileSync(authSourcePath, 'utf8');
   const protectedRouteSource = readFileSync(protectedRouteSourcePath, 'utf8');
   const adminPreviewGateSource = readFileSync(adminPreviewGateSourcePath, 'utf8');
+  const indexCssSource = readFileSync(indexCssSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
@@ -783,9 +785,12 @@ try {
   assert.ok(!mastermindHubSource.includes("navigate('/mastermind/replay-vault')"), '90-day guidance must keep the Replay Vault hidden until launch is enabled');
   assert.ok(!mastermindHubSource.includes('VITE_ENABLE_MASTERMIND_VIDEO_SEARCH'), 'MastermindHub must not retain the static video-search feature flag');
   assert.ok(!mastermindHubSource.includes('MastermindVideoSearch'), 'MastermindHub must not mount the static Replay Vault pilot');
+  assert.ok(indexCssSource.includes('.mastermind-brand [class~="text-primary"]'), 'Brand CSS should only match the exact text-primary utility so active pink controls stay readable');
+  assert.equal(indexCssSource.includes('.mastermind-brand [class*="text-primary"]'), false, 'Brand CSS must not treat text-primary-foreground as text-primary');
 
   const requiredMastermindHubLayoutGuards = [
-    'className="grid w-full grid-cols-3 sm:max-w-lg"',
+    'className="mastermind-brand__tabs grid h-auto w-full grid-cols-3 p-0"',
+    'className="mastermind-brand__tab"',
     'className="pl-10 pr-10"',
     'className="min-h-9 whitespace-normal text-left leading-tight"',
     'className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"',

@@ -659,12 +659,12 @@ export default function MastermindHub() {
   return (
     <Layout>
       <AccessBoundary>
-        <div className="mastermind-brand mx-auto max-w-6xl space-y-6">
-          <div className="mastermind-brand__hero flex flex-col gap-3 border-2 border-[#111111] bg-[#F7F5F2] p-5 md:flex-row md:items-end md:justify-between md:p-8">
+        <div className="mastermind-brand mx-auto max-w-6xl space-y-5">
+          <div className="mastermind-brand__hero flex flex-col gap-4 border-2 border-[#111111] bg-[#F7F5F2] p-4 sm:p-5 md:flex-row md:items-center md:justify-between md:p-6">
             <div className="space-y-2">
               <Badge variant="secondary" className="mastermind-brand__eyebrow w-fit">Becoming Boss Mastermind</Badge>
               <div>
-                <h1 className="mastermind-brand__title text-4xl font-normal leading-none md:text-6xl" aria-label="Your 90-Day Plan">
+                <h1 className="mastermind-brand__title text-4xl font-normal leading-none md:text-5xl" aria-label="Your 90-Day Plan">
                   Your 90-Day <span>Plan</span>
                 </h1>
                 <p className="mastermind-brand__subtitle mt-2 max-w-2xl text-sm md:text-base">
@@ -681,10 +681,10 @@ export default function MastermindHub() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3 sm:max-w-lg">
-              <TabsTrigger value="guidance">Guidance</TabsTrigger>
-              <TabsTrigger value="support">Get Support</TabsTrigger>
-              <TabsTrigger value="training">Training</TabsTrigger>
+            <TabsList className="mastermind-brand__tabs grid h-auto w-full grid-cols-3 p-0">
+              <TabsTrigger className="mastermind-brand__tab" value="guidance">Guidance</TabsTrigger>
+              <TabsTrigger className="mastermind-brand__tab" value="support">Get Support</TabsTrigger>
+              <TabsTrigger className="mastermind-brand__tab" value="training">Training</TabsTrigger>
             </TabsList>
 
             <TabsContent value="guidance" className="space-y-4">
