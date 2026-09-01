@@ -497,6 +497,11 @@ try {
   assert.ok(mastermindSupportBotSource.includes('searchMastermindPortalResources'), 'Support bot finder should reuse the curriculum search logic');
   assert.ok(mastermindSupportBotSource.includes('training_ids'), 'Support bot should request known training IDs instead of inventing resources');
   assert.ok(mastermindSupportBotSource.includes('Open AI key settings'), 'Support bot should give members the cost-safe key setup path');
+  assert.ok(mastermindSupportBotSource.includes('Use your own AI without spending app credits'), 'Support bot should preserve no-key value before a member connects an API key');
+  assert.ok(mastermindSupportBotSource.includes('Copy coaching prompt'), 'Support bot should let members copy a coaching prompt for their own AI account');
+  assert.ok(mastermindSupportBotSource.includes('Copy finder prompt'), 'Support bot should let members copy a finder prompt for their own AI account');
+  assert.ok(mastermindSupportBotSource.includes('deterministicCoachResult'), 'Support bot should provide deterministic fallback coaching when live AI is unavailable');
+  assert.ok(mastermindSupportBotSource.includes('buildSupportPrompt'), 'Support bot should build plan-aware prompts from the member 90-day context');
   assert.ok(mastermindSupportBotSource.includes('one next move'), 'Coaching response should stay focused on one next move');
   assert.ok(mastermindSupportBotSource.includes('evidence_to_record'), 'Coaching response should ask for evidence, not only inspiration');
   assert.ok(mastermindSupportBotSource.includes('Only ready, playable curriculum videos appear here.'), 'Finder should only show playable hidden curriculum videos');

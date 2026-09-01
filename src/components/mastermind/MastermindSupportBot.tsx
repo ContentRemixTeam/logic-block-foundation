@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bot, CheckCircle2, Loader2, Search, Sparkles } from 'lucide-react';
+import { Bot, CheckCircle2, ClipboardCheck, Copy, Loader2, Search, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import {
 } from '@/lib/mastermindSuccessPath';
 import { searchMastermindPortalResources } from '@/lib/mastermindPortalSearch';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type SupportBotMode = 'coach' | 'find';
 
@@ -52,6 +53,81 @@ function normalizeTrainingIds(ids: string[] | undefined, resources: MastermindPo
   return (ids ?? []).filter((id) => knownIds.has(id)).slice(0, 3);
 }
 
+function formatPromptResource(resource: MastermindPortalResource, index: number) {
+  return [
+    `${index + 1}. ${resource.title}`,
+    `   Best for: ${resource.memberJob}`,
+    `   Why it matches: ${resource.description}`,
+    `   After using it: ${resource.sourceStatus}`,
+  ].join('\n');
+}
+
+function buildSupportPrompt({
+  mode,
+  question,
+  cycle,
+  selectedStage,
+  currentMilestone,
+  recommendedResources,
+  completedResourceIds,
+}: {
+  mode: SupportBotMode;
+  question: string;
+  cycle?: MastermindPlanCycle | null;
+  selectedStage: (typeof MASTERMIND_SUCCESS_STAGES)[number];
+  currentMilestone: MastermindMilestone;
+  recommendedResources: MastermindPortalResource[];
+  completedResourceIds: Set<string>;
+}) {
+  const watchedTitles = recommendedResources
+    .filter((resource) => completedResourceIds.has(resource.id))
+    .map((resource) => resource.title);
+  const availableResources = recommendedResources
+    .filter((resource) => !completedResourceIds.has(resource.id))
+    .slice(0, 3);
+  const promptJob = mode === 'coach'
+    ? 'Help me decide the smallest useful next move.'
+    : 'Help me choose the best training to use first.';
+
+  return [
+    promptJob,
+    '',
+    'Use Faith Mariah-style Mastermind rules:',
+    '- Give me one next move, not a new strategy maze.',
+    '- Keep action before consumption.',
+    '- Use evidence before interpretation.',
+    '- Include a low-capacity version.',
+    '- Tell me what to bring back as proof.',
+    '- Do not shame me or tell me to restart unless the evidence truly says to adjust.',
+    '',
+    'My question:',
+    question.trim() || DEFAULT_QUESTION,
+    '',
+    'My current 90-day plan:',
+    `Goal: ${cycle?.goal || 'Not saved yet'}`,
+    `Focus area: ${cycle?.focus_area || selectedStage.label}`,
+    `Biggest bottleneck: ${cycle?.biggest_bottleneck || selectedStage.useWhen}`,
+    `Audience: ${cycle?.audience_target || 'Not specified'}`,
+    `Low-energy version: ${cycle?.low_energy_version || selectedStage.quickWin.lowEnergy}`,
+    '',
+    'Current Mastermind section:',
+    `${selectedStage.label}: ${selectedStage.useWhen}`,
+    `Checkpoint: ${currentMilestone.label}`,
+    `Checkpoint output: ${currentMilestone.output}`,
+    `Recommended move: ${selectedStage.doThis}`,
+    `Evidence target: ${selectedStage.quickWin.evidence}`,
+    '',
+    'Training I can use:',
+    availableResources.length > 0 ? availableResources.map(formatPromptResource).join('\n') : 'No unwatched ready training is recommended right now.',
+    '',
+    watchedTitles.length > 0 ? `Already watched or completed: ${watchedTitles.join(', ')}` : 'Already watched or completed: none from this recommendation set.',
+    '',
+    mode === 'coach'
+      ? 'Please answer in this exact format: What I see, Do this next, Low-capacity version, Evidence to bring back, Use this training only if it helps, Ask Faith if.'
+      : 'Please answer in this exact format: Start here, Why this one, Timestamp/question to look for, What to do after watching, What evidence to bring back.',
+  ].join('\n');
+}
+
 export function MastermindSupportBot({
   cycle,
   selectedStageId,
@@ -66,6 +142,7 @@ export function MastermindSupportBot({
   const [coachResult, setCoachResult] = useState<CoachResult | null>(null);
   const [coachTrainingIds, setCoachTrainingIds] = useState<string[]>([]);
   const [coachError, setCoachError] = useState<string | null>(null);
+  const [copiedPrompt, setCopiedPrompt] = useState<SupportBotMode | null>(null);
   const mastermindAI = useMastermindAI();
   const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
   const searchableQuestion = question.trim() || `${selectedStage.label} ${cycle?.goal ?? ''}`;
@@ -113,11 +190,58 @@ export function MastermindSupportBot({
 
   const displayedRecommendations = mode === 'coach' ? coachTraining : finderResults;
 
+  const fallbackTrainingIds = useMemo(
+    () => finderResults.filter((resource) => !completedResourceIds.has(resource.id)).slice(0, 1).map((resource) => resource.id),
+    [completedResourceIds, finderResults]
+  );
+
+  const deterministicCoachResult = useMemo<CoachResult>(() => ({
+    answer: `Based on this 90-day plan, start with the ${selectedStage.label} constraint and keep the move evidence-producing.`,
+    next_move: selectedStage.doThis,
+    low_capacity_version: cycle?.low_energy_version?.trim() || selectedStage.quickWin.lowEnergy,
+    evidence_to_record: selectedStage.quickWin.evidence,
+    training_ids: fallbackTrainingIds,
+  }), [cycle?.low_energy_version, fallbackTrainingIds, selectedStage]);
+
+  const coachingPrompt = useMemo(() => buildSupportPrompt({
+    mode: 'coach',
+    question,
+    cycle,
+    selectedStage,
+    currentMilestone,
+    recommendedResources: finderResults,
+    completedResourceIds,
+  }), [completedResourceIds, currentMilestone, cycle, finderResults, question, selectedStage]);
+
+  const finderPrompt = useMemo(() => buildSupportPrompt({
+    mode: 'find',
+    question,
+    cycle,
+    selectedStage,
+    currentMilestone,
+    recommendedResources: finderResults,
+    completedResourceIds,
+  }), [completedResourceIds, currentMilestone, cycle, finderResults, question, selectedStage]);
+
+  const copyPrompt = async (promptMode: SupportBotMode) => {
+    const prompt = promptMode === 'coach' ? coachingPrompt : finderPrompt;
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiedPrompt(promptMode);
+      toast.success(promptMode === 'coach' ? 'Coaching prompt copied.' : 'Finder prompt copied.');
+      window.setTimeout(() => {
+        setCopiedPrompt((current) => current === promptMode ? null : current);
+      }, 2500);
+    } catch {
+      toast.error('Copy failed. Select the prompt text and copy it manually.');
+    }
+  };
+
   const runCoach = async () => {
     setMode('coach');
     setCoachError(null);
-    setCoachResult(null);
-    setCoachTrainingIds([]);
+    setCoachResult(deterministicCoachResult);
+    setCoachTrainingIds(normalizeTrainingIds(deterministicCoachResult.training_ids, visibleResources));
 
     try {
       const response = await mastermindAI.mutateAsync({
@@ -160,7 +284,7 @@ export function MastermindSupportBot({
       setCoachResult(parsed);
       setCoachTrainingIds(normalizeTrainingIds(parsed.training_ids, visibleResources));
     } catch {
-      setCoachError('Coaching needs a connected OpenAI or Claude key. The training finder still works without spending app credits.');
+      setCoachError('Live coaching needs your own OpenAI or Claude key. I added a no-key version below and a copyable prompt you can use in your own AI account.');
     }
   };
 
@@ -225,6 +349,27 @@ export function MastermindSupportBot({
           <Button type="button" variant="ghost" onClick={onOpenAiSettings}>
             Open AI key settings
           </Button>
+        </div>
+
+        <div className="rounded-lg border bg-muted/35 p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">Use your own AI without spending app credits</p>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Copy a plan-aware prompt into Claude or ChatGPT when you want deeper help before connecting an API key here.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:w-auto">
+              <Button type="button" variant="outline" className="min-h-10 whitespace-normal" onClick={() => void copyPrompt('coach')}>
+                {copiedPrompt === 'coach' ? <ClipboardCheck className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                Copy coaching prompt
+              </Button>
+              <Button type="button" variant="outline" className="min-h-10 whitespace-normal" onClick={() => void copyPrompt('find')}>
+                {copiedPrompt === 'find' ? <ClipboardCheck className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                Copy finder prompt
+              </Button>
+            </div>
+          </div>
         </div>
 
         {mode === 'coach' && coachResult && (
