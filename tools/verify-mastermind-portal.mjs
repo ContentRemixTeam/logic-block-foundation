@@ -577,6 +577,12 @@ try {
   assert.ok(mastermindHubSource.includes('getWorkspaceStatusLabel'), '90-day hub should hydrate AI workspace status from saved app state');
   assert.ok(mastermindHubSource.includes('Task-ready'), '90-day hub should make the weekly Planner task handoff visible');
   assert.ok(mastermindHubSource.includes('Watched videos leave next-up lists.'), '90-day hub should tell members where completed videos went');
+  assert.ok(mastermindHubSource.includes('What to do next'), '90-day hub should give members one immediate next-step panel');
+  assert.ok(mastermindHubSource.includes('Do the next step, then bring back evidence.'), 'Next-step panel should connect action, training, and evidence');
+  assert.ok(mastermindHubSource.includes('nextReadyPlanResource'), 'Next-step panel should choose the next unwatched resource from the saved focus');
+  assert.ok(mastermindHubSource.includes('hasCompletedNextReadyResource'), 'Next-step panel should avoid presenting watched resources as new assignments');
+  assert.ok(mastermindHubSource.includes('Use next'), 'Next-step panel should name the next resource without making members browse');
+  assert.ok(mastermindHubSource.includes('Record this'), 'Next-step panel should make evidence capture visible before the long curriculum map');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);

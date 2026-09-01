@@ -384,6 +384,20 @@ export default function MastermindHub() {
     return visibleResources.filter((resource) => completedResourceIds.has(resource.id)).length;
   }, [completedResourceIds, resourceFilter, searchQuery, showWatchedResources, visibleResources]);
 
+  const nextReadyPlanResource = useMemo(() => {
+    return stageResourcesForCurrentMilestone.find((resource) => !completedResourceIds.has(resource.resourceId))
+      ?? stageResourcesForCurrentMilestone[0]
+      ?? null;
+  }, [completedResourceIds, stageResourcesForCurrentMilestone]);
+
+  const nextReadyPortalResource = nextReadyPlanResource
+    ? portalResourceById.get(nextReadyPlanResource.resourceId) ?? null
+    : null;
+  const nextPlannedPlanResource = plannedStageResourcesForCurrentMilestone[0] ?? null;
+  const hasCompletedNextReadyResource = Boolean(
+    nextReadyPlanResource && completedResourceIds.has(nextReadyPlanResource.resourceId)
+  );
+
   const workspaceStatus = phaseOneStateQuery.data?.workspace_status ?? 'not_started';
   const planDashboardItems = [
     {
@@ -511,6 +525,92 @@ export default function MastermindHub() {
                   </CardContent>
                 </Card>
               )}
+
+              <Card className="border-primary/30">
+                <CardHeader>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <Badge variant="secondary" className="mb-2 w-fit">What to do next</Badge>
+                      <CardTitle>Do the next step, then bring back evidence.</CardTitle>
+                      <CardDescription>
+                        This keeps the curriculum attached to the current 90-day plan instead of turning the portal into a pile of videos.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="w-fit">{selectedStage.label} focus</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg border bg-background p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Target className="h-4 w-4 text-primary" aria-hidden="true" />
+                        <p className="text-sm font-semibold">Do this</p>
+                      </div>
+                      <p className="text-sm leading-relaxed">{selectedStage.doThis}</p>
+                    </div>
+                    <div className="rounded-lg border bg-background p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Video className="h-4 w-4 text-primary" aria-hidden="true" />
+                        <p className="text-sm font-semibold">Use next</p>
+                      </div>
+                      {nextReadyPlanResource ? (
+                        <>
+                          <p className="text-sm font-medium leading-snug">{nextReadyPlanResource.title}</p>
+                          <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                            {hasCompletedNextReadyResource ? 'Already watched. Rewatch only if it helps this round.' : nextReadyPlanResource.useWhen}
+                          </p>
+                        </>
+                      ) : nextPlannedPlanResource ? (
+                        <>
+                          <p className="text-sm font-medium leading-snug">{nextPlannedPlanResource.resource.title}</p>
+                          <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                            This lesson is being added. Use the action step while it is being finished.
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          No extra video is needed for this exact step yet.
+                        </p>
+                      )}
+                    </div>
+                    <div className="rounded-lg border bg-background p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <ClipboardCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                        <p className="text-sm font-semibold">Record this</p>
+                      </div>
+                      <p className="text-sm leading-relaxed">{selectedStage.quickWin.evidence}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border bg-muted/35 p-4">
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">If you are stuck</p>
+                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{selectedStage.supportPrompt}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-2">
+                      {nextReadyPlanResource ? (
+                        <Button type="button" className="w-full" onClick={() => handleOpenRecommendedResource(nextReadyPlanResource)}>
+                          {nextReadyPortalResource?.id === 'faith-ai'
+                            ? 'Open AI support'
+                            : hasCompletedNextReadyResource
+                              ? 'Watch again'
+                              : 'Open training'}
+                        </Button>
+                      ) : (
+                        <Button type="button" className="w-full" variant="outline" onClick={() => setActiveTab('training')}>
+                          Find training
+                        </Button>
+                      )}
+                      <Button type="button" variant="outline" className="w-full" onClick={() => navigate('/evidence')}>
+                        Record evidence
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               {successPathData?.hasConfirmedStage && (
                 <p className="text-sm text-muted-foreground">
