@@ -115,6 +115,13 @@ const scenarios = [
     cycle: null,
     checks: ['noCyclePrompt'],
   },
+  {
+    name: 'signed-in-non-allowlisted-hidden-route-denied',
+    viewport: { width: 1280, height: 900, mobile: false, deviceScaleFactor: 1 },
+    cycle: savedCycle,
+    mockEmail: 'notapproved-mastermind-qa@example.com',
+    checks: ['hiddenPreviewDenied'],
+  },
 ];
 
 function sleep(ms) {
@@ -332,14 +339,14 @@ async function openNewPage(debugPort) {
   return await CdpClient.connect(target.webSocketDebuggerUrl);
 }
 
-function buildMockScript(cycle) {
+function buildMockScript(cycle, email = mockEmail) {
   return `
 (() => {
   const user = {
     id: ${JSON.stringify(mockUserId)},
     aud: 'authenticated',
     role: 'authenticated',
-    email: ${JSON.stringify(mockEmail)},
+    email: ${JSON.stringify(email)},
     email_confirmed_at: '2026-08-08T00:00:00.000Z',
     app_metadata: { provider: 'email', providers: ['email'] },
     user_metadata: { first_name: 'Browser', last_name: 'QA' },
@@ -680,6 +687,19 @@ async function saveScreenshot(client, scenario, passNumber) {
 }
 
 async function runChecks(client, checks, label) {
+  if (checks.includes('hiddenPreviewDenied')) {
+    await waitFor(client, 'location.pathname === "/dashboard"', `${label} hidden preview denied`);
+    await assertNoText(client, 'Becoming Boss Mastermind');
+    await assertNoText(client, 'Training Library');
+    await assertNoText(client, 'Create My AI Workspace');
+    await assertNoText(client, 'Confirm this monthly unlock');
+    await assertNoText(client, 'Bosses Make Sales');
+    const mediaCount = await evaluate(client, 'document.querySelectorAll("video, iframe").length');
+    assert.equal(mediaCount, 0, `${label} should not render hidden curriculum media`);
+    await assertNoHorizontalOverflow(client, `${label} denied route`);
+    return;
+  }
+
   await waitFor(client, 'document.body && document.body.innerText.includes("Your 90-Day Plan")', `${label} Mastermind shell`);
   await assertNoText(client, 'Video Search');
   await assertNoHorizontalOverflow(client, `${label} initial view`);
@@ -918,7 +938,7 @@ async function runScenario(baseUrl, debugPort, scenario, passNumber) {
     });
     await client.send('Emulation.setTouchEmulationEnabled', { enabled: scenario.viewport.mobile });
     await client.send('Page.addScriptToEvaluateOnNewDocument', {
-      source: buildMockScript(scenario.cycle),
+      source: buildMockScript(scenario.cycle, scenario.mockEmail || mockEmail),
     });
 
     const url = `${baseUrl}${qaPath}?browserQa=${encodeURIComponent(scenario.name)}&pass=${passNumber}`;
