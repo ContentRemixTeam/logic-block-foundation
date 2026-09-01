@@ -154,7 +154,7 @@ export default function MastermindTraining() {
     }
 
     try {
-      let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+      let timeoutId: number | undefined;
       const timeout = new Promise<never>((_, reject) => {
         timeoutId = window.setTimeout(() => reject(new Error('playback_request_timeout')), PLAYBACK_REQUEST_TIMEOUT_MS);
       });

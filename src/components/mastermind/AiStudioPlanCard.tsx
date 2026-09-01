@@ -353,7 +353,8 @@ export function AiStudioPlanCard({
     visiblePacks.find((pack) => pack.id === selectedPackId && pack.visibility !== 'locked')
     ?? visiblePacks.find((pack) => pack.id === recommendedPack.id && pack.visibility !== 'locked')
     ?? visiblePacks.find((pack) => pack.access === 'planner_safe')
-    ?? recommendedPack;
+    ?? visiblePacks.find((pack) => pack.id === recommendedPack.id)
+    ?? visiblePacks[0];
   const workspaceTrackerKey = `${cycle?.cycle_id || 'active-cycle'}:${selectedPack.id}`;
   const starterPacket = useMemo(
     () => buildStarterPacket({ cycle, selectedStageId, recommendedPack: selectedPack }),
