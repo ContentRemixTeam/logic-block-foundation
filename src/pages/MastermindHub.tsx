@@ -22,6 +22,7 @@ import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
 import {
   MASTERMIND_PORTAL_RESOURCES,
+  formatMemberFacingResourceJob,
   getProtectedTrainingHref,
   type MastermindPortalAccess,
   type MastermindPortalResource,
@@ -1254,7 +1255,7 @@ export default function MastermindHub() {
                             </div>
                             <Clock className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                           </div>
-                          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{resource.memberJob}</p>
+                          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{formatMemberFacingResourceJob(resource.memberJob)}</p>
                           <div className="mt-auto flex flex-wrap gap-2 pt-4">
                             <Badge variant="outline" className="text-[11px]">{formatWatchDuration(durationSeconds)}</Badge>
                             <Badge variant="outline" className="text-[11px]">{resource.stages[0]}</Badge>
@@ -1788,7 +1789,7 @@ function ResourceCard({ resource, isPinned, isCompleted, canPin = true, onToggle
 
         <div className="rounded-md bg-muted/45 p-3">
           <p className="text-xs font-semibold text-muted-foreground">Best for</p>
-          <p className="mt-1 text-sm leading-snug">{resource.memberJob}</p>
+          <p className="mt-1 text-sm leading-snug">{formatMemberFacingResourceJob(resource.memberJob)}</p>
         </div>
 
         <div className="flex flex-wrap gap-1.5">

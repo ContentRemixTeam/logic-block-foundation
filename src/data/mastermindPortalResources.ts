@@ -49,6 +49,19 @@ export interface MastermindPortalResource {
   protectedPlayback?: MastermindProtectedPlayback;
 }
 
+export function formatMemberFacingResourceJob(copy: string) {
+  return copy
+    .replace(/\bwhen a member needs\b/gi, 'when you need')
+    .replace(/\bwhen the member needs\b/gi, 'when you need')
+    .replace(/\bwhen the member is\b/gi, 'when you are')
+    .replace(/\bwhen the member has\b/gi, 'when you have')
+    .replace(/\bwhen the member\b/gi, 'when you')
+    .replace(/\ba member needs\b/gi, 'you need')
+    .replace(/\bthe member's\b/gi, 'your')
+    .replace(/\bmember's\b/gi, 'your')
+    .replace(/\bthe member\b/gi, 'you');
+}
+
 const learningUrl = (productId: string) =>
   `https://portal.faithmariah.com/communities/groups/mastermind/learning?productId=${productId}`;
 
@@ -222,7 +235,7 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
     portalPath: 'Learning -> CALL REPLAYS -> current 30-day replay window',
     transcriptStatus: 'transcript_ready',
     transcriptLabel: 'Current replays indexed',
-    sourceStatus: 'Recent call replays are available for current member support inside the 30-day window.',
+    sourceStatus: 'Recent call replays stay available inside the current 30-day support window.',
     url: learningUrl('8cd48d79-e6dd-4e11-9e4c-5d643703bad1'),
     isExternal: true,
     primaryAction: 'Open Current Replays',
@@ -662,7 +675,7 @@ export const MASTERMIND_PORTAL_RESOURCES: MastermindPortalResource[] = [
   {
     id: 'replay-vault',
     title: 'Replay Vault',
-    description: 'The deeper archive for members whose access includes the Mastermind replay vault.',
+    description: 'The deeper archive when your access includes the Mastermind replay vault.',
     memberJob: 'Use only when the member has vault access and needs a historical example beyond the current replay window.',
     access: 'vault',
     accessLabel: 'Vault access',

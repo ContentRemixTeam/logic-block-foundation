@@ -180,11 +180,12 @@ function buildCustomInstallPacket({
       body: [
         `Primary job: ${recommendedPack.job}`,
         ...recommendedPack.operatingRules,
-        `Member-specific guardrail: ${guardrails}`,
+        `Your guardrail: ${guardrails}`,
         'Start by restating the decision or asset I am asking for in plain language.',
         'Ask for missing context only when it would materially change the recommendation.',
         'Use this answer format: one recommendation, why it fits the 90-day plan, one lower-capacity version, one evidence target, assumptions to test, and any contradiction to bring to coaching.',
         'Label each important recommendation as plan evidence, buyer/customer evidence, member preference, or AI assumption.',
+        'In your workspace, member preference means your own preference, capacity, or constraint.',
         'If the output starts becoming generic, bring it back to the current buyer, offer, capacity, and 90-day result.',
         'If my request conflicts with the saved plan, Faith\'s curriculum, or the guardrails above, name the conflict before giving advice.',
       ].map((line) => `- ${line}`).join('\n'),
@@ -242,7 +243,7 @@ function buildAdvancedInstallDocs({
         `90-day result: ${goal}`,
         `Current section: ${stage.label}`,
         `AI setup purpose: ${recommendedPack.job}`,
-        `Member guardrails: ${guardrails}`,
+        `Your guardrails: ${guardrails}`,
         ...recommendedPack.knowledgeDocs.map((doc) => `Create a note called "${doc}" and keep it updated as real evidence comes in.`),
       ].map((item) => `- ${item}`).join('\n'),
     },
@@ -274,6 +275,7 @@ function buildAdvancedInstallDocs({
       title: 'Source Labels And Contradictions',
       body: [
         'Ask the AI to label important claims as plan evidence, buyer/customer evidence, member preference, Faith/program guidance, or AI assumption.',
+        'In your workspace, member preference means your own preference, capacity, or constraint.',
         'Do not let it treat a guess like a fact.',
         'When advice conflicts with Faith, the saved plan, or real market evidence, it should name the contradiction and suggest the smallest evidence test or coaching question.',
       ].join('\n'),
@@ -594,7 +596,7 @@ export function AiStudioPlanCard({
               <p className="text-sm font-semibold">Cost control</p>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              No key is needed for templates, checklists, or install instructions. Any live coaching or document generation can use the member's own OpenAI or Claude key.
+              No key is needed for templates, checklists, or install instructions. Any live coaching or document generation can use your own OpenAI or Claude key.
             </p>
             <Button type="button" variant="secondary" className="mt-4 w-full" onClick={onOpenAiSettings}>
               Open AI key settings
@@ -621,7 +623,7 @@ export function AiStudioPlanCard({
             <div>
               <h3 className="text-sm font-semibold">Customize before installing</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Answer the missing context once, then copy the custom install docs into the member's own AI workspace.
+                Answer the missing context once, then copy the custom install docs into your own AI workspace.
               </p>
             </div>
             <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={saveCustomization}>
@@ -687,7 +689,7 @@ export function AiStudioPlanCard({
               <div>
                 <h4 className="text-sm font-semibold">Custom install docs</h4>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Copy or download the install packet, then add it to the member's own AI workspace.
+                  Copy or download the install packet, then add it to your own AI workspace.
                 </p>
               </div>
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -803,7 +805,7 @@ export function AiStudioPlanCard({
             <div>
               <h3 className="text-sm font-semibold">Created from this plan</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Track the AI setup pieces that came from this 90-day plan so the member can see what is actually installed and tested.
+                Track the AI setup pieces that came from this 90-day plan so you can see what is actually installed and tested.
               </p>
             </div>
             <Badge variant="secondary" className="w-fit text-[11px]">

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import type { MastermindPortalResource } from '@/data/mastermindPortalResources';
+import { formatMemberFacingResourceJob, type MastermindPortalResource } from '@/data/mastermindPortalResources';
 import { parseAIJson, useMastermindAI } from '@/hooks/useMastermindAI';
 import {
   MASTERMIND_SUCCESS_STAGES,
@@ -43,7 +43,7 @@ function compactResource(resource: MastermindPortalResource) {
     id: resource.id,
     title: resource.title,
     description: resource.description,
-    member_job: resource.memberJob,
+    member_job: formatMemberFacingResourceJob(resource.memberJob),
     stages: resource.stages,
   };
 }
@@ -56,7 +56,7 @@ function normalizeTrainingIds(ids: string[] | undefined, resources: MastermindPo
 function formatPromptResource(resource: MastermindPortalResource, index: number) {
   return [
     `${index + 1}. ${resource.title}`,
-    `   Best for: ${resource.memberJob}`,
+    `   Best for: ${formatMemberFacingResourceJob(resource.memberJob)}`,
     `   Why it matches: ${resource.description}`,
     `   After using it: ${resource.sourceStatus}`,
   ].join('\n');
@@ -267,7 +267,7 @@ export function MastermindSupportBot({
               'Return JSON only with keys: answer, next_move, low_capacity_version, evidence_to_record, training_ids.',
               'Give one next move, one low-capacity version, and one evidence_to_record.',
               'Use only training_ids from the provided available_training list. If no training fits, return an empty array.',
-              'Do not change the member\'s plan. The member chooses what to use.',
+              'Do not change the user\'s plan. The user chooses what to use.',
             ].join(' '),
           },
           {
