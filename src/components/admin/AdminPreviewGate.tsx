@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AdminPreviewGateProps {
   children: ReactNode;
@@ -11,15 +10,12 @@ interface AdminPreviewGateProps {
 type GateState = 'checking' | 'allowed' | 'denied';
 
 const PREVIEW_ALLOWED_EMAILS = new Set(['faithhawks@gmail.com', 'info@faithmariah.com']);
-const CHECK_TIMEOUT_MS = 8000;
 
 export function AdminPreviewGate({ children }: AdminPreviewGateProps) {
   const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<GateState>('checking');
 
   useEffect(() => {
-    let active = true;
-
     if (authLoading) return;
     if (!user) {
       setState('denied');
@@ -29,34 +25,10 @@ export function AdminPreviewGate({ children }: AdminPreviewGateProps) {
     setState('checking');
 
     // Hidden private-preview allowlist: specific authenticated emails are
-    // allowed without the is_admin RPC; everyone else uses is_admin.
+    // allowed for the Mastermind QA routes. This intentionally does not fall
+    // back to the general admin role while the feature is hidden from members.
     const email = (user.email ?? '').trim().toLowerCase();
-    if (PREVIEW_ALLOWED_EMAILS.has(email)) {
-      setState('allowed');
-      return;
-    }
-
-    // Fail closed on timeout or error instead of hanging on "Checking…".
-    const timeout = setTimeout(() => {
-      if (active) setState('denied');
-    }, CHECK_TIMEOUT_MS);
-
-    void (async () => {
-      try {
-        const { data, error } = await supabase.rpc('is_admin', { check_user_id: user.id });
-        if (!active) return;
-        setState(!error && data === true ? 'allowed' : 'denied');
-      } catch {
-        if (active) setState('denied');
-      } finally {
-        clearTimeout(timeout);
-      }
-    })();
-
-    return () => {
-      active = false;
-      clearTimeout(timeout);
-    };
+    setState(PREVIEW_ALLOWED_EMAILS.has(email) ? 'allowed' : 'denied');
   }, [authLoading, user]);
 
   if (authLoading || state === 'checking') {

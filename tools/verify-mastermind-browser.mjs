@@ -16,7 +16,7 @@ const artifactDir = process.env.MASTERMIND_BROWSER_QA_ARTIFACT_DIR
 const qaPath = process.env.MASTERMIND_BROWSER_QA_PATH || '/admin/mastermind-90-day-plan-preview';
 const supabaseProjectRef = 'wdxelomsouudmidakxiz';
 const mockUserId = '00000000-0000-4000-8000-000000000001';
-const mockEmail = 'mastermind-browser-qa@example.com';
+const mockEmail = 'faithhawks@gmail.com';
 
 const browserProfiles = {
   androidChrome: {

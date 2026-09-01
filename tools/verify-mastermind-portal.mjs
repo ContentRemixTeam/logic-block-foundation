@@ -26,6 +26,7 @@ const mastermindSuccessPathHookSourcePath = path.join(projectRoot, 'src/hooks/us
 const offlineSyncSourcePath = path.join(projectRoot, 'src/lib/offlineSync.ts');
 const authSourcePath = path.join(projectRoot, 'src/hooks/useAuth.tsx');
 const protectedRouteSourcePath = path.join(projectRoot, 'src/components/ProtectedRoute.tsx');
+const adminPreviewGateSourcePath = path.join(projectRoot, 'src/components/admin/AdminPreviewGate.tsx');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -430,6 +431,7 @@ try {
   const offlineSyncSource = readFileSync(offlineSyncSourcePath, 'utf8');
   const authSource = readFileSync(authSourcePath, 'utf8');
   const protectedRouteSource = readFileSync(protectedRouteSourcePath, 'utf8');
+  const adminPreviewGateSource = readFileSync(adminPreviewGateSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
@@ -688,6 +690,8 @@ try {
   assert.ok(authSource.includes('setSession(null);') && authSource.includes('setUser(null);') && authSource.includes('setLoading(false);'), 'Auth bootstrap timeout should resolve loading into a signed-out state');
   assert.ok(protectedRouteSource.includes('location.search') && protectedRouteSource.includes('location.hash'), 'ProtectedRoute auth redirect should preserve query strings and hashes for hidden training links');
   assert.ok(protectedRouteSource.includes("sessionStorage.setItem('auth_redirect', authRedirect)"), 'ProtectedRoute should store the full protected-route return URL');
+  assert.ok(adminPreviewGateSource.includes("'faithhawks@gmail.com'") && adminPreviewGateSource.includes("'info@faithmariah.com'"), 'Hidden Mastermind QA preview should keep the two-account allowlist');
+  assert.equal(adminPreviewGateSource.includes("supabase.rpc('is_admin'"), false, 'Hidden Mastermind QA preview must not fall back to broad admin access');
   assert.ok(mastermindHubSource.includes('Ask Faith coaching brief'), '90-day hub should generate a plan-aware Ask Faith handoff brief');
   assert.ok(mastermindHubSource.includes('Copy Ask Faith brief'), '90-day hub should let members copy their coaching context before opening support');
   assert.ok(mastermindHubSource.includes('copyAskFaithBrief'), '90-day hub should provide a working clipboard handler for the Ask Faith brief');
