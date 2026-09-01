@@ -525,8 +525,9 @@ try {
   assert.ok(mastermindCurrentReplaysSource.includes('isCurrentReplayGroup'), 'Current replay page should verify grouped search payloads before rendering');
   assert.ok(mastermindCurrentReplaysSource.includes('isCurrentReplaySearchRow'), 'Current replay page should verify each search result scope before rendering');
   assert.ok(mastermindCurrentReplaysSource.includes('hasCurrentReplayScope'), 'Current replay page should separately verify result and moment access scope');
+  assert.ok(mastermindCurrentReplaysSource.includes('hasNonCurrentReplayScope'), 'Current replay page should reject grouped moments that explicitly carry a non-current replay scope');
   assert.ok(mastermindCurrentReplaysSource.includes('hasCurrentReplaySource'), 'Current replay page should separately verify current-replay source metadata');
-  assert.ok(mastermindCurrentReplaysSource.includes('hasCurrentReplaySource(group) && moments.length > 0 && moments.every(hasCurrentReplayScope)'), 'Current replay grouped payloads must require current-replay source metadata and scoped moments');
+  assert.ok(mastermindCurrentReplaysSource.includes('hasCurrentReplaySource(group) && hasCurrentReplayScope(group) && moments.length > 0 && moments.every((moment) => !hasNonCurrentReplayScope(moment))'), 'Current replay grouped payloads must require current-replay source metadata, a scoped replay group, and no explicitly non-current scoped moments');
   assert.ok(mastermindCurrentReplaysSource.includes('normalizeCurrentReplayAccessResponse'), 'Current replay page should normalize current-replay access separately from full Vault access');
   assert.ok(mastermindCurrentReplaysSource.includes('surface: CURRENT_REPLAY_SURFACE'), 'Current replay page should pass its surface to access, search, and playback calls');
   assert.ok(mastermindCurrentReplaysSource.includes('groupSearchResults(currentReplayOnlySearchPayload(data))'), 'Current replay page must not render stale full-Vault search results');

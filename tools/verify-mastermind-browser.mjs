@@ -425,7 +425,6 @@ function buildMockScript(cycle, email = mockEmail) {
             momentId: 'current-moment-pricing-001',
             questionId: null,
             matchType: 'best_answer',
-            accessScope: 'current_replay_30_day',
             startSeconds: 519,
             endSeconds: 584,
             snippet: 'A focused answer about tightening the offer promise and choosing a clear pricing test for this week.',

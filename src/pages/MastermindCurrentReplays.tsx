@@ -55,6 +55,13 @@ function hasCurrentReplayScope(row: unknown) {
   return accessScope === CURRENT_REPLAY_ACCESS_SCOPE;
 }
 
+function hasNonCurrentReplayScope(row: unknown) {
+  if (!row || typeof row !== 'object') return true;
+  const record = row as Record<string, unknown>;
+  const accessScope = currentReplayField(record, ['accessScope', 'access_scope', 'approved_access_scope']);
+  return Boolean(accessScope && accessScope !== CURRENT_REPLAY_ACCESS_SCOPE);
+}
+
 function hasCurrentReplaySource(row: unknown) {
   if (!row || typeof row !== 'object') return false;
   const record = row as Record<string, unknown>;
@@ -71,7 +78,7 @@ function isCurrentReplayGroup(group: unknown) {
   if (!group || typeof group !== 'object') return false;
   const moments = (group as Record<string, unknown>).moments;
   if (Array.isArray(moments)) {
-    return hasCurrentReplaySource(group) && moments.length > 0 && moments.every(hasCurrentReplayScope);
+    return hasCurrentReplaySource(group) && hasCurrentReplayScope(group) && moments.length > 0 && moments.every((moment) => !hasNonCurrentReplayScope(moment));
   }
   return isCurrentReplaySearchRow(group);
 }
