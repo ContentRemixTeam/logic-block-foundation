@@ -469,7 +469,11 @@ try {
   assert.ok(mastermindSupportBotSource.includes('Only ready, playable curriculum videos appear here.'), 'Finder should only show playable hidden curriculum videos');
   assert.ok(successPathPlanCardSource.includes('Do this this week'), 'The 90-day guidance card should name one concrete weekly move');
   assert.ok(successPathPlanCardSource.includes('Bring back this evidence'), 'The 90-day guidance card should define the evidence target');
-  assert.ok(successPathPlanCardSource.includes('Update My 90-Day Plan'), 'The 90-day guidance card needs an honest direct plan-editing action');
+  assert.ok(successPathPlanCardSource.includes('useResilientTaskMutation'), 'The 90-day guidance card should create weekly moves through the existing resilient Planner task path');
+  assert.ok(successPathPlanCardSource.includes('Add this weekly move'), 'The 90-day guidance card should let members turn the move into one Planner task');
+  assert.ok(successPathPlanCardSource.includes('Review 90-Day Plan'), 'The 90-day guidance card needs an honest direct plan-editing fallback');
+  assert.ok(successPathPlanCardSource.includes('cycle_id: cycle.cycle_id'), 'Weekly move tasks should stay tied to the current 90-day cycle');
+  assert.ok(successPathPlanCardSource.includes('done_enough_definition: round.doneEnough'), 'Weekly move tasks should carry the result/evidence completion standard');
   assert.ok(successPathPlanCardSource.includes('Open training'), 'The 90-day guidance card should include a direct supporting-training action');
   assert.ok(successPathPlanCardSource.includes("primaryResource.resourceId === 'faith-ai'"), 'The 90-day guidance card should treat Faith AI as setup, not a video lesson');
   assert.ok(successPathPlanCardSource.includes('Set up if needed'), 'The 90-day guidance card should label AI recommendations as setup');

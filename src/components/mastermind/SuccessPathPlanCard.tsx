@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ArrowRight, CheckCircle2, MessageCircle, PlayCircle, Search, Sparkles, Target, Zap } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ListTodo, Loader2, MessageCircle, PlayCircle, Search, Sparkles, Target, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
 import {
   getMastermindWeeklyGuidance,
   type MastermindPlanCycle,
@@ -32,6 +33,7 @@ interface SuccessPathPlanCardProps {
 }
 
 const PLACEHOLDER_GOALS = new Set(['my 90-day goal', 'my 90 day goal', 'n']);
+type WeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'failed';
 
 function getRealGoal(goal: string | null | undefined) {
   const normalized = goal?.trim().toLowerCase();
@@ -55,6 +57,8 @@ export function SuccessPathPlanCard({
 }: SuccessPathPlanCardProps) {
   const [roundMode, setRoundMode] = useState<MastermindRoundMode>('build');
   const [platformId, setPlatformId] = useState<string | null>(null);
+  const [weeklyMoveTaskStates, setWeeklyMoveTaskStates] = useState<Record<string, WeeklyMoveTaskState>>({});
+  const { resilientCreate } = useResilientTaskMutation();
   if (isLoading) {
     return (
       <Card>
@@ -104,6 +108,53 @@ export function SuccessPathPlanCard({
   const primaryResourceAfterLabel = isAiSetupResource ? 'After setup: ' : 'After watching: ';
   const selectedPlatform = CREATOR_CAMP_PLATFORM_MATCHES.find((item) => item.id === platformId) ?? null;
   const realGoal = getRealGoal(cycle.goal);
+  const currentAction = roundMode === 'build' ? round.buildAction : round.improveAction;
+  const weeklyMoveTaskKey = [cycle.cycle_id, selectedStageId, currentMilestoneId ?? 'stage', roundMode, round.primaryResourceId].join(':');
+  const weeklyMoveTaskState = weeklyMoveTaskStates[weeklyMoveTaskKey] ?? 'idle';
+  const setCurrentWeeklyMoveTaskState = (state: WeeklyMoveTaskState) => {
+    setWeeklyMoveTaskStates((states) => ({ ...states, [weeklyMoveTaskKey]: state }));
+  };
+  const addWeeklyMoveToPlanner = async () => {
+    setCurrentWeeklyMoveTaskState('saving');
+
+    try {
+      const result = await resilientCreate({
+        task_text: `${stage.label}: ${currentAction}`.slice(0, 500),
+        task_description: [
+          `90-day plan: ${realGoal ?? stage.milestone}`,
+          `Current focus: ${stage.label}`,
+          `Checkpoint: ${round.question}`,
+          `Evidence to bring back: ${round.evidence}`,
+          `Done enough: ${round.doneEnough}`,
+          `Low-capacity version: ${cycle?.low_energy_version?.trim() || round.lowCapacity}`,
+          `Suggested training: ${round.primaryResourceTitle}`,
+        ].join('\n\n'),
+        cycle_id: cycle.cycle_id,
+        status: 'focus',
+        priority: 'high',
+        energy_level: 'medium',
+        estimated_minutes: 60,
+        context_tags: ['mastermind', '90-day-plan', stage.id, roundMode],
+        momentum_type: stage.id === 'find' || stage.id === 'nurture' ? 'audience'
+          : stage.id === 'deliver' ? 'delivery'
+            : stage.id === 'leverage' ? 'operations'
+              : 'revenue',
+        done_enough_definition: round.doneEnough,
+      });
+
+      const nextState = result.queued ? 'queued' : 'saved';
+      setCurrentWeeklyMoveTaskState(nextState);
+      window.setTimeout(() => {
+        setWeeklyMoveTaskStates((states) => (
+          states[weeklyMoveTaskKey] === nextState
+            ? { ...states, [weeklyMoveTaskKey]: 'idle' }
+            : states
+        ));
+      }, 3200);
+    } catch {
+      setCurrentWeeklyMoveTaskState('failed');
+    }
+  };
 
   return (
     <Card className="overflow-hidden border-primary/30 bg-primary/5">
@@ -179,9 +230,44 @@ export function SuccessPathPlanCard({
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">{round.evidence}</p>
               <p className="mt-3 text-sm"><span className="font-semibold">Round complete when: </span>{round.doneEnough}</p>
-              <Button type="button" variant="secondary" className="mt-4 w-full" onClick={onAddToPlan}>
-                Update My 90-Day Plan
-              </Button>
+              <div className="mt-4 grid gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => void addWeeklyMoveToPlanner()}
+                  disabled={weeklyMoveTaskState === 'saving'}
+                >
+                  {weeklyMoveTaskState === 'saving' ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : weeklyMoveTaskState === 'saved' || weeklyMoveTaskState === 'queued' ? (
+                    <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <ListTodo className="mr-2 h-4 w-4" aria-hidden="true" />
+                  )}
+                  {weeklyMoveTaskState === 'saving'
+                    ? 'Adding to Planner...'
+                    : weeklyMoveTaskState === 'queued'
+                      ? 'Saved for sync'
+                      : weeklyMoveTaskState === 'saved'
+                        ? 'Added to Planner'
+                        : weeklyMoveTaskState === 'failed'
+                          ? 'Try adding again'
+                          : 'Add this weekly move'}
+                </Button>
+                <Button type="button" variant="outline" className="w-full" onClick={onAddToPlan}>
+                  Review 90-Day Plan
+                </Button>
+              </div>
+              <p className="mt-2 text-xs leading-snug text-muted-foreground" role="status" aria-live="polite">
+                {weeklyMoveTaskState === 'queued'
+                  ? 'Saved locally and will sync when the Planner can reconnect.'
+                  : weeklyMoveTaskState === 'saved'
+                    ? 'This move is now in your Planner tasks.'
+                    : weeklyMoveTaskState === 'failed'
+                      ? 'The plan is still safe. Try again or review the plan manually.'
+                      : 'This creates one task tied to this 90-day cycle.'}
+              </p>
             </div>
           </div>
 
