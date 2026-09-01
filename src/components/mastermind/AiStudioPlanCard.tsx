@@ -316,35 +316,39 @@ export function AiStudioPlanCard({
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            <label className="space-y-2">
+            <label htmlFor="ai-studio-install-home" className="space-y-2">
               <span className="text-xs font-semibold text-muted-foreground">Where I will install it</span>
               <Textarea
+                id="ai-studio-install-home"
                 value={customization.installHome}
                 onChange={(event) => updateCustomization('installHome', event.target.value)}
                 className="min-h-20"
               />
             </label>
-            <label className="space-y-2">
+            <label htmlFor="ai-studio-business-context" className="space-y-2">
               <span className="text-xs font-semibold text-muted-foreground">Business context this AI must remember</span>
               <Textarea
+                id="ai-studio-business-context"
                 value={customization.businessContext}
                 onChange={(event) => updateCustomization('businessContext', event.target.value)}
                 placeholder="Offer, buyer, proof, stage of business, voice notes, current constraints..."
                 className="min-h-20"
               />
             </label>
-            <label className="space-y-2">
+            <label htmlFor="ai-studio-guardrails" className="space-y-2">
               <span className="text-xs font-semibold text-muted-foreground">What it should not change without asking</span>
               <Textarea
+                id="ai-studio-guardrails"
                 value={customization.guardrails}
                 onChange={(event) => updateCustomization('guardrails', event.target.value)}
                 placeholder="Non-negotiables, brand rules, offers to protect, team boundaries, capacity limits..."
                 className="min-h-20"
               />
             </label>
-            <label className="space-y-2">
+            <label htmlFor="ai-studio-first-asset" className="space-y-2">
               <span className="text-xs font-semibold text-muted-foreground">First asset I want it to create</span>
               <Textarea
+                id="ai-studio-first-asset"
                 value={customization.firstAsset}
                 onChange={(event) => updateCustomization('firstAsset', event.target.value)}
                 placeholder={recommendedPack.firstTest}
