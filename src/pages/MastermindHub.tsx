@@ -471,8 +471,9 @@ export default function MastermindHub() {
   const hasCompletedCurrentMilestoneResources =
     stageResourcesForCurrentMilestone.length > 0 && !nextUnwatchedPlanResource;
   const lowCapacityNextMove = dashboardCycle?.low_energy_version?.trim()
+    || currentRound.lowCapacity
     || selectedStage.quickWin.lowEnergy;
-  const currentNextMove = nextMoveMode === 'low' ? lowCapacityNextMove : selectedStage.doThis;
+  const currentNextMove = nextMoveMode === 'low' ? lowCapacityNextMove : currentRound.buildAction;
   const askFaithBrief = useMemo(() => {
     const cycle = dashboardCycle;
     const recommendedTraining = nextReadyPortalResource?.title
@@ -487,7 +488,7 @@ export default function MastermindHub() {
       `Checkpoint output: ${currentMilestone.output}`,
       `Next move: ${currentNextMove}`,
       `Low-capacity version: ${lowCapacityNextMove}`,
-      `Evidence to bring back: ${selectedStage.quickWin.evidence}`,
+      `Evidence to bring back: ${currentRound.evidence}`,
       `Recommended training: ${recommendedTraining}`,
       '',
       'What I tried:',
@@ -500,10 +501,10 @@ export default function MastermindHub() {
     currentMilestone.label,
     currentMilestone.output,
     currentNextMove,
+    currentRound.evidence,
     lowCapacityNextMove,
     nextReadyPortalResource?.title,
     selectedStage.label,
-    selectedStage.quickWin.evidence,
     dashboardCycle,
   ]);
 
@@ -713,9 +714,9 @@ export default function MastermindHub() {
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                       <Badge variant="secondary" className="mb-2 w-fit">What to do next</Badge>
-                      <CardTitle>Do the next step, then bring back evidence.</CardTitle>
+                      <CardTitle>Do the next step for this round, then bring back evidence.</CardTitle>
                       <CardDescription>
-                        This keeps the curriculum attached to the current 90-day plan instead of turning the portal into a pile of videos.
+                        This keeps the curriculum attached to the current checkpoint instead of turning the portal into a pile of videos.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="w-fit">{selectedStage.label} focus</Badge>
@@ -748,6 +749,7 @@ export default function MastermindHub() {
                           Low capacity
                         </Button>
                       </div>
+                      <p className="mb-2 text-xs font-semibold leading-snug text-muted-foreground">{currentRound.question}</p>
                       <p className="text-sm leading-relaxed">{currentNextMove}</p>
                     </div>
                     <div className="rounded-lg border bg-background p-4">
@@ -777,7 +779,7 @@ export default function MastermindHub() {
                         <ClipboardCheck className="h-4 w-4 text-primary" aria-hidden="true" />
                         <p className="text-sm font-semibold">Record this</p>
                       </div>
-                      <p className="text-sm leading-relaxed">{selectedStage.quickWin.evidence}</p>
+                      <p className="text-sm leading-relaxed">{currentRound.evidence}</p>
                     </div>
                   </div>
 
@@ -786,7 +788,7 @@ export default function MastermindHub() {
                       <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                       <div className="min-w-0">
                         <p className="text-sm font-semibold">If you are stuck</p>
-                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{selectedStage.supportPrompt}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{currentRound.rescue}</p>
                       </div>
                     </div>
                     <div className="mt-4 grid gap-2">

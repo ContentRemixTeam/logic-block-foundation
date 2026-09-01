@@ -658,7 +658,11 @@ try {
   assert.ok(mastermindHubSource.includes('Task-ready'), '90-day hub should make the weekly Planner task handoff visible');
   assert.ok(mastermindHubSource.includes('Watched videos leave next-up lists.'), '90-day hub should tell members where completed videos went');
   assert.ok(mastermindHubSource.includes('What to do next'), '90-day hub should give members one immediate next-step panel');
-  assert.ok(mastermindHubSource.includes('Do the next step, then bring back evidence.'), 'Next-step panel should connect action, training, and evidence');
+  assert.ok(mastermindHubSource.includes('Do the next step for this round, then bring back evidence.'), 'Next-step panel should connect action, training, and evidence');
+  assert.ok(mastermindHubSource.includes('currentRound.question'), 'Next-step panel should show the current checkpoint decision question');
+  assert.ok(mastermindHubSource.includes('currentRound.buildAction'), 'Next-step panel should use the milestone build action instead of a generic stage action');
+  assert.ok(mastermindHubSource.includes('currentRound.evidence'), 'Next-step panel should use milestone evidence instead of generic stage evidence');
+  assert.ok(mastermindHubSource.includes('currentRound.rescue'), 'Next-step panel should use milestone rescue guidance when members are stuck');
   assert.ok(mastermindHubSource.includes('nextUnwatchedPlanResource'), 'Next-step panel should choose the next unwatched resource from the saved focus');
   assert.ok(mastermindHubSource.includes('hasCompletedCurrentMilestoneResources'), 'Next-step panel should avoid presenting watched resources as new assignments');
   assert.ok(mastermindHubSource.includes('Training for this checkpoint is complete.'), 'Next-step panel should send completed checkpoints back to action and evidence');

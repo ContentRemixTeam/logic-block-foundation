@@ -112,7 +112,7 @@ const requiredMastermindHubStrings = [
   'Task-ready',
   'Watched videos leave next-up lists.',
   'What to do next',
-  'Do the next step, then bring back evidence.',
+  'Do the next step for this round, then bring back evidence.',
   'Use next',
   'Record this',
   'Standard',
