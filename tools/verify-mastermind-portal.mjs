@@ -479,6 +479,9 @@ try {
   assert.ok(mastermindTrainingSource.includes('Evidence to bring back'), 'Training player should name the evidence to collect after the lesson');
   assert.ok(mastermindTrainingSource.includes('findLessonRecommendation'), 'Training player should reuse the approved curriculum recommendation map');
   assert.ok(mastermindTrainingSource.includes('lessonStage?.quickWin.evidence'), 'Training player should reuse stage evidence targets instead of generic completion copy');
+  assert.ok(mastermindTrainingSource.includes('Next step in your planner'), 'Completed training should hand the member back to the Planner action loop');
+  assert.ok(mastermindTrainingSource.includes('lessonNextAction'), 'Completed training should reuse the approved stage action as the next step');
+  assert.ok(mastermindTrainingSource.includes("navigate('/evidence')"), 'Completed training should offer a direct evidence-recording path');
   assert.ok(mastermindHubSource.includes('completedResourceIds.has(resource.resourceId)'), '90-day guidance should label watched recommendation videos');
   assert.ok(mastermindHubSource.includes("'Watch again'"), 'Watched recommendation videos should not look like new assignments');
   assert.ok(mastermindHubSource.includes('showWatchedResources'), 'Training tab should let members reveal watched videos only when they ask');

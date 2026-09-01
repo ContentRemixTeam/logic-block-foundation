@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, PlayCircle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, PlayCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -98,6 +98,7 @@ export default function MastermindTraining() {
     ?? 'Go back to your plan and record the action or evidence this lesson helps you create.';
   const lessonEvidence = lessonStage?.quickWin.evidence
     ?? 'Record what you tried, what happened, and what you will do next.';
+  const lessonNextAction = lessonStage?.doThis ?? lessonAfterWatching;
   // Only "checking" while an authorized fetch is genuinely in flight.
   const catalogPending = catalogQuery.isFetching && catalogQuery.data === undefined;
   const serverCompleted = useMemo(
@@ -405,6 +406,28 @@ export default function MastermindTraining() {
                     {backLabel}
                   </Button>
                 </div>
+                {progressSaved && (
+                  <div className="mt-3 rounded-md border bg-background p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
+                      <p className="text-sm font-semibold">Next step in your planner</p>
+                    </div>
+                    <p className="text-sm leading-relaxed">
+                      <span className="font-semibold">Do this: </span>{lessonNextAction}
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      <span className="font-semibold text-foreground">Record evidence: </span>{lessonEvidence}
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <Button type="button" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={() => navigate(backHref)}>
+                        Return to plan
+                      </Button>
+                      <Button type="button" variant="secondary" className="min-h-11 w-full sm:w-auto" onClick={() => navigate('/evidence')}>
+                        Record evidence
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

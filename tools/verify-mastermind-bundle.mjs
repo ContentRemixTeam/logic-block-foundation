@@ -229,6 +229,8 @@ for (const requiredString of [
   'After watching',
   'Evidence to bring back',
   'Bring back: ',
+  'Next step in your planner',
+  'Record evidence',
 ]) {
   assert.ok(
     mastermindTrainingText.includes(requiredString),
