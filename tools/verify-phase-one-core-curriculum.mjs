@@ -13,6 +13,8 @@ const preview = read("../src/pages/MastermindPhaseOnePreview.tsx");
 const hub = read("../src/pages/MastermindHub.tsx");
 const training = read("../src/pages/MastermindTraining.tsx");
 const core = read("../src/components/replay-vault/replayVaultCore.mjs");
+const catalogHook = read("../src/hooks/usePhaseOneCatalog.ts");
+const catalogScaleMigration = read("../supabase/migrations/20260901105500_mastermind_curriculum_catalog_scale_limit.sql");
 
 const EXPECTED = [
   { id: "ninety-day-goal-setting-introduction", requirement: "required" },
@@ -126,11 +128,14 @@ assert.ok(
   /setProgressSaved\(false\);\s*\}, \[resourceId\]\)/.test(trainingSource),
   "completion state must reset per resource so one lesson never marks another complete",
 );
-const catalogHook = read("../src/hooks/usePhaseOneCatalog.ts");
 assert.ok(
   catalogHook.includes("search_my_mastermind_phase_one_resources") &&
     catalogHook.includes("save_my_mastermind_phase_one_video_progress"),
   "progress contract must stay on the validated server RPCs",
+);
+assert.ok(
+  catalogHook.includes("p_limit: 200") && catalogScaleMigration.includes("),200)"),
+  "hidden curriculum catalog must request and allow enough rows for the expanded core curriculum",
 );
 assert.ok(
   trainingSource.includes("isAdminTrainingPreview &&") &&

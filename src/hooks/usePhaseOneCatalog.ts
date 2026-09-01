@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Server-authorized Phase One catalog.
+ * Server-authorized Mastermind curriculum catalog.
  *
  * Playable state comes from `search_my_mastermind_phase_one_resources`, which
  * only returns core-curriculum lessons the signed-in identity may actually
@@ -51,7 +51,7 @@ export function usePhaseOneCatalog(enabled = true) {
     queryFn: async (): Promise<PhaseOneCatalogRow[]> => {
       const { data, error } = await (supabase as unknown as {
         rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
-      }).rpc('search_my_mastermind_phase_one_resources', { p_query: null, p_stage: null, p_limit: 50 });
+      }).rpc('search_my_mastermind_phase_one_resources', { p_query: null, p_stage: null, p_limit: 200 });
       if (error) throw error;
       return (Array.isArray(data) ? data : []) as PhaseOneCatalogRow[];
     },
