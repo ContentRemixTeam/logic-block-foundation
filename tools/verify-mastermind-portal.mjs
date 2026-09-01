@@ -25,6 +25,7 @@ const mastermindPortalAccessSourcePath = path.join(projectRoot, 'src/hooks/useMa
 const mastermindSuccessPathHookSourcePath = path.join(projectRoot, 'src/hooks/useMastermindSuccessPath.ts');
 const offlineSyncSourcePath = path.join(projectRoot, 'src/lib/offlineSync.ts');
 const authSourcePath = path.join(projectRoot, 'src/hooks/useAuth.tsx');
+const protectedRouteSourcePath = path.join(projectRoot, 'src/components/ProtectedRoute.tsx');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -428,6 +429,7 @@ try {
   const mastermindSuccessPathHookSource = readFileSync(mastermindSuccessPathHookSourcePath, 'utf8');
   const offlineSyncSource = readFileSync(offlineSyncSourcePath, 'utf8');
   const authSource = readFileSync(authSourcePath, 'utf8');
+  const protectedRouteSource = readFileSync(protectedRouteSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
@@ -684,6 +686,8 @@ try {
   assert.ok(authSource.includes('AUTH_BOOTSTRAP_TIMEOUT_MS'), 'Auth bootstrap should have a timeout so protected routes cannot hang forever');
   assert.ok(authSource.includes('Auth session bootstrap timed out; failing closed to signed-out state.'), 'Auth bootstrap timeout should fail closed with a clear warning');
   assert.ok(authSource.includes('setSession(null);') && authSource.includes('setUser(null);') && authSource.includes('setLoading(false);'), 'Auth bootstrap timeout should resolve loading into a signed-out state');
+  assert.ok(protectedRouteSource.includes('location.search') && protectedRouteSource.includes('location.hash'), 'ProtectedRoute auth redirect should preserve query strings and hashes for hidden training links');
+  assert.ok(protectedRouteSource.includes("sessionStorage.setItem('auth_redirect', authRedirect)"), 'ProtectedRoute should store the full protected-route return URL');
   assert.ok(mastermindHubSource.includes('Ask Faith coaching brief'), '90-day hub should generate a plan-aware Ask Faith handoff brief');
   assert.ok(mastermindHubSource.includes('Copy Ask Faith brief'), '90-day hub should let members copy their coaching context before opening support');
   assert.ok(mastermindHubSource.includes('copyAskFaithBrief'), '90-day hub should provide a working clipboard handler for the Ask Faith brief');

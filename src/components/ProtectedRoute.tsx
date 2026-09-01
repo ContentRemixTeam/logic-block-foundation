@@ -12,14 +12,15 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && !user) {
       // Store intended destination for redirect after login
-      sessionStorage.setItem('auth_redirect', location.pathname);
+      const authRedirect = `${location.pathname}${location.search}${location.hash}`;
+      sessionStorage.setItem('auth_redirect', authRedirect);
       navigate('/auth');
     } else if (!loading && user) {
       // Small delay for smoother transition
       const timer = setTimeout(() => setShowContent(true), 50);
       return () => clearTimeout(timer);
     }
-  }, [user, loading, navigate, location.pathname]);
+  }, [user, loading, navigate, location.pathname, location.search, location.hash]);
 
   if (loading) {
     return (
