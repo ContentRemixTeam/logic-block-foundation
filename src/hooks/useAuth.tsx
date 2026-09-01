@@ -13,6 +13,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 12_000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -24,9 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const prevUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+    const bootstrapTimeout = window.setTimeout(() => {
+      if (!active) return;
+      console.warn('Auth session bootstrap timed out; failing closed to signed-out state.');
+      setSession(null);
+      setUser(null);
+      setLoading(false);
+    }, AUTH_BOOTSTRAP_TIMEOUT_MS);
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!active) return;
+
         const newUserId = session?.user?.id ?? null;
         const prevUserId = prevUserIdRef.current;
         
@@ -65,14 +77,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      prevUserIdRef.current = session?.user?.id ?? null;
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!active) return;
+        prevUserIdRef.current = session?.user?.id ?? null;
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.error('Failed to load auth session:', error);
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+      })
+      .finally(() => {
+        window.clearTimeout(bootstrapTimeout);
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      window.clearTimeout(bootstrapTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
