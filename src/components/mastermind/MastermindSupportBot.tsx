@@ -4,7 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { formatCompactTime } from '@/components/replay-vault/replayVaultCore.mjs';
 import { formatMemberFacingResourceJob, type MastermindPortalResource } from '@/data/mastermindPortalResources';
+import {
+  usePhaseOneCurriculumMomentSearch,
+  type PhaseOneCurriculumMomentRow,
+} from '@/hooks/usePhaseOneCatalog';
 import { parseAIJson, useMastermindAI } from '@/hooks/useMastermindAI';
 import {
   MASTERMIND_SUCCESS_STAGES,
@@ -25,6 +30,8 @@ interface MastermindSupportBotProps {
   visibleResources: MastermindPortalResource[];
   completedResourceIds: Set<string>;
   onOpenResource: (resource: MastermindPortalResource) => void;
+  enableCurriculumMomentSearch?: boolean;
+  onOpenMoment?: (moment: PhaseOneCurriculumMomentRow) => void;
   onOpenAiSettings: () => void;
 }
 
@@ -135,6 +142,8 @@ export function MastermindSupportBot({
   visibleResources,
   completedResourceIds,
   onOpenResource,
+  enableCurriculumMomentSearch = false,
+  onOpenMoment,
   onOpenAiSettings,
 }: MastermindSupportBotProps) {
   const [mode, setMode] = useState<SupportBotMode>('find');
@@ -145,7 +154,16 @@ export function MastermindSupportBot({
   const [copiedPrompt, setCopiedPrompt] = useState<SupportBotMode | null>(null);
   const mastermindAI = useMastermindAI();
   const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
-  const searchableQuestion = question.trim() || `${selectedStage.label} ${cycle?.goal ?? ''}`;
+  const trimmedQuestion = question.trim();
+  const hasMemberQuestion = trimmedQuestion.length >= 2 && trimmedQuestion !== DEFAULT_QUESTION;
+  const searchableQuestion = trimmedQuestion || `${selectedStage.label} ${cycle?.goal ?? ''}`;
+  const shouldSearchCurriculumMoments =
+    Boolean(enableCurriculumMomentSearch && onOpenMoment && mode === 'find' && hasMemberQuestion);
+  const supportMomentSearchQuery = usePhaseOneCurriculumMomentSearch(
+    trimmedQuestion,
+    selectedStageId,
+    shouldSearchCurriculumMoments
+  );
 
   const finderResults = useMemo(() => {
     const stageResults = searchMastermindPortalResources(visibleResources, searchableQuestion, {
@@ -195,6 +213,15 @@ export function MastermindSupportBot({
   }, [finderResults, selectedStageId, visibleResources]);
 
   const displayedRecommendations = mode === 'coach' ? coachTraining : unwatchedFinderResults;
+  const supportMomentRows = useMemo(() => (
+    [...(supportMomentSearchQuery.data ?? [])]
+      .sort((a, b) => {
+        const watchedA = a.completed || completedResourceIds.has(a.portal_resource_id) ? 1 : 0;
+        const watchedB = b.completed || completedResourceIds.has(b.portal_resource_id) ? 1 : 0;
+        return watchedA - watchedB;
+      })
+      .slice(0, 5)
+  ), [completedResourceIds, supportMomentSearchQuery.data]);
   const emptyRecommendationCopy = mode === 'coach' && coachResult
     ? 'No new training is needed for this answer. Do the next move first, then bring back evidence for the next check-in.'
     : finderResults.length > 0 && unwatchedFinderResults.length === 0
@@ -405,6 +432,86 @@ export function MastermindSupportBot({
         {mode === 'coach' && coachError && (
           <div className="rounded-lg border border-dashed bg-muted p-4 text-sm text-muted-foreground">
             <p>{coachError}</p>
+          </div>
+        )}
+
+        {mode === 'find' && enableCurriculumMomentSearch && onOpenMoment && (
+          <div className="space-y-3 rounded-lg border bg-primary/5 p-4" data-support-bot-moment-search>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold">Exact timestamp matches</p>
+                  <Badge variant="outline" className="text-[11px]">Hidden QA</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Ask about a phrase, problem, or decision and this searches approved curriculum transcripts for the most useful moments.
+                </p>
+              </div>
+              {hasMemberQuestion && (
+                <Badge variant="secondary" className="w-fit text-[11px]">
+                  {supportMomentRows.length} match{supportMomentRows.length === 1 ? '' : 'es'}
+                </Badge>
+              )}
+            </div>
+
+            {!hasMemberQuestion && (
+              <p className="text-sm text-muted-foreground">
+                Type what you are looking for, like pricing, offer, sales, list, onboarding, or systems.
+              </p>
+            )}
+
+            {supportMomentSearchQuery.isFetching && (
+              <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
+                Searching transcript moments...
+              </p>
+            )}
+
+            {supportMomentSearchQuery.isError && (
+              <p role="alert" className="text-sm text-muted-foreground">
+                Timestamp search is not available in this build yet. The video recommendations below still work.
+              </p>
+            )}
+
+            {hasMemberQuestion && !supportMomentSearchQuery.isFetching && !supportMomentSearchQuery.isError && supportMomentRows.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No exact timestamp matches yet. Try a simpler phrase from Faith's trainings.
+              </p>
+            )}
+
+            {supportMomentRows.length > 0 && (
+              <div className="space-y-2">
+                {supportMomentRows.map((moment) => {
+                  const watched = moment.completed || completedResourceIds.has(moment.portal_resource_id);
+                  return (
+                    <div
+                      key={`${moment.portal_resource_id}-${moment.moment_id}`}
+                      className="flex flex-col gap-3 rounded-md border bg-background p-3 md:flex-row md:items-start md:justify-between"
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary" className="text-[11px]">
+                            {formatCompactTime(moment.start_seconds ?? 0)}
+                          </Badge>
+                          {watched && (
+                            <Badge variant="success" className="text-[11px]">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              Watched
+                            </Badge>
+                          )}
+                          <p className="break-words text-sm font-semibold">{moment.title ?? 'Mastermind training'}</p>
+                        </div>
+                        <p className="break-words text-sm leading-relaxed text-muted-foreground">
+                          {moment.snippet || 'Transcript moment matched this search.'}
+                        </p>
+                      </div>
+                      <Button type="button" variant="secondary" className="min-h-10 shrink-0" onClick={() => onOpenMoment(moment)}>
+                        Open this moment
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

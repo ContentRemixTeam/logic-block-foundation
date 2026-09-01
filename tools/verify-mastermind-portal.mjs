@@ -529,10 +529,16 @@ try {
   assert.ok(curriculumMomentSearchMigrationSource.includes('GRANT EXECUTE ON FUNCTION public.search_my_mastermind_curriculum_moments'), 'Curriculum moment search must grant execute only through the authenticated RPC path');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
   assert.ok(mastermindHubSource.includes('<MastermindSupportBot'), 'Support tab should mount the embedded coaching and finder bot');
+  assert.ok(mastermindHubSource.includes('enableCurriculumMomentSearch={isAdminPreview}'), 'Support Bot curriculum timestamp search must stay hidden to the admin preview route');
+  assert.ok(mastermindHubSource.includes('onOpenMoment={handleOpenCurriculumMoment}'), 'Support Bot timestamp results should open through the protected training player');
   assert.ok(mastermindHubSource.includes('title="Ask Faith"'), 'Support tab should keep human Ask Faith separate from the embedded bot');
   assert.ok(mastermindSupportBotSource.includes("type SupportBotMode = 'coach' | 'find'"), 'Support bot should have coaching and finder modes');
   assert.ok(mastermindSupportBotSource.includes('useMastermindAI'), 'Support bot should use the existing BYO-key AI coach hook');
   assert.ok(mastermindSupportBotSource.includes('searchMastermindPortalResources'), 'Support bot finder should reuse the curriculum search logic');
+  assert.ok(mastermindSupportBotSource.includes('usePhaseOneCurriculumMomentSearch'), 'Support bot finder should use protected curriculum transcript moment search in hidden QA');
+  assert.ok(mastermindSupportBotSource.includes('data-support-bot-moment-search'), 'Support bot should expose a stable timestamp-search QA hook');
+  assert.ok(mastermindSupportBotSource.includes('Exact timestamp matches'), 'Support bot should label transcript-level search results clearly');
+  assert.ok(mastermindSupportBotSource.includes('Open this moment'), 'Support bot timestamp results should open a protected lesson at the matched moment');
   assert.ok(mastermindSupportBotSource.includes('training_ids'), 'Support bot should request known training IDs instead of inventing resources');
   assert.ok(mastermindSupportBotSource.includes('Open AI key settings'), 'Support bot should give members the cost-safe key setup path');
   assert.ok(mastermindSupportBotSource.includes('Use your own AI without spending app credits'), 'Support bot should preserve no-key value before a member connects an API key');

@@ -1137,6 +1137,8 @@ export default function MastermindHub() {
                 visibleResources={visibleResources}
                 completedResourceIds={completedResourceIds}
                 onOpenResource={handleOpen}
+                enableCurriculumMomentSearch={isAdminPreview}
+                onOpenMoment={handleOpenCurriculumMoment}
                 onOpenAiSettings={() => navigate('/ai-copywriting/settings')}
               />
 
