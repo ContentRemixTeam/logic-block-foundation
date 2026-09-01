@@ -429,7 +429,16 @@ try {
   assert.ok(mastermindHubSource.includes('Curriculum sections'), '90-day page should show the member the curriculum sections before the full finder');
   assert.ok(mastermindHubSource.includes('Training by focus area'), 'Training tab should expose the real curriculum by section');
   assert.ok(mastermindHubSource.includes('Browse by section without changing the saved focus'), 'Browsing training sections should not mutate the saved 90-day focus');
+  assert.ok(mastermindHubSource.includes('core lessons being added next'), 'Curriculum sections should explain that mapped-but-not-live lessons are being added');
+  assert.ok(mastermindHubSource.includes('plannedResources'), 'Curriculum section stats should keep mapped planned lessons separate from playable videos');
+  assert.ok(mastermindHubSource.includes('trainingSectionStatsToShow'), 'Focus filters should still show the current section card and planned lessons');
   assert.ok(mastermindHubSource.includes('videos ready now'), 'Curriculum section map should count only videos that are ready now');
+  assert.ok(mastermindHubSource.includes('ready to watch'), 'Curriculum section badges should distinguish ready-to-watch videos from planned lessons');
+  assert.ok(mastermindHubSource.includes('Next planned lesson'), 'Curriculum section map should name the next planned lesson without opening it');
+  assert.ok(mastermindHubSource.includes('Being added to this app'), 'Current-step support should show planned lessons without watch buttons');
+  assert.ok(mastermindHubSource.includes('video is ready and tested'), 'Planned lesson copy should stay member-safe and avoid internal playback/audit terms');
+  assert.ok(mastermindHubSource.includes('Search only finds ready videos; planned lessons appear in section cards.'), 'Training search should stay strict while section cards show planned lessons');
+  assert.ok(mastermindHubSource.includes('Ready soon'), 'Unavailable section buttons should not pretend planned lessons are playable');
   assert.ok(mastermindHubSource.includes('Next useful video'), 'Curriculum section map should point to the next useful video');
   assert.ok(mastermindHubSource.includes('Section complete'), 'Curriculum section map should not reassign watched videos after a section is complete');
   assert.ok(mastermindHubSource.includes('Evidence to bring back'), 'Curriculum sections should name the evidence members need to collect');
