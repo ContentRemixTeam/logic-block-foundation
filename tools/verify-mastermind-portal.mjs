@@ -354,6 +354,11 @@ assert.equal(monthlyPacks.find((pack) => pack.id === 'ninety-day-ceo-workspace')
 assert.equal(monthlyPacks.find((pack) => pack.id === 'offer-lab')?.visibility, 'recommended_unlock');
 assert.equal(monthlyPacks.find((pack) => pack.id === 'sales-room')?.visibility, 'locked');
 assert.ok(getVisibleAiProjectPacks(annualAccess, 'offer-lab').every((pack) => pack.visibility === 'included'), 'annual access should include every AI project pack');
+for (const pack of AI_PROJECT_PACKS) {
+  assert.ok(pack.knowledgeDocs.length >= 3, pack.title + ' should define knowledge docs for installation');
+  assert.ok(pack.operatingRules.length >= 3, pack.title + ' should define operating rules for better output');
+  assert.ok(pack.outputChecks.length >= 3, pack.title + ' should define quality checks for member review');
+}
 
 console.log('mastermind portal verifier passed');
 `;
@@ -446,6 +451,13 @@ try {
   }
   assert.ok(aiStudioPlanCardSource.includes('Copy packet'), 'AI Studio starter packet should be copyable for Claude/ChatGPT setup');
   assert.ok(aiStudioPlanCardSource.includes('without spending app credits'), 'AI Studio should explain the cost-safe install path');
+  assert.ok(aiStudioPlanCardSource.includes('AI_STUDIO_CUSTOMIZATION_STORAGE_KEY'), 'AI Studio should preserve customization answers before generating install docs');
+  assert.ok(aiStudioPlanCardSource.includes('Customize before installing'), 'AI Studio should include a plan-aware customization interview');
+  assert.ok(aiStudioPlanCardSource.includes('Where I will install it'), 'AI Studio should ask where the member will install the asset');
+  assert.ok(aiStudioPlanCardSource.includes('Business context this AI must remember'), 'AI Studio should collect business context before generating instructions');
+  assert.ok(aiStudioPlanCardSource.includes('What it should not change without asking'), 'AI Studio should collect member authority guardrails');
+  assert.ok(aiStudioPlanCardSource.includes('Custom install docs'), 'AI Studio should generate custom install docs');
+  assert.ok(aiStudioPlanCardSource.includes('Copy custom install docs'), 'AI Studio should let members copy customized install docs');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);

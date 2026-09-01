@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bot, CheckCircle2, ClipboardCheck, Copy, KeyRound, Lock, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import {
   getAiStudioAccessSummary,
   getRecommendedAiProjectPack,
@@ -14,6 +15,7 @@ import {
   type MastermindPlanCycle,
   type MastermindStageId,
 } from '@/lib/mastermindSuccessPath';
+import { getStorageItem, setStorageItem } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 
 interface AiStudioPlanCardProps {
@@ -28,6 +30,22 @@ const visibilityLabel: Record<VisibleAiPackState, string> = {
   included: 'Included',
   recommended_unlock: 'Recommended unlock',
   locked: 'Locked',
+};
+
+const AI_STUDIO_CUSTOMIZATION_STORAGE_KEY = 'mastermind-ai-studio-customization-v1';
+
+interface AiStudioCustomization {
+  installHome: string;
+  businessContext: string;
+  guardrails: string;
+  firstAsset: string;
+}
+
+const DEFAULT_CUSTOMIZATION: AiStudioCustomization = {
+  installHome: 'Claude Project, ChatGPT Project, custom GPT, or Codex workspace',
+  businessContext: '',
+  guardrails: '',
+  firstAsset: '',
 };
 
 function clean(value: string | null | undefined, fallback: string) {
@@ -76,6 +94,57 @@ function buildStarterPacket({
   ];
 }
 
+function buildCustomInstallPacket({
+  cycle,
+  selectedStageId,
+  recommendedPack,
+  customization,
+}: {
+  cycle: MastermindPlanCycle | null | undefined;
+  selectedStageId: MastermindStageId;
+  recommendedPack: ReturnType<typeof getRecommendedAiProjectPack>;
+  customization: AiStudioCustomization;
+}) {
+  const stage = MASTERMIND_SUCCESS_STAGES.find((item) => item.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
+  const goal = clean(cycle?.goal, 'Choose one clear 90-day business result.');
+  const context = clean(customization.businessContext, clean(cycle?.audience_target, 'Use the business profile and current plan before advising.'));
+  const guardrails = clean(customization.guardrails, 'Do not suggest a full rebuild, a new funnel, or a complicated automation unless the evidence proves it is needed.');
+  const firstAsset = clean(customization.firstAsset, recommendedPack.firstTest);
+  const installHome = clean(customization.installHome, DEFAULT_CUSTOMIZATION.installHome);
+
+  return [
+    {
+      title: 'Start Here',
+      body: `Install this as: ${recommendedPack.title}. Use it inside: ${installHome}. The job is to help me make progress on this 90-day result: ${goal}.`,
+    },
+    {
+      title: 'Business Profile',
+      body: `Current focus: ${stage.label}\nBusiness context to remember: ${context}\nMain constraint or bottleneck: ${clean(cycle?.biggest_bottleneck, stage.memberQuestion)}\nCapacity rule: ${clean(cycle?.low_energy_version || cycle?.medium_energy_version || cycle?.high_energy_version, 'Keep the next step small enough to complete this week.')}`,
+    },
+    {
+      title: 'Project Instructions',
+      body: [
+        ...recommendedPack.operatingRules,
+        `Member-specific guardrail: ${guardrails}`,
+        'Before giving advice, ask for missing context only when it changes the decision.',
+        'Format every answer with: one recommendation, one lower-capacity version, and one evidence target.',
+      ].map((line) => `- ${line}`).join('\n'),
+    },
+    {
+      title: 'Knowledge Docs To Add',
+      body: recommendedPack.knowledgeDocs.map((doc) => `- ${doc}`).join('\n'),
+    },
+    {
+      title: 'First Test',
+      body: firstAsset,
+    },
+    {
+      title: 'Review Checklist',
+      body: recommendedPack.outputChecks.map((check) => `- ${check}`).join('\n'),
+    },
+  ];
+}
+
 export function AiStudioPlanCard({
   cycle,
   selectedStageId,
@@ -84,12 +153,19 @@ export function AiStudioPlanCard({
   onOpenAiSettings,
 }: AiStudioPlanCardProps) {
   const [copied, setCopied] = useState(false);
+  const [customCopied, setCustomCopied] = useState(false);
+  const [answersSaved, setAnswersSaved] = useState(false);
+  const [customization, setCustomization] = useState<AiStudioCustomization>(DEFAULT_CUSTOMIZATION);
   const access = getAiStudioAccessSummary(membershipTier, isMastermind);
   const recommendedPack = getRecommendedAiProjectPack(selectedStageId, cycle);
   const visiblePacks = getVisibleAiProjectPacks(access, recommendedPack.id);
   const starterPacket = useMemo(
     () => buildStarterPacket({ cycle, selectedStageId, recommendedPack }),
     [cycle, recommendedPack, selectedStageId]
+  );
+  const customInstallPacket = useMemo(
+    () => buildCustomInstallPacket({ cycle, selectedStageId, recommendedPack, customization }),
+    [cycle, customization, recommendedPack, selectedStageId]
   );
   const starterPacketText = useMemo(
     () =>
@@ -98,6 +174,41 @@ export function AiStudioPlanCard({
         .join('\n\n'),
     [starterPacket]
   );
+  const customInstallPacketText = useMemo(
+    () =>
+      customInstallPacket
+        .map((section) => `## ${section.title}\n${section.body}`)
+        .join('\n\n'),
+    [customInstallPacket]
+  );
+
+  useEffect(() => {
+    const stored = getStorageItem(AI_STUDIO_CUSTOMIZATION_STORAGE_KEY);
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored) as Partial<AiStudioCustomization>;
+      setCustomization({
+        installHome: parsed.installHome || DEFAULT_CUSTOMIZATION.installHome,
+        businessContext: parsed.businessContext || '',
+        guardrails: parsed.guardrails || '',
+        firstAsset: parsed.firstAsset || '',
+      });
+    } catch {
+      setCustomization(DEFAULT_CUSTOMIZATION);
+    }
+  }, []);
+
+  const updateCustomization = (field: keyof AiStudioCustomization, value: string) => {
+    setAnswersSaved(false);
+    setCustomization((current) => ({ ...current, [field]: value }));
+  };
+
+  const saveCustomization = () => {
+    setStorageItem(AI_STUDIO_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(customization));
+    setAnswersSaved(true);
+    window.setTimeout(() => setAnswersSaved(false), 1800);
+  };
 
   const copyStarterPacket = async () => {
     try {
@@ -106,6 +217,16 @@ export function AiStudioPlanCard({
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
       setCopied(false);
+    }
+  };
+
+  const copyCustomInstallPacket = async () => {
+    try {
+      await navigator.clipboard.writeText(customInstallPacketText);
+      setCustomCopied(true);
+      window.setTimeout(() => setCustomCopied(false), 1800);
+    } catch {
+      setCustomCopied(false);
     }
   };
 
@@ -178,6 +299,81 @@ export function AiStudioPlanCard({
                 {output}
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-background p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Customize before installing</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Answer the missing context once, then copy the custom install docs into the member's own AI workspace.
+              </p>
+            </div>
+            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={saveCustomization}>
+              {answersSaved ? 'Saved' : 'Save setup answers'}
+            </Button>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground">Where I will install it</span>
+              <Textarea
+                value={customization.installHome}
+                onChange={(event) => updateCustomization('installHome', event.target.value)}
+                className="min-h-20"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground">Business context this AI must remember</span>
+              <Textarea
+                value={customization.businessContext}
+                onChange={(event) => updateCustomization('businessContext', event.target.value)}
+                placeholder="Offer, buyer, proof, stage of business, voice notes, current constraints..."
+                className="min-h-20"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground">What it should not change without asking</span>
+              <Textarea
+                value={customization.guardrails}
+                onChange={(event) => updateCustomization('guardrails', event.target.value)}
+                placeholder="Non-negotiables, brand rules, offers to protect, team boundaries, capacity limits..."
+                className="min-h-20"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold text-muted-foreground">First asset I want it to create</span>
+              <Textarea
+                value={customization.firstAsset}
+                onChange={(event) => updateCustomization('firstAsset', event.target.value)}
+                placeholder={recommendedPack.firstTest}
+                className="min-h-20"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 rounded-lg bg-muted/35 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h4 className="text-sm font-semibold">Custom install docs</h4>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Includes project instructions, knowledge docs, the first supervised test, and output checks.
+                </p>
+              </div>
+              <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={copyCustomInstallPacket}>
+                <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
+                {customCopied ? 'Copied' : 'Copy custom install docs'}
+              </Button>
+            </div>
+            <div className="mt-4 grid gap-3">
+              {customInstallPacket.map((section) => (
+                <div key={section.title} className="rounded-md bg-background p-3">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">{section.title}</p>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{section.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
