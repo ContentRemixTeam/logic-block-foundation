@@ -86,14 +86,25 @@ export function useMastermindSuccessPath(cycleId?: string) {
       const cycle = cycleRow as MastermindPlanCycle;
       const successPath = inferMastermindSuccessPath(cycle);
 
-      const { data: snapshotRow, error: snapshotError } = await db
-        .from('cycle_success_path_snapshots')
-        .select(SNAPSHOT_SELECT)
-        .eq('user_id', authData.user.id)
-        .eq('cycle_id', cycle.cycle_id)
-        .maybeSingle();
+      let snapshotRow = null;
+      let snapshotError: unknown = null;
+      try {
+        const snapshotResult = await db
+          .from('cycle_success_path_snapshots')
+          .select(SNAPSHOT_SELECT)
+          .eq('user_id', authData.user.id)
+          .eq('cycle_id', cycle.cycle_id)
+          .maybeSingle();
 
-      if (snapshotError) throw snapshotError;
+        snapshotRow = snapshotResult.data;
+        snapshotError = snapshotResult.error;
+      } catch (err) {
+        snapshotError = err;
+      }
+
+      if (snapshotError) {
+        console.warn('Could not load saved Mastermind 90-day focus. Using the active plan fallback.', snapshotError);
+      }
 
       const rawSnapshot = snapshotRow as Omit<MastermindSuccessPathSnapshot, 'recommended_stage' | 'confirmed_stage'> & {
         recommended_stage: string;

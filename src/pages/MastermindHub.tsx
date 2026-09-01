@@ -13,6 +13,7 @@ import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard
 import { usePhaseOneCatalog, usePhaseOneState, type PhaseOneWorkspaceStatus } from '@/hooks/usePhaseOneCatalog';
 import { useMastermindPortalAccess } from '@/hooks/useMastermindPortalAccess';
 import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
+import { useActiveCycle } from '@/hooks/useActiveCycle';
 import {
   MASTERMIND_PORTAL_RESOURCES,
   getProtectedTrainingHref,
@@ -23,6 +24,7 @@ import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
 import { useMembership } from '@/hooks/useMembership';
 import {
   MASTERMIND_SUCCESS_STAGES,
+  type MastermindPlanCycle,
   type MastermindStageId,
   type MastermindResourceRecommendation,
 } from '@/lib/mastermindSuccessPath';
@@ -140,6 +142,7 @@ export default function MastermindHub() {
     confirmStage,
     selectMilestone,
   } = useMastermindSuccessPath(cycleId);
+  const activeCycleQuery = useActiveCycle();
   const { resilientCreate } = useResilientTaskMutation();
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
@@ -151,11 +154,36 @@ export default function MastermindHub() {
   const [nextMoveMode, setNextMoveMode] = useState<'standard' | 'low'>('standard');
   const [weeklyTrainingMinutes, setWeeklyTrainingMinutes] = useState(180);
   const [dashboardWeeklyMoveTaskState, setDashboardWeeklyMoveTaskState] = useState<DashboardWeeklyMoveTaskState>('idle');
+  const dashboardCycle = useMemo<MastermindPlanCycle | null>(() => {
+    if (successPathData?.cycle) return successPathData.cycle;
+    const activeCycle = activeCycleQuery.data;
+    if (!activeCycle) return null;
+
+    return {
+      cycle_id: activeCycle.cycle_id,
+      goal: activeCycle.goal,
+      start_date: activeCycle.start_date,
+      end_date: activeCycle.end_date,
+      focus_area: activeCycle.focus_area,
+      biggest_bottleneck: activeCycle.biggest_bottleneck,
+      discover_score: null,
+      nurture_score: null,
+      convert_score: null,
+      audience_target: null,
+      audience_frustration: null,
+      signature_message: null,
+      why: null,
+      low_energy_version: null,
+      medium_energy_version: null,
+      high_energy_version: null,
+      updated_at: activeCycle.end_date,
+    };
+  }, [activeCycleQuery.data, successPathData?.cycle]);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
   const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview;
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
   const catalogQuery = usePhaseOneCatalog();
-  const phaseOneStateQuery = usePhaseOneState(Boolean(successPathData?.cycle?.cycle_id));
+  const phaseOneStateQuery = usePhaseOneState(Boolean(dashboardCycle?.cycle_id));
   const portalAccessQuery = useMastermindPortalAccess(aiStudioEnabled);
   const catalogRows = catalogQuery.data;
   const playableResourceIds = useMemo(
@@ -217,8 +245,8 @@ export default function MastermindHub() {
   const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
     ?? selectedStage.milestones[0];
   const currentRound = getMastermindPhaseRound(selectedStageId, currentMilestone.id);
-  const dashboardWeeklyMoveTaskKey = successPathData?.cycle
-    ? [successPathData.cycle.cycle_id, selectedStageId, currentMilestone.id, 'build', currentRound.primaryResourceId].join(':')
+  const dashboardWeeklyMoveTaskKey = dashboardCycle
+    ? [dashboardCycle.cycle_id, selectedStageId, currentMilestone.id, 'build', currentRound.primaryResourceId].join(':')
     : null;
   const portalResourceById = useMemo(
     () => new Map(MASTERMIND_PORTAL_RESOURCES.map((resource) => [resource.id, resource])),
@@ -457,11 +485,11 @@ export default function MastermindHub() {
   const hasCompletedNextReadyResource = Boolean(
     nextReadyPlanResource && completedResourceIds.has(nextReadyPlanResource.resourceId)
   );
-  const lowCapacityNextMove = successPathData?.cycle?.low_energy_version?.trim()
+  const lowCapacityNextMove = dashboardCycle?.low_energy_version?.trim()
     || selectedStage.quickWin.lowEnergy;
   const currentNextMove = nextMoveMode === 'low' ? lowCapacityNextMove : selectedStage.doThis;
   const askFaithBrief = useMemo(() => {
-    const cycle = successPathData?.cycle;
+    const cycle = dashboardCycle;
     const recommendedTraining = nextReadyPortalResource?.title
       ?? nextPlannedPlanResource?.resource.title
       ?? 'No extra video needed for this exact step yet.';
@@ -493,11 +521,11 @@ export default function MastermindHub() {
     nextReadyPortalResource?.title,
     selectedStage.label,
     selectedStage.quickWin.evidence,
-    successPathData?.cycle,
+    dashboardCycle,
   ]);
 
   const addDashboardWeeklyMoveToPlanner = async () => {
-    const cycle = successPathData?.cycle;
+    const cycle = dashboardCycle;
     if (!cycle) {
       navigate('/cycle-setup');
       return;
@@ -649,15 +677,15 @@ export default function MastermindHub() {
 
             <TabsContent value="guidance" className="space-y-4">
               <SuccessPathPlanCard
-                cycle={successPathData?.cycle}
+                cycle={dashboardCycle}
                 successPath={successPathData?.successPath}
                 selectedStageId={selectedStageId}
                 currentMilestoneId={currentMilestone.id}
-                isLoading={successPathLoading}
+                isLoading={successPathLoading && !dashboardCycle}
                 onBuildPlan={() => navigate('/cycle-setup')}
                 onOpenResource={handleOpenRecommendedResource}
                 onAddToPlan={() => {
-                  const cycleId = successPathData?.cycle?.cycle_id;
+                  const cycleId = dashboardCycle?.cycle_id;
                   navigate(cycleId ? `/cycle-setup?edit=${cycleId}` : '/cycle-setup');
                 }}
                 onAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
@@ -666,7 +694,7 @@ export default function MastermindHub() {
                 aiStudioEnabled={aiStudioEnabled}
               />
 
-              {successPathData?.cycle && (
+              {dashboardCycle && (
                 <Card className="border-primary/20">
                   <CardHeader className="pb-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -773,7 +801,7 @@ export default function MastermindHub() {
                       </div>
                     </div>
                     <div className="mt-4 grid gap-2">
-                      {successPathData?.cycle && (
+                      {dashboardCycle && (
                         <>
                           <Button
                             type="button"
@@ -1154,7 +1182,7 @@ export default function MastermindHub() {
 
             <TabsContent value="support" className="space-y-4">
               <MastermindSupportBot
-                cycle={successPathData?.cycle}
+                cycle={dashboardCycle}
                 selectedStageId={selectedStageId}
                 currentMilestone={currentMilestone}
                 visibleResources={visibleResources}
@@ -1165,7 +1193,7 @@ export default function MastermindHub() {
 
               {aiStudioEnabled && (
                 <AiStudioPlanCard
-                  cycle={successPathData?.cycle}
+                  cycle={dashboardCycle}
                   selectedStageId={selectedStageId}
                   isMastermind={isMastermind || portalAccessQuery.data?.memberEntitled === true}
                   membershipTier={portalAccessQuery.data?.memberTier ?? membershipTier}

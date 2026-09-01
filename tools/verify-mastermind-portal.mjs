@@ -19,6 +19,7 @@ const aiStudioSourcePath = path.join(projectRoot, 'src/lib/mastermindAiStudio.ts
 const aiStudioPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/AiStudioPlanCard.tsx');
 const phaseOneCatalogSourcePath = path.join(projectRoot, 'src/hooks/usePhaseOneCatalog.ts');
 const mastermindPortalAccessSourcePath = path.join(projectRoot, 'src/hooks/useMastermindPortalAccess.ts');
+const mastermindSuccessPathHookSourcePath = path.join(projectRoot, 'src/hooks/useMastermindSuccessPath.ts');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -416,6 +417,7 @@ try {
   const aiStudioPlanCardSource = readFileSync(aiStudioPlanCardSourcePath, 'utf8');
   const phaseOneCatalogSource = readFileSync(phaseOneCatalogSourcePath, 'utf8');
   const mastermindPortalAccessSource = readFileSync(mastermindPortalAccessSourcePath, 'utf8');
+  const mastermindSuccessPathHookSource = readFileSync(mastermindSuccessPathHookSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
@@ -601,6 +603,13 @@ try {
   assert.ok(mastermindHubSource.includes('useResilientTaskMutation'), '90-day hub should reuse the resilient Planner task save path for dashboard weekly moves');
   assert.ok(mastermindHubSource.includes("system_source: 'mastermind-90-day-plan'"), 'Dashboard weekly move tasks should be labeled as Mastermind 90-day plan work');
   assert.ok(mastermindHubSource.includes('rememberWeeklyMoveTaskKey(dashboardWeeklyMoveTaskKey)'), 'Dashboard weekly move handoff should prevent repeat task creation after save or queued sync');
+  assert.ok(mastermindHubSource.includes('useActiveCycle'), '90-day hub should use the Planner active cycle as a dashboard fallback');
+  assert.ok(mastermindHubSource.includes('const dashboardCycle = useMemo<MastermindPlanCycle | null>'), '90-day hub should normalize a single dashboard cycle from success-path or active-cycle data');
+  assert.ok(mastermindHubSource.includes('usePhaseOneState(Boolean(dashboardCycle?.cycle_id))'), 'Phase One state should hydrate from the dashboard cycle fallback');
+  assert.ok(mastermindHubSource.includes('isLoading={successPathLoading && !dashboardCycle}'), 'Saved guidance loading should not hide the dashboard when the active 90-day plan is available');
+  assert.ok(mastermindHubSource.includes('cycle={dashboardCycle}'), 'Mastermind child cards should receive the dashboard cycle fallback');
+  assert.ok(mastermindSuccessPathHookSource.includes('Could not load saved Mastermind 90-day focus. Using the active plan fallback.'), 'Optional saved focus snapshots should fail soft and preserve the active 90-day plan');
+  assert.ok(!mastermindSuccessPathHookSource.includes('if (snapshotError) throw snapshotError'), 'Optional saved focus snapshot errors must not erase the active 90-day plan');
   assert.ok(mastermindHubSource.includes('Ask Faith coaching brief'), '90-day hub should generate a plan-aware Ask Faith handoff brief');
   assert.ok(mastermindHubSource.includes('Copy Ask Faith brief'), '90-day hub should let members copy their coaching context before opening support');
   assert.ok(mastermindHubSource.includes('copyAskFaithBrief'), '90-day hub should provide a working clipboard handler for the Ask Faith brief');
