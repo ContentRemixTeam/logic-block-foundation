@@ -45,7 +45,7 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
           </>
         ) : (
           <video ref={videoRef} key={`${playback.resourceId}:${sourceGeneration}`} src={playback.playbackUrl} data-source-generation={sourceGeneration} controls controlsList="nodownload noremoteplayback" disablePictureInPicture playsInline preload="metadata" className="aspect-video w-full max-w-full rounded-lg bg-black" onContextMenu={(event) => event.preventDefault()} onLoadedMetadata={onLoadedMetadata} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)} onError={onMediaError} aria-label={`Protected replay: ${playback.title}`}>
-            Protected replay video: {playback.title}. If the video does not appear, refresh the page or open this replay again.
+            Protected replay video is loading. If it does not start, use Refresh video or open this replay again.
           </video>
         )}
         {showVaultTools && <VaultTakeawayPrompt />}

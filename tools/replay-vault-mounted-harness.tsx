@@ -326,11 +326,11 @@ async function parityDirectoriesAndReceiptsMount() {
   assert(document.body.textContent?.includes('Office hours (1)'),'authorized category directory must mount');
   const assertLibraryBounds=(label:string)=>{const viewportWidth=document.documentElement.clientWidth;const controls=[...document.querySelectorAll<HTMLElement>('[data-vault-library] button')];assert(controls.length>0,`${label} must expose library controls`);for(const control of controls){const rect=control.getBoundingClientRect();assert(rect.left>=0&&rect.right<=viewportWidth,`${label} control crosses the ${viewportWidth}px viewport`);assert(rect.width>0&&rect.height>=44,`${label} control must be visible and at least 44px at ${viewportWidth}px`);}};
   assertLibraryBounds('browse');
-  __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,targetKind:'replay',targetId:'10000000-0000-4000-8000-000000000001'}},error:null});
+  __vaultMock.enqueue('vault-member-interactions',{data:{data:{saved:true,changed:true,bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,targetKind:'replay',targetId:null}},error:null});
   await click(byText('Save full video'));assert(document.body.textContent?.includes('Full replay saved.'),'full-video bookmark requires confirmed canonical receipt');
   __vaultMock.enqueue('vault-member-library',{data:{items:[{questionId:questionOne,resourceId,title:'Recent canonical call',category:'Office hours',question:'How do I protect capacity?',answerSummary:'Choose one priority.',answerer:'Faith',startSeconds:42,endSeconds:70}]},error:null});
   await click(byText('questions'));await tick();assert(document.body.textContent?.includes('How do I protect capacity?'),'standalone authorized Questions directory must mount');assertLibraryBounds('questions');
-  __vaultMock.enqueue('vault-member-library',{data:{items:[{bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,title:'Recent canonical call',category:'Office hours',targetKind:'replay',targetId:'10000000-0000-4000-8000-000000000001',startSeconds:0,savedAt:'2026-08-09T00:00:00Z',label:'Full replay'}]},error:null});
+  __vaultMock.enqueue('vault-member-library',{data:{items:[{bookmarkId:'66666666-6666-4666-8666-666666666666',resourceId,title:'Recent canonical call',category:'Office hours',targetKind:'replay',targetId:null,startSeconds:0,savedAt:'2026-08-09T00:00:00Z',label:'Full replay'}]},error:null});
   await click(byText('saved'));await tick();assert(document.body.textContent?.includes('Remove everywhere'),'central Saved page must mount video/moment filter and removal control');assertLibraryBounds('saved');
   __vaultMock.enqueue('get-mastermind-playback-link',fullReplayPlayback);
   __vaultMock.enqueue('vault-member-library',{data:{items:[]},error:null});
@@ -350,7 +350,7 @@ const pageUuid=(index:number)=>`00000000-0000-4000-8000-${String(index).padStart
 const browsePage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({resourceId:`replay-${label}-${offset+index}`,title:`${label} browse row ${offset+index}`,category:'Office hours',durationSeconds:1200,publishedAt:null,questionCount:1}));
 const categoryPage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({category:`${label} category ${offset+index}`,resourceCount:1}));
 const questionPage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({questionId:pageUuid(1000+offset+index),resourceId,title:`${label} questions replay`,category:'Office hours',question:`${label} question row ${offset+index}?`,answerSummary:'Approved answer.',answerer:'Faith',startSeconds:42+index,endSeconds:43+index}));
-const savedPage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({bookmarkId:pageUuid(2000+offset+index),resourceId,title:`${label} saved row ${offset+index}`,category:'Office hours',targetKind:'replay',targetId:pageUuid(3000+offset+index),startSeconds:0,savedAt:null,label:'Full replay'}));
+const savedPage=(count:number,label:string,offset=0)=>Array.from({length:count},(_,index)=>({bookmarkId:pageUuid(2000+offset+index),resourceId,title:`${label} saved row ${offset+index}`,category:'Office hours',targetKind:'replay',targetId:null,startSeconds:0,savedAt:null,label:'Full replay'}));
 
 async function mountedPaginationAllLibrarySurfaces() {
   __vaultMock.reset();__vaultMock.enqueue('get-mastermind-portal-access',allowed);
