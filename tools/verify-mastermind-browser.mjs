@@ -641,11 +641,12 @@ async function runChecks(client, checks, label) {
     await waitFor(client, 'document.body.innerText.includes("Find a training")', `${label} Training Finder`);
     await assertText(client, 'Training Library');
     await assertText(client, 'Videos ready');
-    await assertText(client, 'Transcript-backed');
-    await assertText(client, 'Access scope');
+    await assertText(client, 'Watched');
+    await assertText(client, 'Search-ready');
+    await assertText(client, 'Training by focus area');
     await assertText(client, 'Sell focus');
     await assertText(client, 'Watch the videos that are ready inside this app.');
-    await assertText(client, 'This private QA finder only shows protected curriculum videos');
+    await assertText(client, 'This finder only shows curriculum videos that open in the in-app player');
     await assertNoText(client, 'Current Call Replays');
     await assertNoText(client, 'Faith AI');
     await assertNoText(client, 'Ask Faith');
@@ -660,7 +661,7 @@ async function runChecks(client, checks, label) {
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} Sell focus filter`);
 
-    await clickText(client, 'Transcript-backed');
+    await clickText(client, 'Search-ready');
     await waitFor(client, 'document.body.innerText.includes("90-Day Goal Setting: Start Here")', `${label} transcript-backed filter`);
     await assertNoText(client, 'Products & Offers');
     await assertNoText(client, 'Faith AI');

@@ -20,6 +20,7 @@ import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
 import { useMembership } from '@/hooks/useMembership';
 import {
   MASTERMIND_SUCCESS_STAGES,
+  type MastermindStageId,
   type MastermindResourceRecommendation,
 } from '@/lib/mastermindSuccessPath';
 import {
@@ -71,6 +72,7 @@ export default function MastermindHub() {
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
   const [activeTab, setActiveTab] = useState('guidance');
+  const [trainingStageId, setTrainingStageId] = useState<MastermindStageId | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
@@ -112,6 +114,8 @@ export default function MastermindHub() {
 
   const selectedStageId = successPathData?.selectedStageId ?? 'offer';
   const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
+  const activeTrainingStageId = trainingStageId ?? selectedStageId;
+  const activeTrainingStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === activeTrainingStageId) ?? selectedStage;
   const currentMilestoneId = successPathData?.snapshot?.current_milestone_id ?? selectedStage.milestones[0].id;
   const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
     ?? selectedStage.milestones[0];
@@ -159,11 +163,11 @@ export default function MastermindHub() {
   const resourceFilters = useMemo(() => (
     [
       { id: 'all' as const, label: 'All' },
-      { id: 'focus' as const, label: `${selectedStage.label} focus` },
+      { id: 'focus' as const, label: `${activeTrainingStage.label} focus` },
       { id: 'core' as const, label: 'Core' },
-      { id: 'indexed' as const, label: 'Transcript-backed' },
+      { id: 'indexed' as const, label: 'Search-ready' },
     ]
-  ), [selectedStage.label]);
+  ), [activeTrainingStage.label]);
 
   const resourceSearchOptions = useMemo(() => {
     const accessByFilter: Partial<Record<ResourceFilterId, MastermindPortalAccess>> = {
@@ -171,11 +175,11 @@ export default function MastermindHub() {
     };
 
     return {
-      stageId: resourceFilter === 'focus' ? selectedStageId : undefined,
+      stageId: resourceFilter === 'focus' ? activeTrainingStageId : undefined,
       access: accessByFilter[resourceFilter],
       transcriptReadyOnly: resourceFilter === 'indexed',
     };
-  }, [resourceFilter, selectedStageId]);
+  }, [activeTrainingStageId, resourceFilter]);
 
   const visibleResources = useMemo(() => {
     return MASTERMIND_PORTAL_RESOURCES.filter(isReadyMastermindCurriculumVideoResource);
@@ -187,13 +191,19 @@ export default function MastermindHub() {
     ).length;
   }, [visibleResources]);
 
-  const accessRailCount = useMemo(() => {
-    return new Set(visibleResources.map((resource) => resource.access)).size;
-  }, [visibleResources]);
+  const watchedVisibleResourceCount = useMemo(() => {
+    return visibleResources.filter((resource) => completedResourceIds.has(resource.id)).length;
+  }, [completedResourceIds, visibleResources]);
 
   const curriculumSectionStats = useMemo(() => (
     MASTERMIND_SUCCESS_STAGES.map((stage) => {
-      const videos = visibleResources.filter((resource) => resource.stages.includes(stage.id));
+      const videos = visibleResources
+        .filter((resource) => resource.stages.includes(stage.id))
+        .sort((a, b) => {
+          const completedA = completedResourceIds.has(a.id) ? 1 : 0;
+          const completedB = completedResourceIds.has(b.id) ? 1 : 0;
+          return completedA - completedB;
+        });
       const watchedVideos = videos.filter((resource) => completedResourceIds.has(resource.id));
       const nextVideo = videos.find((resource) => !completedResourceIds.has(resource.id)) ?? null;
 
@@ -232,6 +242,10 @@ export default function MastermindHub() {
   const unpinnedResources = useMemo(() => {
     return filteredResources.filter((r) => !pinnedIds.includes(r.id));
   }, [filteredResources, pinnedIds]);
+
+  const displayedResources = useMemo(() => {
+    return searchQuery || resourceFilter !== 'all' ? filteredResources : unpinnedResources;
+  }, [filteredResources, resourceFilter, searchQuery, unpinnedResources]);
 
   const handleOpen = (resource: MastermindPortalResource) => {
     const protectedHref = getProtectedTrainingHref(resource);
@@ -398,10 +412,10 @@ export default function MastermindHub() {
                               variant="ghost"
                               className="min-h-10 flex-1"
                               onClick={() => {
+                                setTrainingStageId(stage.id);
                                 setResourceFilter('focus');
                                 setSearchQuery('');
                                 setActiveTab('training');
-                                if (!isSelected) void handleStageSelect(stage.id);
                               }}
                             >
                               Show videos
@@ -613,10 +627,98 @@ export default function MastermindHub() {
                 <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <AuditMetric title="Plan stages" value={MASTERMIND_SUCCESS_STAGES.length.toLocaleString()} />
                   <AuditMetric title="Videos ready" value={visibleResources.length.toLocaleString()} />
-                  <AuditMetric title="Transcript-backed" value={indexedResourceCount.toLocaleString()} />
-                  <AuditMetric title="Access scope" value={accessRailCount.toLocaleString()} />
+                  <AuditMetric title="Watched" value={watchedVisibleResourceCount.toLocaleString()} />
+                  <AuditMetric title="Search-ready" value={indexedResourceCount.toLocaleString()} />
                 </CardContent>
               </Card>
+
+              {!searchQuery && resourceFilter === 'all' && (
+                <Card>
+                  <CardHeader>
+                    <Badge variant="outline" className="mb-2 w-fit">Training by focus area</Badge>
+                    <CardTitle>Pick the section that matches the job your plan is doing.</CardTitle>
+                    <CardDescription>
+                      Browse by section without changing the saved focus on your 90-day plan.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 lg:grid-cols-2">
+                    {curriculumSectionStats.map(({ stage, videos, watchedVideos, nextVideo }) => (
+                      <div key={stage.id} className="rounded-lg border bg-background p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h2 className="text-base font-semibold">{stage.label}</h2>
+                              {selectedStageId === stage.id && <Badge variant="secondary" className="text-[11px]">Your focus</Badge>}
+                            </div>
+                            <p className="mt-1 text-sm leading-snug text-muted-foreground">{stage.useWhen}</p>
+                          </div>
+                          <Badge variant="outline" className="w-fit text-[11px]">
+                            {watchedVideos.length}/{videos.length} watched
+                          </Badge>
+                        </div>
+
+                        <div className="mt-3 rounded-md bg-muted/45 p-3">
+                          <p className="text-xs font-semibold text-muted-foreground">Outcome</p>
+                          <p className="mt-1 text-sm leading-snug">{stage.milestone}</p>
+                        </div>
+
+                        <div className="mt-3 space-y-2">
+                          {videos.slice(0, 4).map((resource) => {
+                            const isCompleted = completedResourceIds.has(resource.id);
+                            return (
+                              <button
+                                key={resource.id}
+                                type="button"
+                                onClick={() => handleOpen(resource)}
+                                className={cn(
+                                  'flex w-full items-start justify-between gap-3 rounded-md border p-3 text-left transition hover:border-primary/50 hover:bg-muted/40',
+                                  isCompleted && 'bg-muted/35'
+                                )}
+                              >
+                                <span className="min-w-0">
+                                  <span className={cn('block text-sm font-medium leading-snug', isCompleted && 'text-muted-foreground')}>
+                                    {resource.title}
+                                  </span>
+                                  <span className="mt-1 block text-xs leading-snug text-muted-foreground">
+                                    {resource.description}
+                                  </span>
+                                </span>
+                                <Badge variant={isCompleted ? 'success' : 'secondary'} className="shrink-0 text-[11px]">
+                                  {isCompleted ? 'Watched' : 'Watch'}
+                                </Badge>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="min-h-10 flex-1"
+                            disabled={!nextVideo}
+                            onClick={() => nextVideo && handleOpen(nextVideo)}
+                          >
+                            {nextVideo ? 'Watch next' : 'Section complete'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="min-h-10 flex-1"
+                            onClick={() => {
+                              setTrainingStageId(stage.id);
+                              setResourceFilter('focus');
+                              setSearchQuery('');
+                            }}
+                          >
+                            View section
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardHeader>
@@ -625,7 +727,7 @@ export default function MastermindHub() {
                     Find a training
                   </CardTitle>
                   <CardDescription>
-                    This private QA finder only shows protected curriculum videos that open in the in-app player. Current replays and the Vault remain separate.
+                    This finder only shows curriculum videos that open in the in-app player. Replays, Vault search, AI tools, and support links stay separate so every choice has one job.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -694,7 +796,7 @@ export default function MastermindHub() {
                   <h2 className="text-sm font-semibold">All Resources</h2>
                 )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {(searchQuery || resourceFilter !== 'all' ? filteredResources : unpinnedResources).map((resource) => (
+                  {displayedResources.map((resource) => (
                     <ResourceCard
                       key={resource.id}
                       resource={resource}

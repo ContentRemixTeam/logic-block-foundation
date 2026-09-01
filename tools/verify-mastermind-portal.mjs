@@ -398,15 +398,18 @@ try {
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
   const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
-  assert.ok(mastermindHubSource.includes("label: 'Transcript-backed'"), 'Resource filter should use clear member-facing transcript language');
+  assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
-  assert.ok(mastermindHubSource.includes('This private QA finder only shows protected curriculum videos'), 'Training finder should not present planning/support links as playable curriculum');
+  assert.ok(mastermindHubSource.includes('This finder only shows curriculum videos that open in the in-app player'), 'Training finder should not present planning/support links as playable curriculum');
   assert.ok(mastermindHubSource.includes('MASTERMIND_PORTAL_RESOURCES.filter(isReadyMastermindCurriculumVideoResource)'), 'Training finder should only render ready protected curriculum videos');
   assert.ok(mastermindHubSource.includes('Curriculum sections'), '90-day page should show the member the curriculum sections before the full finder');
+  assert.ok(mastermindHubSource.includes('Training by focus area'), 'Training tab should expose the real curriculum by section');
+  assert.ok(mastermindHubSource.includes('Browse by section without changing the saved focus'), 'Browsing training sections should not mutate the saved 90-day focus');
   assert.ok(mastermindHubSource.includes('videos ready now'), 'Curriculum section map should count only videos that are ready now');
   assert.ok(mastermindHubSource.includes('Next useful video'), 'Curriculum section map should point to the next useful video');
   assert.ok(mastermindHubSource.includes('Section complete'), 'Curriculum section map should not reassign watched videos after a section is complete');
+  assert.ok(mastermindHubSource.includes('setTrainingStageId(stage.id)'), 'Curriculum section browsing should keep a separate training filter from saved focus');
   assert.ok(mastermindHubSource.includes("setResourceFilter('focus')"), 'Curriculum section map should jump directly to the selected section videos');
   assert.ok(!mastermindHubSource.includes("label: '30-day'"), 'Training finder should not show a 30-day replay filter until recent replays are integrated');
   assert.ok(mastermindHubSource.includes('selectedStageId={selectedStageId}'), 'Changing focus should update the main 90-day guidance card');
@@ -430,7 +433,7 @@ try {
   assert.ok(aiStudioSource.includes('Monthly members get the planner-safe workspace plus one recommended project pack unlock per active month'), 'AI Studio should encode monthly limited access copy');
   assert.ok(aiStudioSource.includes('90-Day CEO Workspace'), 'AI Studio should include a planner-safe foundation workspace');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
-  for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources']) {
+  for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
   }
   for (const hiddenSourceLabel of ['MASTERMIND_PORTAL_AUDIT', 'crdbDropboxRows', 'coachingRowsWithDropboxPaths', 'Content Repurpose', 'Dropbox', 'dropbox.com', 'bunny_video_id']) {

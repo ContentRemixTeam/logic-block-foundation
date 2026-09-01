@@ -76,11 +76,12 @@ const requiredMastermindHubStrings = [
   'Get Coached by Faith',
   'Plan stages',
   'Videos ready',
-  'Transcript-backed',
-  'Access scope',
+  'Watched',
+  'Search-ready',
+  'Training by focus area',
   'Choose the smallest useful next resource',
   'Watch the videos that are ready inside this app.',
-  'This private QA finder only shows protected curriculum videos',
+  'This finder only shows curriculum videos that open in the in-app player',
   'Clear resource search',
 ];
 
