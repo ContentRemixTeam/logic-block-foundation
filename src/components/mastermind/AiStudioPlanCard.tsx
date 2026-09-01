@@ -228,6 +228,10 @@ function buildAdvancedInstallDocs({
       ].map((step, index) => `${index + 1}. ${step}`).join('\n'),
     },
     {
+      title: 'Setup Interview To Answer',
+      body: recommendedPack.setupQuestions.map((question) => `- ${question}`).join('\n'),
+    },
+    {
       title: 'Knowledge Docs To Add',
       body: [
         `90-day result: ${goal}`,
@@ -555,6 +559,17 @@ export function AiStudioPlanCard({
             <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={saveCustomization}>
               {answersSaved ? 'Saved' : 'Save setup answers'}
             </Button>
+          </div>
+
+          <div className="mt-4 rounded-lg border bg-muted/35 p-4">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Setup interview</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {selectedPack.setupQuestions.map((question) => (
+                <div key={question} className="rounded-md bg-background p-3 text-sm leading-relaxed">
+                  {question}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-2">

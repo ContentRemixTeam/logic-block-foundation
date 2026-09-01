@@ -19,6 +19,7 @@ export interface AiProjectPack {
   job: string;
   recommendedWhen: string;
   interviewFocus: string[];
+  setupQuestions: string[];
   installOutputs: string[];
   knowledgeDocs: string[];
   operatingRules: string[];
@@ -50,6 +51,12 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
     job: 'Turns the plan, capacity, constraints, and weekly review answers into better prompts and cleaner decisions.',
     recommendedWhen: 'Use this first when the business strategy and weekly execution loop need to be easier to follow.',
     interviewFocus: ['90-day goal', 'capacity and constraints', 'offer and audience', 'decision rules'],
+    setupQuestions: [
+      'What is the one 90-day result this workspace should protect?',
+      'What are the current low, medium, and high capacity versions of the plan?',
+      'What should this AI treat as already decided unless new evidence proves otherwise?',
+      'What evidence should it ask for before recommending a pivot?',
+    ],
     installOutputs: ['Custom GPT/Claude project instructions', 'business profile', 'weekly check-in prompt', 'decision rules'],
     knowledgeDocs: ['90-day plan summary', 'business profile', 'weekly evidence log'],
     operatingRules: [
@@ -69,6 +76,12 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
     job: 'Helps refine the buyer, problem, promise, offer boundaries, validation questions, and offer evidence.',
     recommendedWhen: 'Use this when the current bottleneck is what to sell, who it is for, what to promise, or whether people want it.',
     interviewFocus: ['buyer and problem', 'current offer', 'proof and objections', 'validation evidence'],
+    setupQuestions: [
+      'What has someone paid for, asked for, clicked, replied to, or said they want?',
+      'Who is the most specific buyer this offer is for right now?',
+      'What promise, price, format, and boundary are you willing to test this week?',
+      'What objection or uncertainty keeps you from making the offer directly?',
+    ],
     installOutputs: ['offer critique instructions', 'validation interview guide', 'offer one-liner worksheet', 'proof tracker prompt'],
     knowledgeDocs: ['buyer/problem evidence', 'current offer draft', 'validation and objection log'],
     operatingRules: [
@@ -88,6 +101,12 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
     job: 'Helps choose one visibility lane and create content or outreach that attracts qualified buyers.',
     recommendedWhen: 'Use this when the offer is clear but too few of the right people are finding it.',
     interviewFocus: ['best buyer habitat', 'current audience channels', 'visible proof', 'weekly publishing capacity'],
+    setupQuestions: [
+      'Where are the right buyers already paying attention or asking for help?',
+      'Which channel can you repeat for four weeks without needing a high-energy version of yourself?',
+      'What buyer problem should every discovery asset make obvious?',
+      'What counts as qualified signal: replies, DMs, opt-ins, clicks, calls, or saves?',
+    ],
     installOutputs: ['discovery lane selector', 'content prompt library', 'outreach prompt', 'qualified signal tracker'],
     knowledgeDocs: ['buyer habitat map', 'current content proof', 'weekly publishing capacity'],
     operatingRules: [
@@ -107,6 +126,12 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
     job: 'Helps move audience beliefs forward through emails, stories, proof, and buyer-readiness content.',
     recommendedWhen: 'Use this when people are aware but not yet engaged, warmed up, or ready to buy.',
     interviewFocus: ['belief gaps', 'audience questions', 'proof stories', 'email rhythm'],
+    setupQuestions: [
+      'What does your buyer need to believe before the offer makes sense?',
+      'What proof, story, or example can move that belief without overexplaining?',
+      'What questions or objections keep showing up in replies, calls, or DMs?',
+      'What weekly email or nurture rhythm can you sustain while still doing the selling work?',
+    ],
     installOutputs: ['belief map', 'email draft prompt', 'story prompt', 'reply analysis prompt'],
     knowledgeDocs: ['buyer belief map', 'proof and story bank', 'email rhythm and reply log'],
     operatingRules: [
@@ -126,6 +151,12 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
     job: 'Helps plan invitations, sales pages, follow-up, objection handling, and campaign debriefs.',
     recommendedWhen: 'Use this when the current plan needs direct selling, follow-up, or conversion support.',
     interviewFocus: ['sales goal', 'warmest audience', 'offer assets', 'objections and follow-up'],
+    setupQuestions: [
+      'What is the revenue target, offer price, and number of sales needed this cycle?',
+      'Who is the warmest audience or segment to invite first?',
+      'What part of the sales cycle is incomplete: invitation, page, follow-up, close, or debrief?',
+      'What objections, no-responses, or buyer questions should this AI help track neutrally?',
+    ],
     installOutputs: ['sales invitation prompt', 'sales page critique', 'follow-up sequence prompt', 'sales debrief template'],
     knowledgeDocs: ['sales goal and math', 'offer and sales assets', 'objection/follow-up log'],
     operatingRules: [
@@ -145,6 +176,12 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
     job: 'Helps clarify the customer first win, onboarding, check-ins, proof collection, and retention points.',
     recommendedWhen: 'Use this when sales are happening but delivery needs to create clearer wins and proof.',
     interviewFocus: ['customer promise', 'first win', 'stuck points', 'proof and feedback'],
+    setupQuestions: [
+      'What result did the customer buy, and what first win proves they are moving?',
+      'Where do customers currently slow down, disappear, or need extra support?',
+      'What onboarding or check-in step would make the next action more obvious?',
+      'What proof, feedback, or completion signal should be collected without making the customer do extra work?',
+    ],
     installOutputs: ['first-win map', 'onboarding prompt', 'check-in prompt', 'proof capture script'],
     knowledgeDocs: ['customer promise', 'first-win map', 'stuck-point and proof log'],
     operatingRules: [
@@ -164,6 +201,12 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
     job: 'Helps document, simplify, and package one proven workflow before automating or delegating it.',
     recommendedWhen: 'Use this when the business works but owner-dependence, manual work, or complexity is blocking growth.',
     interviewFocus: ['repeated workflow', 'decision owner', 'handoff points', 'automation risk'],
+    setupQuestions: [
+      'Which repeated workflow is connected to revenue, delivery, retention, or owner capacity?',
+      'What steps are actually happening now, even if they are messy?',
+      'Which decisions still need the owner, and which parts can be drafted, checked, automated, or delegated?',
+      'What could go wrong if this workflow were automated too early?',
+    ],
     installOutputs: ['SOP interview', 'workflow simplifier', 'AI assistant instructions', 'Zapier/n8n readiness checklist'],
     knowledgeDocs: ['workflow map', 'handoff rules', 'automation risk checklist'],
     operatingRules: [

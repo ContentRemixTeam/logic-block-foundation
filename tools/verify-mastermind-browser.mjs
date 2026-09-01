@@ -655,6 +655,8 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Ask Faith');
     await assertText(client, 'Selected');
     await assertText(client, 'Previewing packs, saving setup answers, copying install docs');
+    await assertText(client, 'SETUP INTERVIEW');
+    await assertText(client, 'What is the revenue target, offer price, and number of sales needed this cycle?');
     await assertText(client, 'Download .md');
     await assertText(client, 'Advanced install docs');
     const advancedDocsOpened = await evaluate(client, `
