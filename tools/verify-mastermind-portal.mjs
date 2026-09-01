@@ -367,6 +367,14 @@ assert.equal(sellGuidance.aiProjectId, 'sales-room', 'weekly guidance should exp
 
 const offerValidationGuidance = getMastermindWeeklyGuidance('offer', cycle({}), 'offer-validate');
 assert.equal(offerValidationGuidance.primaryResource.resourceId, 'money-move-day-three', 'offer validation should recommend the sales-plan lesson');
+const offerFocusGuidance = getMastermindWeeklyGuidance('offer', cycle({}), 'offer-focus');
+assert.equal(offerFocusGuidance.primaryResource.resourceId, 'money-move-day-one', 'offer focus should recommend Choose Your Money Move, not generic 90-day planning');
+assert.ok(
+  MASTERMIND_SUCCESS_STAGES
+    .find((stage) => stage.id === 'offer')
+    ?.resources.some((resource) => resource.resourceId === 'wibn-offer-clarity' && resource.milestoneIds?.includes('offer-buyer')),
+  'offer buyer/problem should stay mapped to the offer-clarity candidate'
+);
 
 assert.ok(AI_PROJECT_PACKS.length >= 7, 'AI Studio should include the foundation pack plus each stage pack');
 const monthlyAccess = getAiStudioAccessSummary('mastermind', true);
