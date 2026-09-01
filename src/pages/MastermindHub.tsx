@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MastermindGate } from '@/components/membership/MastermindGate';
 import { AiStudioPlanCard } from '@/components/mastermind/AiStudioPlanCard';
+import { MastermindSupportBot } from '@/components/mastermind/MastermindSupportBot';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
 import { usePhaseOneCatalog } from '@/hooks/usePhaseOneCatalog';
 import {
@@ -659,6 +660,16 @@ export default function MastermindHub() {
             </TabsContent>
 
             <TabsContent value="support" className="space-y-4">
+              <MastermindSupportBot
+                cycle={successPathData?.cycle}
+                selectedStageId={selectedStageId}
+                currentMilestone={currentMilestone}
+                visibleResources={visibleResources}
+                completedResourceIds={completedResourceIds}
+                onOpenResource={handleOpen}
+                onOpenAiSettings={() => navigate('/ai-copywriting/settings')}
+              />
+
               {aiStudioEnabled && (
                 <AiStudioPlanCard
                   cycle={successPathData?.cycle}
@@ -672,10 +683,10 @@ export default function MastermindHub() {
               <div className="grid gap-4 lg:grid-cols-3">
                 <SupportCard
                   icon={Bot}
-                  title="Get Coached by Faith"
-                  description="Use your own OpenAI or Claude key for AI prep, then bring the real evidence to Faith when the decision needs coaching."
-                  buttonLabel="Open AI Settings"
-                  onClick={() => navigate('/ai-copywriting/settings')}
+                  title="Ask Faith"
+                  description="When the bot or playlist shows a decision point, send Faith the context and the evidence you have so far."
+                  buttonLabel="Submit Question"
+                  onClick={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
                 />
                 <SupportCard
                   icon={Users}

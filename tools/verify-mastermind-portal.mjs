@@ -13,6 +13,7 @@ const outputPath = path.join(tempDir, 'entry.mjs');
 const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.tsx');
 const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermindPortalResources.ts');
 const successPathPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/SuccessPathPlanCard.tsx');
+const mastermindSupportBotSourcePath = path.join(projectRoot, 'src/components/mastermind/MastermindSupportBot.tsx');
 const aiStudioSourcePath = path.join(projectRoot, 'src/lib/mastermindAiStudio.ts');
 const aiStudioPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/AiStudioPlanCard.tsx');
 const phaseOneCatalogSourcePath = path.join(projectRoot, 'src/hooks/usePhaseOneCatalog.ts');
@@ -404,6 +405,7 @@ try {
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
+  const mastermindSupportBotSource = readFileSync(mastermindSupportBotSourcePath, 'utf8');
   const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
   const aiStudioPlanCardSource = readFileSync(aiStudioPlanCardSourcePath, 'utf8');
   const phaseOneCatalogSource = readFileSync(phaseOneCatalogSourcePath, 'utf8');
@@ -455,6 +457,16 @@ try {
   assert.ok(mastermindHubSource.includes('Show watched'), 'Training tab should provide a clear watched-video recovery control');
   assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
+  assert.ok(mastermindHubSource.includes('<MastermindSupportBot'), 'Support tab should mount the embedded coaching and finder bot');
+  assert.ok(mastermindHubSource.includes('title="Ask Faith"'), 'Support tab should keep human Ask Faith separate from the embedded bot');
+  assert.ok(mastermindSupportBotSource.includes("type SupportBotMode = 'coach' | 'find'"), 'Support bot should have coaching and finder modes');
+  assert.ok(mastermindSupportBotSource.includes('useMastermindAI'), 'Support bot should use the existing BYO-key AI coach hook');
+  assert.ok(mastermindSupportBotSource.includes('searchMastermindPortalResources'), 'Support bot finder should reuse the curriculum search logic');
+  assert.ok(mastermindSupportBotSource.includes('training_ids'), 'Support bot should request known training IDs instead of inventing resources');
+  assert.ok(mastermindSupportBotSource.includes('Open AI key settings'), 'Support bot should give members the cost-safe key setup path');
+  assert.ok(mastermindSupportBotSource.includes('one next move'), 'Coaching response should stay focused on one next move');
+  assert.ok(mastermindSupportBotSource.includes('evidence_to_record'), 'Coaching response should ask for evidence, not only inspiration');
+  assert.ok(mastermindSupportBotSource.includes('Only ready, playable curriculum videos appear here.'), 'Finder should only show playable hidden curriculum videos');
   assert.ok(successPathPlanCardSource.includes('Do this this week'), 'The 90-day guidance card should name one concrete weekly move');
   assert.ok(successPathPlanCardSource.includes('Bring back this evidence'), 'The 90-day guidance card should define the evidence target');
   assert.ok(successPathPlanCardSource.includes('Update My 90-Day Plan'), 'The 90-day guidance card needs an honest direct plan-editing action');
@@ -532,6 +544,7 @@ try {
   for (const [sourceName, source] of [
     ['MastermindHub', mastermindHubSource],
     ['SuccessPathPlanCard', successPathPlanCardSource],
+    ['MastermindSupportBot', mastermindSupportBotSource],
   ]) {
     for (const riskyClass of ['whitespace-nowrap', 'text-nowrap', 'w-[', 'min-w-[']) {
       assert.ok(!source.includes(riskyClass), sourceName + ' should not use layout class that risks mobile overflow: ' + riskyClass);

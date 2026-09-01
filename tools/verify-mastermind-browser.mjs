@@ -626,8 +626,12 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Bring back this evidence');
     await assertText(client, 'Ask Faith');
     await clickText(client, 'Get Support');
-    await waitFor(client, 'document.body.innerText.includes("Get Coached by Faith")', `${label} support tab`);
-    await assertText(client, 'Get Coached by Faith');
+    await waitFor(client, 'document.body.innerText.includes("Support Bot")', `${label} support tab`);
+    await assertText(client, 'Find the next useful thing.');
+    await assertText(client, 'Find training');
+    await assertText(client, 'Coach me');
+    await assertText(client, 'Only ready, playable curriculum videos appear here.');
+    await assertText(client, 'Ask Faith');
     await clickText(client, 'Guidance');
     await waitFor(client, 'document.body.innerText.includes("Do this this week")', `${label} return to guidance`);
     await assertNoHorizontalOverflow(client, `${label} guidance`);
