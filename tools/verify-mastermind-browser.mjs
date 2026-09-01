@@ -418,6 +418,7 @@ function buildMockScript(cycle, email = mockEmail) {
         title: 'Offer Coaching Call',
         category: 'Current Call Replays',
         sourceType: 'video',
+        accessScope: 'current_replay_30_day',
         durationSeconds: 3502.28,
         momentId: 'current-moment-pricing-001',
         questionId: null,
@@ -426,6 +427,22 @@ function buildMockScript(cycle, email = mockEmail) {
         endSeconds: 584,
         snippet: 'A focused answer about tightening the offer promise and choosing a clear pricing test for this week.',
         reason: 'Matches the current plan because it turns pricing confusion into one sales action.',
+        answerer: 'Faith',
+      },
+      {
+        resourceId: 'old-vault-result-that-must-not-render',
+        title: 'Old Annual Vault Replay',
+        category: 'Full Vault',
+        sourceType: 'video',
+        accessScope: 'replay_vault',
+        durationSeconds: 4800,
+        momentId: 'old-vault-moment-001',
+        questionId: null,
+        matchType: 'transcript',
+        startSeconds: 120,
+        endSeconds: 180,
+        snippet: 'This stale full Vault result must not appear on the Current Replays page.',
+        reason: 'stale full Vault result',
         answerer: 'Faith',
       },
     ],
@@ -794,6 +811,8 @@ async function runChecks(client, checks, label) {
     await clickText(client, 'pricing');
     await waitFor(client, 'document.body.innerText.includes("Offer Coaching Call")', `${label} current replay results`);
     await assertText(client, 'A focused answer about tightening the offer promise');
+    await assertNoText(client, 'Old Annual Vault Replay');
+    await assertNoText(client, 'This stale full Vault result must not appear');
     await assertText(client, 'Watch answer');
     await assertNoHorizontalOverflow(client, `${label} current replay results`);
 

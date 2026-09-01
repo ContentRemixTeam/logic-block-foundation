@@ -21,6 +21,7 @@ import type { PlaybackResult, PlaybackTarget, VaultAccessState, VaultReplayGroup
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
 
 const CURRENT_REPLAY_SURFACE = 'recent_replay' as const;
+const CURRENT_REPLAY_ACCESS_SCOPE = 'current_replay_30_day';
 const CURRENT_REPLAY_QUICK_SEARCH_LIMIT = 10;
 const CURRENT_REPLAY_QUICK_SEARCH_MOMENTS_PER_REPLAY = 3;
 const CURRENT_REPLAY_DEEP_SEARCH_LIMIT = 16;
@@ -36,6 +37,28 @@ function canUseCurrentReplays(access: VaultAccessState) {
 
 function targetKey(target: { resourceId: string; momentId?: string | null; questionId?: string | null }) {
   return `${target.resourceId}:${target.momentId ?? target.questionId ?? 'replay'}`;
+}
+
+function isCurrentReplaySearchRow(row: unknown) {
+  if (!row || typeof row !== 'object') return false;
+  const accessScope = 'accessScope' in row ? row.accessScope : 'access_scope' in row ? row.access_scope : 'approved_access_scope' in row ? row.approved_access_scope : null;
+  return String(accessScope ?? '').trim() === CURRENT_REPLAY_ACCESS_SCOPE;
+}
+
+function currentReplayOnlySearchPayload(payload: unknown) {
+  if (Array.isArray(payload)) return payload.filter(isCurrentReplaySearchRow);
+  if (!payload || typeof payload !== 'object') return { results: [] };
+  const record = payload as Record<string, unknown>;
+  const rows = Array.isArray(record.results) ? record.results.filter(isCurrentReplaySearchRow) : [];
+  const groups = Array.isArray(record.groups)
+    ? record.groups.filter((group) => {
+        if (!group || typeof group !== 'object') return false;
+        if (isCurrentReplaySearchRow(group)) return true;
+        const moments = (group as Record<string, unknown>).moments;
+        return Array.isArray(moments) && moments.every(isCurrentReplaySearchRow);
+      })
+    : undefined;
+  return groups ? { ...record, groups } : { ...record, results: rows };
 }
 
 export default function MastermindCurrentReplays() {
@@ -239,7 +262,7 @@ export default function MastermindCurrentReplays() {
         },
       });
       if (controller.signal.aborted || searchRequest.current.generation !== generation) return;
-      setGroups(error ? [] : groupSearchResults(data));
+      setGroups(error ? [] : groupSearchResults(currentReplayOnlySearchPayload(data)));
       if (error) setSearchError('Current replay search is temporarily unavailable. Your access has not changed.');
     } catch {
       if (!controller.signal.aborted && searchRequest.current.generation === generation) {

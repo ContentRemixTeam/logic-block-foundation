@@ -519,8 +519,12 @@ try {
   assert.ok(appSource.includes('path="/mastermind/current-replays"'), 'App should include the future member current replay route behind gates');
   assert.ok(appSource.includes('path="/admin/mastermind-current-replays-preview"'), 'App should include the hidden admin current replay QA route');
   assert.ok(mastermindCurrentReplaysSource.includes("const CURRENT_REPLAY_SURFACE = 'recent_replay'"), 'Current replay page should use the recent_replay protected media surface');
+  assert.ok(mastermindCurrentReplaysSource.includes("const CURRENT_REPLAY_ACCESS_SCOPE = 'current_replay_30_day'"), 'Current replay page should define the only safe monthly replay access scope');
+  assert.ok(mastermindCurrentReplaysSource.includes('currentReplayOnlySearchPayload'), 'Current replay page should fail closed if search returns non-current replay rows');
+  assert.ok(mastermindCurrentReplaysSource.includes('isCurrentReplaySearchRow'), 'Current replay page should verify each search result scope before rendering');
   assert.ok(mastermindCurrentReplaysSource.includes('normalizeCurrentReplayAccessResponse'), 'Current replay page should normalize current-replay access separately from full Vault access');
   assert.ok(mastermindCurrentReplaysSource.includes('surface: CURRENT_REPLAY_SURFACE'), 'Current replay page should pass its surface to access, search, and playback calls');
+  assert.ok(mastermindCurrentReplaysSource.includes('groupSearchResults(currentReplayOnlySearchPayload(data))'), 'Current replay page must not render stale full-Vault search results');
   assert.ok(mastermindCurrentReplaysSource.includes('detailBasePath={detailBasePath}'), 'Current replay search results should preserve the current-replay route in detail links');
   assert.ok(mastermindCurrentReplaysSource.includes('showVaultTools={false}'), 'Current replay playback should not expose full Vault tools to monthly members');
   assert.ok(mastermindTrainingSource.includes('Lesson context'), 'Training player should explain why the member is watching the lesson');
