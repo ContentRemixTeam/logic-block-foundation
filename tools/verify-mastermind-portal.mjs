@@ -20,6 +20,7 @@ const aiStudioPlanCardSourcePath = path.join(projectRoot, 'src/components/master
 const phaseOneCatalogSourcePath = path.join(projectRoot, 'src/hooks/usePhaseOneCatalog.ts');
 const aiStudioUnlockHookSourcePath = path.join(projectRoot, 'src/hooks/useMastermindAiStudioUnlocks.ts');
 const aiStudioUnlockMigrationSourcePath = path.join(projectRoot, 'supabase/migrations/20260901123000_mastermind_ai_asset_unlocks.sql');
+const curriculumMomentSearchMigrationSourcePath = path.join(projectRoot, 'supabase/migrations/20260901143000_mastermind_curriculum_moment_search.sql');
 const mastermindPortalAccessSourcePath = path.join(projectRoot, 'src/hooks/useMastermindPortalAccess.ts');
 const mastermindSuccessPathHookSourcePath = path.join(projectRoot, 'src/hooks/useMastermindSuccessPath.ts');
 const offlineSyncSourcePath = path.join(projectRoot, 'src/lib/offlineSync.ts');
@@ -421,6 +422,7 @@ try {
   const phaseOneCatalogSource = readFileSync(phaseOneCatalogSourcePath, 'utf8');
   const aiStudioUnlockHookSource = readFileSync(aiStudioUnlockHookSourcePath, 'utf8');
   const aiStudioUnlockMigrationSource = readFileSync(aiStudioUnlockMigrationSourcePath, 'utf8');
+  const curriculumMomentSearchMigrationSource = readFileSync(curriculumMomentSearchMigrationSourcePath, 'utf8');
   const mastermindPortalAccessSource = readFileSync(mastermindPortalAccessSourcePath, 'utf8');
   const mastermindSuccessPathHookSource = readFileSync(mastermindSuccessPathHookSourcePath, 'utf8');
   const offlineSyncSource = readFileSync(offlineSyncSourcePath, 'utf8');
@@ -501,6 +503,20 @@ try {
   assert.ok(mastermindHubSource.includes('Watched videos are hidden from the default list'), 'Training tab should explain where completed lessons went');
   assert.ok(mastermindHubSource.includes('Show watched'), 'Training tab should provide a clear watched-video recovery control');
   assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
+  assert.ok(mastermindHubSource.includes('data-curriculum-moment-search'), 'Hidden admin QA should expose exact curriculum timestamp search in the training tab');
+  assert.ok(mastermindHubSource.includes("isAdminPreview && activeTab === 'training'"), 'Curriculum timestamp search must stay scoped to the hidden admin training tab');
+  assert.ok(mastermindHubSource.includes('Open at timestamp'), 'Curriculum timestamp matches should open the protected player at the matched moment');
+  assert.ok(phaseOneCatalogSource.includes('usePhaseOneCurriculumMomentSearch'), 'Phase One hook should include the hidden curriculum moment search query');
+  assert.ok(phaseOneCatalogSource.includes('search_my_mastermind_curriculum_moments'), 'Phase One hook should call the server-side curriculum moment RPC');
+  assert.ok(curriculumMomentSearchMigrationSource.includes('search_my_mastermind_curriculum_moments'), 'Hidden curriculum moment search migration must create the RPC');
+  assert.ok(curriculumMomentSearchMigrationSource.includes("approved_access_scope = 'core_curriculum'"), 'Curriculum moment search must only search core_curriculum records');
+  assert.ok(curriculumMomentSearchMigrationSource.includes('replay_transcript_segments'), 'Curriculum moment search must use approved transcript segments');
+  assert.ok(curriculumMomentSearchMigrationSource.includes('mastermind_media_access_decision'), 'Curriculum moment search must reuse the media access decision');
+  assert.ok(curriculumMomentSearchMigrationSource.includes('replay_vault_admin_preview_enabled'), 'Curriculum moment search must preserve hidden preview allowlist behavior');
+  assert.ok(curriculumMomentSearchMigrationSource.includes('AND public.replay_vault_admin_preview_enabled(auth.uid(), p_preview)'), 'Curriculum moment search must fail closed outside the two-account hidden preview allowlist');
+  assert.ok(curriculumMomentSearchMigrationSource.includes('AND i.preview_active'), 'Curriculum moment search must keep the database query preview-only');
+  assert.ok(curriculumMomentSearchMigrationSource.includes('ts_headline'), 'Curriculum moment search should return short transcript snippets instead of raw transcripts');
+  assert.ok(curriculumMomentSearchMigrationSource.includes('GRANT EXECUTE ON FUNCTION public.search_my_mastermind_curriculum_moments'), 'Curriculum moment search must grant execute only through the authenticated RPC path');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
   assert.ok(mastermindHubSource.includes('<MastermindSupportBot'), 'Support tab should mount the embedded coaching and finder bot');
   assert.ok(mastermindHubSource.includes('title="Ask Faith"'), 'Support tab should keep human Ask Faith separate from the embedded bot');

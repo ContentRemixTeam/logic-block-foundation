@@ -21,6 +21,18 @@ export interface PhaseOneCatalogRow {
   last_position_seconds: number | null;
 }
 
+export interface PhaseOneCurriculumMomentRow {
+  portal_resource_id: string;
+  title: string | null;
+  category_title: string | null;
+  start_seconds: number | null;
+  end_seconds: number | null;
+  moment_id: string;
+  snippet: string | null;
+  duration_seconds: number | null;
+  completed: boolean | null;
+}
+
 export type PhaseOneStep = 'plan' | 'workspace' | 'connector' | 'complete';
 export type PhaseOneWorkspaceStatus = 'not_started' | 'in_progress' | 'ready';
 export type PhaseOneConnectorStatus = 'not_started' | 'connected' | 'verified';
@@ -54,6 +66,29 @@ export function usePhaseOneCatalog(enabled = true) {
       }).rpc('search_my_mastermind_phase_one_resources', { p_query: null, p_stage: null, p_limit: 200 });
       if (error) throw error;
       return (Array.isArray(data) ? data : []) as PhaseOneCatalogRow[];
+    },
+  });
+}
+
+export function usePhaseOneCurriculumMomentSearch(query: string, stage: string | null | undefined, enabled = true) {
+  const normalizedQuery = query.trim().slice(0, 160);
+  const normalizedStage = stage?.trim() || null;
+
+  return useQuery({
+    queryKey: ['phase-one-curriculum-moments', normalizedQuery, normalizedStage ?? 'all'],
+    enabled: enabled && normalizedQuery.length >= 2,
+    staleTime: 60_000,
+    queryFn: async (): Promise<PhaseOneCurriculumMomentRow[]> => {
+      const { data, error } = await (supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+      }).rpc('search_my_mastermind_curriculum_moments', {
+        p_query: normalizedQuery,
+        p_stage: normalizedStage,
+        p_limit: 12,
+        p_preview: true,
+      });
+      if (error) throw error;
+      return (Array.isArray(data) ? data : []) as PhaseOneCurriculumMomentRow[];
     },
   });
 }

@@ -12737,6 +12737,25 @@ export type Database = {
           title: string
         }[]
       }
+      search_my_mastermind_curriculum_moments: {
+        Args: {
+          p_limit?: number
+          p_preview?: boolean
+          p_query: string
+          p_stage?: string
+        }
+        Returns: {
+          category_title: string | null
+          completed: boolean
+          duration_seconds: number | null
+          end_seconds: number
+          moment_id: string
+          portal_resource_id: string
+          snippet: string
+          start_seconds: number
+          title: string | null
+        }[]
+      }
       search_replay_vault_resources: {
         Args: {
           p_as_of?: string

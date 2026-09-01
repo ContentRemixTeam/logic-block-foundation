@@ -10,7 +10,13 @@ import { MastermindGate } from '@/components/membership/MastermindGate';
 import { AiStudioPlanCard } from '@/components/mastermind/AiStudioPlanCard';
 import { MastermindSupportBot } from '@/components/mastermind/MastermindSupportBot';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
-import { usePhaseOneCatalog, usePhaseOneState, type PhaseOneWorkspaceStatus } from '@/hooks/usePhaseOneCatalog';
+import {
+  usePhaseOneCatalog,
+  usePhaseOneCurriculumMomentSearch,
+  usePhaseOneState,
+  type PhaseOneCurriculumMomentRow,
+  type PhaseOneWorkspaceStatus,
+} from '@/hooks/usePhaseOneCatalog';
 import { useMastermindPortalAccess } from '@/hooks/useMastermindPortalAccess';
 import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
 import { useActiveCycle } from '@/hooks/useActiveCycle';
@@ -22,6 +28,7 @@ import {
 } from '@/data/mastermindPortalResources';
 import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
 import { useMembership } from '@/hooks/useMembership';
+import { formatCompactTime } from '@/components/replay-vault/replayVaultCore.mjs';
 import {
   MASTERMIND_SUCCESS_STAGES,
   type MastermindPlanCycle,
@@ -236,6 +243,15 @@ export default function MastermindHub() {
   const selectedStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
   const activeTrainingStageId = trainingStageId ?? selectedStageId;
   const activeTrainingStage = MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === activeTrainingStageId) ?? selectedStage;
+  const normalizedTrainingSearchQuery = searchQuery.trim();
+  const showCurriculumMomentSearch =
+    isAdminPreview && activeTab === 'training' && normalizedTrainingSearchQuery.length >= 2;
+  const curriculumMomentSearchQuery = usePhaseOneCurriculumMomentSearch(
+    normalizedTrainingSearchQuery,
+    resourceFilter === 'focus' ? activeTrainingStageId : null,
+    showCurriculumMomentSearch
+  );
+  const curriculumMomentRows = curriculumMomentSearchQuery.data ?? [];
   const currentMilestoneId = successPathData?.snapshot?.current_milestone_id ?? selectedStage.milestones[0].id;
   const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
     ?? selectedStage.milestones[0];
@@ -600,6 +616,16 @@ export default function MastermindHub() {
       return;
     }
     handleOpen(resource);
+  };
+
+  const handleOpenCurriculumMoment = (moment: PhaseOneCurriculumMomentRow) => {
+    const params = new URLSearchParams({
+      resource: moment.portal_resource_id,
+      moment: moment.moment_id,
+      from: 'phase-one',
+    });
+    if (activeTrainingStageId) params.set('stage', activeTrainingStageId);
+    navigate(`/admin/mastermind-training-preview?${params.toString()}`);
   };
 
   const copyAskFaithBrief = async () => {
@@ -1422,6 +1448,81 @@ export default function MastermindHub() {
                       </Button>
                     )}
                   </div>
+
+                  {showCurriculumMomentSearch && (
+                    <div className="space-y-3 rounded-lg border bg-primary/5 p-4" data-curriculum-moment-search>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-semibold">Timestamp matches inside the curriculum</p>
+                            <Badge variant="outline" className="text-[11px]">Hidden QA</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Preview-only: this searches approved transcript moments before timestamp search is exposed to members.
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="w-fit text-[11px]">
+                          {curriculumMomentRows.length} match{curriculumMomentRows.length === 1 ? '' : 'es'}
+                        </Badge>
+                      </div>
+
+                      {curriculumMomentSearchQuery.isFetching && (
+                        <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
+                          Searching exact curriculum timestamps...
+                        </p>
+                      )}
+
+                      {curriculumMomentSearchQuery.isError && (
+                        <p role="alert" className="text-sm text-muted-foreground">
+                          Timestamp search is not available in this build yet. Title search still works.
+                        </p>
+                      )}
+
+                      {!curriculumMomentSearchQuery.isFetching && !curriculumMomentSearchQuery.isError && curriculumMomentRows.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          No timestamp matches yet. Try a phrase Faith uses in trainings, like pricing, offer, list, sales, or onboarding.
+                        </p>
+                      )}
+
+                      {curriculumMomentRows.length > 0 && (
+                        <div className="space-y-2">
+                          {curriculumMomentRows.map((moment) => (
+                            <div
+                              key={`${moment.portal_resource_id}-${moment.moment_id}`}
+                              className="flex flex-col gap-3 rounded-md border bg-background p-3 sm:flex-row sm:items-start sm:justify-between"
+                            >
+                              <div className="min-w-0 space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge variant="secondary" className="text-[11px]">
+                                    {formatCompactTime(moment.start_seconds ?? 0)}
+                                  </Badge>
+                                  {moment.completed && (
+                                    <Badge variant="success" className="text-[11px]">Watched</Badge>
+                                  )}
+                                  <p className="break-words text-sm font-semibold">{moment.title ?? 'Mastermind training'}</p>
+                                </div>
+                                <p className="break-words text-sm leading-relaxed text-muted-foreground">
+                                  {moment.snippet || 'Transcript moment matched this search.'}
+                                </p>
+                                {moment.category_title && (
+                                  <p className="text-xs text-muted-foreground">{moment.category_title}</p>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                className="min-h-10 shrink-0"
+                                onClick={() => handleOpenCurriculumMoment(moment)}
+                              >
+                                Open at timestamp
+                                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {watchedVisibleResourceCount > 0 && !showWatchedResources && !searchQuery && resourceFilter === 'all' && (
                     <p className="text-sm text-muted-foreground">
