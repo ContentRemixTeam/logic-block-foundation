@@ -43,37 +43,12 @@ export function MembershipProvider({ children }: { children: React.ReactNode }) 
       if (isMastermindMember) {
         setMembershipTier('mastermind');
         setMembershipStatus('active');
-
-        // Upsert profile with membership info (including user_type for trial upgrades)
-        const { error: upsertError } = await supabase
-          .from('user_profiles')
-          .update({
-            membership_tier: 'mastermind',
-            membership_status: 'active',
-            user_type: 'member'
-          })
-          .eq('id', user.id);
-
-        if (upsertError) {
-          console.error('Error updating profile membership:', upsertError);
-        }
       } else {
-        // Check if they had membership before but it expired
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('membership_tier, membership_status')
           .eq('id', user.id)
           .single();
-
-        if (profile?.membership_tier === 'mastermind' && profile?.membership_status === 'active') {
-          // Membership expired, update profile
-          await supabase
-            .from('user_profiles')
-            .update({
-              membership_status: 'expired'
-            })
-            .eq('id', user.id);
-        }
 
         setMembershipTier(profile?.membership_tier || null);
         setMembershipStatus(profile?.membership_status || null);

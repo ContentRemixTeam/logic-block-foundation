@@ -77,6 +77,14 @@ const TRAINING_TIME_OPTIONS = [
 ];
 const WEEKLY_MOVE_TASK_STORAGE_KEY = 'mastermind-weekly-move-task-keys';
 const PLACEHOLDER_GOALS = new Set(['my 90-day goal', 'my 90 day goal', 'n']);
+const CURRENT_REPLAY_PLAN_QUERIES: Record<MastermindStageId, string> = {
+  offer: 'offer pricing',
+  find: 'audience content',
+  nurture: 'email list content',
+  sell: 'sales pricing',
+  deliver: 'client onboarding',
+  leverage: 'systems capacity',
+};
 
 type DashboardWeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'failed';
 
@@ -265,6 +273,8 @@ export default function MastermindHub() {
     () => new Map(MASTERMIND_PORTAL_RESOURCES.map((resource) => [resource.id, resource])),
     []
   );
+  const currentReplaysResource = portalResourceById.get('current-replays') ?? null;
+  const currentReplayPlanQuery = CURRENT_REPLAY_PLAN_QUERIES[selectedStageId] ?? selectedStage.label;
   const currentCheckpointTitle = selectedStageId === 'offer'
     ? "Pick the thing you're going to sell this quarter"
     : currentMilestone.label;
@@ -593,7 +603,8 @@ export default function MastermindHub() {
 
   const handleOpen = (resource: MastermindPortalResource) => {
     if (resource.protectedPlayback?.surface === 'recent_replay') {
-      navigate(isAdminPreview ? '/admin/mastermind-current-replays-preview' : '/mastermind/current-replays');
+      const params = new URLSearchParams({ q: currentReplayPlanQuery });
+      navigate(`${isAdminPreview ? '/admin/mastermind-current-replays-preview' : '/mastermind/current-replays'}?${params.toString()}`);
       return;
     }
 
@@ -872,6 +883,47 @@ export default function MastermindHub() {
                 <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                   Your previous focus is still safe. We could not save this change: {successPathError}
                 </p>
+              )}
+
+              {currentReplaysResource && (
+                <Card className="border-primary/20">
+                  <CardHeader>
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <Badge variant="outline" className="mb-2 w-fit">Current calls</Badge>
+                        <CardTitle>Find a recent example for this week's plan.</CardTitle>
+                        <CardDescription>
+                          Search the last 30 days of Mastermind calls for coaching moments tied to the move you are working on now.
+                        </CardDescription>
+                      </div>
+                      <Badge variant="secondary" className="w-fit">30-day replay window</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-lg border bg-background p-4">
+                        <p className="text-xs font-semibold text-muted-foreground">Best when</p>
+                        <p className="mt-1 text-sm leading-relaxed">
+                          You want to see how Faith coached this problem with a real member recently.
+                        </p>
+                      </div>
+                      <div className="rounded-lg border bg-background p-4">
+                        <p className="text-xs font-semibold text-muted-foreground">Suggested search</p>
+                        <p className="mt-1 text-sm font-semibold leading-relaxed">{currentReplayPlanQuery}</p>
+                      </div>
+                      <div className="rounded-lg border bg-background p-4">
+                        <p className="text-xs font-semibold text-muted-foreground">Use it for</p>
+                        <p className="mt-1 text-sm leading-relaxed">
+                          One timestamp, one decision, and one action to test this week.
+                        </p>
+                      </div>
+                    </div>
+                    <Button type="button" className="h-full min-h-12 whitespace-normal" onClick={() => handleOpen(currentReplaysResource)}>
+                      Search recent call examples
+                      <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                    </Button>
+                  </CardContent>
+                </Card>
               )}
 
               <Card>

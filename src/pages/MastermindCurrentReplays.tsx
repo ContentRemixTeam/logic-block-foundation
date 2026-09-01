@@ -22,7 +22,6 @@ import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekC
 
 const CURRENT_REPLAY_SURFACE = 'recent_replay' as const;
 const CURRENT_REPLAY_ACCESS_SCOPE = 'current_replay_30_day';
-const CURRENT_REPLAY_LABEL = 'current call replays';
 const CURRENT_REPLAY_QUICK_SEARCH_LIMIT = 10;
 const CURRENT_REPLAY_QUICK_SEARCH_MOMENTS_PER_REPLAY = 3;
 const CURRENT_REPLAY_DEEP_SEARCH_LIMIT = 16;
@@ -62,23 +61,23 @@ function hasNonCurrentReplayScope(row: unknown) {
   return Boolean(accessScope && accessScope !== CURRENT_REPLAY_ACCESS_SCOPE);
 }
 
-function hasCurrentReplaySource(row: unknown) {
+function hasVaultSourceMarker(row: unknown) {
   if (!row || typeof row !== 'object') return false;
   const record = row as Record<string, unknown>;
   const category = currentReplayField(record, ['category', 'categoryTitle', 'category_title']);
   const productTitle = currentReplayField(record, ['productTitle', 'product_title']);
-  return category.includes(CURRENT_REPLAY_LABEL) || productTitle.includes(CURRENT_REPLAY_LABEL);
+  return category.includes('vault') || productTitle.includes('vault');
 }
 
 function isCurrentReplaySearchRow(row: unknown) {
-  return hasCurrentReplayScope(row) && hasCurrentReplaySource(row);
+  return hasCurrentReplayScope(row) && !hasVaultSourceMarker(row);
 }
 
 function isCurrentReplayGroup(group: unknown) {
   if (!group || typeof group !== 'object') return false;
   const moments = (group as Record<string, unknown>).moments;
   if (Array.isArray(moments)) {
-    return hasCurrentReplaySource(group) && hasCurrentReplayScope(group) && moments.length > 0 && moments.every((moment) => !hasNonCurrentReplayScope(moment));
+    return hasCurrentReplayScope(group) && !hasVaultSourceMarker(group) && moments.length > 0 && moments.every((moment) => !hasNonCurrentReplayScope(moment));
   }
   return isCurrentReplaySearchRow(group);
 }
@@ -104,6 +103,7 @@ export default function MastermindCurrentReplays() {
   const recoveryAttemptsRef = useRef(0);
   const deepLinkAttemptedRef = useRef<string | null>(null);
   const deepLinkBusyRef = useRef(false);
+  const seededSearchKeyRef = useRef<string | null>(null);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-current-replays-preview');
   const detailBasePath = isAdminPreview ? '/admin/mastermind-current-replays-preview' : '/mastermind/current-replays';
   const [access, setAccess] = useState<VaultAccessState>({ status: 'loading' });
@@ -125,6 +125,10 @@ export default function MastermindCurrentReplays() {
   const hasCurrentReplayAccess = canUseCurrentReplays(access);
   const detailTarget = useMemo(() => parseDetailTarget(location.search), [location.search]);
   const detailKey = detailTarget ? targetKey(detailTarget) : null;
+  const seededSearchQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return (params.get('q') ?? params.get('query') ?? '').trim().slice(0, 160);
+  }, [location.search]);
   const { announcement, onLoadedMetadata, resetForSource } = useVaultSeekCoordinator({
     mediaRef: videoRef,
     targetSeconds: target?.startSeconds ?? null,
@@ -309,6 +313,15 @@ export default function MastermindCurrentReplays() {
     event.preventDefault();
     await runCurrentReplaySearch(query, 'quick');
   };
+
+  useEffect(() => {
+    if (!hasCurrentReplayAccess || seededSearchQuery.length < 2) return;
+    const searchKey = `${isAdminPreview ? 'preview' : 'member'}:${seededSearchQuery}`;
+    if (seededSearchKeyRef.current === searchKey) return;
+    seededSearchKeyRef.current = searchKey;
+    setQuery(seededSearchQuery);
+    void runCurrentReplaySearch(seededSearchQuery, 'quick');
+  }, [hasCurrentReplayAccess, isAdminPreview, runCurrentReplaySearch, seededSearchQuery]);
 
   const handleOpen = (nextTarget: PlaybackTarget) => {
     recoveryAttemptsRef.current = 0;

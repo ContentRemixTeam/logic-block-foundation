@@ -108,6 +108,22 @@ serve(async (req) => {
       });
     }
     const userId = userData.user.id;
+    const userEmail = userData.user.email;
+
+    if (!userEmail) {
+      return new Response(JSON.stringify({ error: "Mastermind access required" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: hasMastermindAccess, error: entitlementError } = await supabase
+      .rpc("check_mastermind_entitlement", { user_email: userEmail });
+
+    if (entitlementError || hasMastermindAccess !== true) {
+      return new Response(JSON.stringify({ error: "Mastermind access required" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const body = await req.json().catch(() => ({}));
     const messages: ChatMessage[] = body.messages;
