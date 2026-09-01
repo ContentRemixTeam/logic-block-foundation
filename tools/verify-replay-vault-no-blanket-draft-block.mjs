@@ -3,8 +3,8 @@
 //
 // The blanket registry backfill hid every DRAFT / editorially-unreviewed resource from the
 // Replay Vault projections, which removed previously proven coaching calls such as
-// "Profitable Pricing with Whitney Morrison" (membershipio:6Dbd59bgqz) and could remove the
-// five playable Phase One resources. DRAFT state, category, or title must never be treated as
+// "Profitable Pricing with Whitney Morrison" (membershipio:6Dbd59bgqz) and could remove
+// the core curriculum videos. DRAFT state, category, or title must never be treated as
 // evidence of third-party provenance; only a trustworthy per-row editorial decision may block.
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -34,8 +34,6 @@ for (const forbidden of [
   if (forbidden.test(restoreSql)) throw new Error(`restore migration still filters on: ${forbidden}`);
 }
 
-
-// No later migration may re-introduce the blanket predicate on the projections.
 const later = files.filter((f) => f > RESTORE);
 for (const file of later) {
   const sql = readFileSync(path.join(migrationsDir, file), "utf8");
@@ -45,8 +43,7 @@ for (const file of later) {
   }
 }
 
-// The five playable Phase One resources plus Profitable Pricing must stay in the hidden catalog.
-const curriculum = readFileSync(path.join(root, "src/data/phaseOneCurriculum.ts"), "utf8");
+const resources = readFileSync(path.join(root, "src/data/mastermindPortalResources.ts"), "utf8");
 for (const id of [
   "ninety-day-goal-setting-introduction",
   "ninety-day-goal-setting-workshop",
@@ -54,7 +51,7 @@ for (const id of [
   "money-move-day-two",
   "money-move-day-three",
 ]) {
-  if (!curriculum.includes(id)) throw new Error(`Phase One playable resource missing from catalog: ${id}`);
+  if (!resources.includes(`id: '${id}'`)) throw new Error(`Core curriculum resource missing from real hub catalog: ${id}`);
 }
 
-console.log("PASS replay_vault_no_blanket_draft_block (registry emptied, projections restored, Phase One IDs intact)");
+console.log("PASS replay_vault_no_blanket_draft_block (registry emptied, projections restored, core curriculum IDs intact)");
