@@ -1157,7 +1157,7 @@ export default function MastermindHub() {
                       <Badge variant="secondary" className="mb-2 w-fit">Training Library</Badge>
                       <CardTitle>Watch the videos that are ready inside this app.</CardTitle>
                       <CardDescription>
-                        Choose the smallest useful next resource. Current replays, Vault search, AI tools, and support links stay in their own sections until each path is verified.
+                        Choose the smallest useful next resource. The Replay Vault, AI tools, and support links stay separate so every choice has one clear job.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="w-fit">
@@ -1708,10 +1708,9 @@ function ResourceCard({ resource, isPinned, isCompleted, canPin = true, onToggle
 
         <div className="mt-auto space-y-3">
           <div className="rounded-md border bg-background p-3">
-            <p className="text-xs font-semibold text-muted-foreground">Portal path</p>
-            <p className="mt-1 break-words text-xs leading-snug">{resource.portalPath}</p>
+            <p className="text-xs font-semibold text-muted-foreground">How this helps</p>
+            <p className="mt-1 break-words text-xs leading-snug">{resource.sourceStatus}</p>
           </div>
-          <p className="text-xs leading-snug text-muted-foreground">{resource.sourceStatus}</p>
           <Button
             onClick={onOpen}
             className="w-full"
