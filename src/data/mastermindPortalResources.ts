@@ -57,6 +57,9 @@ export function formatMemberFacingResourceJob(copy: string) {
     .replace(/\bwhen the member has\b/gi, 'when you have')
     .replace(/\bwhen the member\b/gi, 'when you')
     .replace(/\ba member needs\b/gi, 'you need')
+    .replace(/\bmember needs\b/gi, 'you need')
+    .replace(/\bmember is\b/gi, 'you are')
+    .replace(/\bmember has\b/gi, 'you have')
     .replace(/\bthe member's\b/gi, 'your')
     .replace(/\bmember's\b/gi, 'your')
     .replace(/\bthe member\b/gi, 'you');
