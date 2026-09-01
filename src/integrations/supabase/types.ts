@@ -4729,6 +4729,50 @@ export type Database = {
         }
         Relationships: []
       }
+      mastermind_ai_asset_unlocks: {
+        Row: {
+          confirmation_source: string
+          confirmed_at: string
+          created_at: string
+          cycle_id: string | null
+          id: string
+          pack_id: string
+          unlock_month: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confirmation_source?: string
+          confirmed_at?: string
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          pack_id: string
+          unlock_month: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confirmation_source?: string
+          confirmed_at?: string
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          pack_id?: string
+          unlock_month?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mastermind_ai_asset_unlocks_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       mastermind_phase_one_resource_progress: {
         Row: {
           completed_at: string | null
@@ -11963,6 +12007,10 @@ export type Database = {
         Args: { p_user_challenge_id: string }
         Returns: Json
       }
+      confirm_my_mastermind_ai_asset_unlock: {
+        Args: { p_as_of?: string; p_cycle_id?: string; p_pack_id: string }
+        Returns: Json
+      }
       create_daily_plan: {
         Args: {
           p_date: string
@@ -12722,6 +12770,54 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      search_mastermind_media_resources: {
+        Args: {
+          p_as_of?: string
+          p_email: string
+          p_include_metadata_fallback?: boolean
+          p_limit?: number
+          p_moments_per_replay?: number
+          p_preview?: boolean
+          p_query: string
+          p_stage?: string
+          p_surface?: string
+          p_user_id: string
+        }
+        Returns: {
+          access_scope: string
+          category_title: string
+          duration_seconds: number
+          ends_at_seconds: number
+          moment_id: string
+          portal_resource_id: string
+          product_title: string
+          question_id: string
+          reason: string
+          resource_type: string
+          snippet: string
+          starts_at_seconds: number
+          title: string
+        }[]
+      }
+      search_my_mastermind_curriculum_moments: {
+        Args: {
+          p_limit?: number
+          p_preview?: boolean
+          p_query: string
+          p_stage?: string
+        }
+        Returns: {
+          category_title: string
+          completed: boolean
+          duration_seconds: number
+          end_seconds: number
+          moment_id: string
+          portal_resource_id: string
+          snippet: string
+          start_seconds: number
+          title: string
+        }[]
+      }
       search_my_mastermind_phase_one_resources: {
         Args: { p_limit?: number; p_query?: string; p_stage?: string }
         Returns: {
@@ -12735,25 +12831,6 @@ export type Database = {
           stages: string[]
           success_paths: string[]
           title: string
-        }[]
-      }
-      search_my_mastermind_curriculum_moments: {
-        Args: {
-          p_limit?: number
-          p_preview?: boolean
-          p_query: string
-          p_stage?: string
-        }
-        Returns: {
-          category_title: string | null
-          completed: boolean
-          duration_seconds: number | null
-          end_seconds: number
-          moment_id: string
-          portal_resource_id: string
-          snippet: string
-          start_seconds: number
-          title: string | null
         }[]
       }
       search_replay_vault_resources: {
