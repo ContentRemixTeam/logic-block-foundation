@@ -50,7 +50,7 @@ export function VaultOnboarding() {
       <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />Show me around
     </Button>
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogContent className="max-w-md rounded-none border-2 border-[#111111]">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-none border-2 border-[#111111]">
         <DialogHeader>
           <p className="text-xs font-bold uppercase text-[#555555]">Replay Vault tour · {step + 1} of {STEPS.length}</p>
           <div className="flex items-center gap-3 pt-2">
@@ -59,11 +59,11 @@ export function VaultOnboarding() {
           </div>
           <DialogDescription className="pt-2 text-left text-base text-[#555555]">{current.body}</DialogDescription>
         </DialogHeader>
-        <div className="flex items-center justify-between gap-3 pt-2">
-          <Button type="button" variant="ghost" className="min-h-11" onClick={finish}>Skip tour</Button>
-          <div className="flex gap-2">
+        <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <Button type="button" variant="ghost" className="min-h-11 w-full sm:w-auto" onClick={finish}>Skip tour</Button>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             {step > 0 && <Button type="button" variant="outline" className="min-h-11" onClick={() => setStep((value) => value - 1)}>Back</Button>}
-            <Button type="button" className="min-h-11" onClick={() => step === STEPS.length - 1 ? finish() : setStep((value) => value + 1)}>{step === STEPS.length - 1 ? 'Start exploring' : 'Next'}</Button>
+            <Button type="button" className={`min-h-11 ${step === 0 ? 'col-span-2' : ''}`} onClick={() => step === STEPS.length - 1 ? finish() : setStep((value) => value + 1)}>{step === STEPS.length - 1 ? 'Start exploring' : 'Next'}</Button>
           </div>
         </div>
       </DialogContent>
