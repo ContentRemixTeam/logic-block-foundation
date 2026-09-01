@@ -114,14 +114,14 @@ async function runChromeViewport(html, width) {
     socket.close();
     return { passed: status === 'pass', output: `${domResult.result.value}\nviewport=${JSON.stringify(metricsResult.result.value)}\n${stderr}`, status: status ? 0 : 1 };
   } finally {
-    if (browser.exitCode === null) {
+    if (browser.exitCode === null && browser.signalCode === null) {
       browser.kill('SIGTERM');
       await Promise.race([
         new Promise((resolve) => browser.once('exit', resolve)),
         new Promise((resolve) => setTimeout(resolve, 2000)),
       ]);
     }
-    if (browser.exitCode === null) {
+    if (browser.exitCode === null && browser.signalCode === null) {
       browser.kill('SIGKILL');
       await new Promise((resolve) => browser.once('exit', resolve));
     }

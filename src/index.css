@@ -1380,6 +1380,16 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
 .list-stagger > *:nth-child(7)  { animation-delay: 200ms; }
 .list-stagger > *:nth-child(8)  { animation-delay: 230ms; }
 
+/* Replay Vault category names must wrap instead of widening phone layouts. */
+[data-vault-library] [aria-label="Browse categories"] button {
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
