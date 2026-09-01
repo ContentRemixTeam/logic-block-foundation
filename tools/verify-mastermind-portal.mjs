@@ -411,7 +411,19 @@ try {
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
   assert.ok(mastermindHubSource.includes('This finder only shows curriculum videos that open in the in-app player'), 'Training finder should not present planning/support links as playable curriculum');
-  assert.ok(mastermindHubSource.includes('MASTERMIND_PORTAL_RESOURCES.filter(isReadyMastermindCurriculumVideoResource)'), 'Training finder should only render ready protected curriculum videos');
+  assert.ok(
+    mastermindHubSource.includes('playableResourceIds') &&
+      mastermindHubSource.includes('isReadyMastermindCurriculumVideoResource(resource) && playableResourceIds.has(resource.id)'),
+    'Training finder should only render server-authorized videos that are ready in the protected in-app player',
+  );
+  assert.ok(
+    mastermindHubSource.includes("resource.resourceId === 'faith-ai' || playableResourceIds.has(resource.resourceId)"),
+    'Guidance recommendations should not open unimported videos from the static curriculum map',
+  );
+  assert.ok(
+    mastermindHubSource.includes("resource.id !== 'faith-ai' && !playableResourceIds.has(resource.id)"),
+    'Primary recommendation opens must fail closed to the Training tab when the video is not server-ready',
+  );
   assert.ok(mastermindHubSource.includes('Curriculum sections'), '90-day page should show the member the curriculum sections before the full finder');
   assert.ok(mastermindHubSource.includes('Training by focus area'), 'Training tab should expose the real curriculum by section');
   assert.ok(mastermindHubSource.includes('Browse by section without changing the saved focus'), 'Browsing training sections should not mutate the saved 90-day focus');

@@ -686,14 +686,16 @@ async function runChecks(client, checks, label) {
     await clickText(client, 'All');
     await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day One")', `${label} All filter reset`);
 
-    await setSearch(client, 'sales page');
-    await waitFor(client, 'document.body.innerText.includes("Launch Aligned")', `${label} sales page search`);
+    await setSearch(client, 'sales');
+    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day One")', `${label} server-ready sales search`);
+    await assertNoText(client, 'Launch Aligned');
     await assertNoText(client, 'Money Moves Sprint');
-    await assertNoHorizontalOverflow(client, `${label} sales page search`);
+    await assertNoHorizontalOverflow(client, `${label} server-ready sales search`);
 
     await setSearch(client, 'email list');
-    await waitFor(client, 'document.body.innerText.includes("Get Your Freebie Done")', `${label} email list search`);
-    await assertNoHorizontalOverflow(client, `${label} email list search`);
+    await waitFor(client, 'document.body.innerText.includes("No ready trainings match")', `${label} email list search waits for import`);
+    await assertNoText(client, 'Get Your Freebie Done');
+    await assertNoHorizontalOverflow(client, `${label} email list search waits for import`);
 
     await setSearch(client, 'claudeskillinstall');
     await waitFor(client, 'document.body.innerText.includes("No ready trainings match")', `${label} AI setup search stays video-only`);

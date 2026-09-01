@@ -87,14 +87,19 @@ export default function MastermindHub() {
   const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview;
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
   const catalogQuery = usePhaseOneCatalog();
+  const catalogRows = catalogQuery.data;
+  const playableResourceIds = useMemo(
+    () => new Set((catalogRows ?? []).map((row) => row.portal_resource_id)),
+    [catalogRows]
+  );
   const completedResourceIds = useMemo(
     () =>
       new Set(
-        (catalogQuery.data ?? [])
+        (catalogRows ?? [])
           .filter((row) => row.completed === true)
           .map((row) => row.portal_resource_id)
       ),
-    [catalogQuery.data]
+    [catalogRows]
   );
 
   useEffect(() => {
@@ -153,12 +158,14 @@ export default function MastermindHub() {
     );
 
     const resources = milestoneResources.length > 0 ? milestoneResources : selectedStage.resources;
-    return [...resources].sort((a, b) => {
-      const completedA = completedResourceIds.has(a.resourceId) ? 1 : 0;
-      const completedB = completedResourceIds.has(b.resourceId) ? 1 : 0;
-      return completedA - completedB;
-    });
-  }, [completedResourceIds, currentMilestone.id, selectedStage]);
+    return [...resources]
+      .filter((resource) => resource.resourceId === 'faith-ai' || playableResourceIds.has(resource.resourceId))
+      .sort((a, b) => {
+        const completedA = completedResourceIds.has(a.resourceId) ? 1 : 0;
+        const completedB = completedResourceIds.has(b.resourceId) ? 1 : 0;
+        return completedA - completedB;
+      });
+  }, [completedResourceIds, currentMilestone.id, playableResourceIds, selectedStage]);
 
   const handleStageSelect = async (stageId: typeof selectedStageId) => {
     if (!successPathData?.cycle) {
@@ -204,16 +211,18 @@ export default function MastermindHub() {
   }, [activeTrainingStageId, resourceFilter]);
 
   const visibleResources = useMemo(() => {
-    return MASTERMIND_PORTAL_RESOURCES.filter(isReadyMastermindCurriculumVideoResource);
-  }, []);
+    return MASTERMIND_PORTAL_RESOURCES.filter((resource) =>
+      isReadyMastermindCurriculumVideoResource(resource) && playableResourceIds.has(resource.id)
+    );
+  }, [playableResourceIds]);
 
   const durationByResourceId = useMemo(() => {
     return new Map(
-      (catalogQuery.data ?? [])
+      (catalogRows ?? [])
         .filter((row) => typeof row.duration_seconds === 'number')
         .map((row) => [row.portal_resource_id, row.duration_seconds])
     );
-  }, [catalogQuery.data]);
+  }, [catalogRows]);
 
   const indexedResourceCount = useMemo(() => {
     return visibleResources.filter((resource) =>
@@ -327,6 +336,13 @@ export default function MastermindHub() {
   const handleOpenRecommendedResource = (recommendation: MastermindResourceRecommendation) => {
     const resource = MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === recommendation.resourceId);
     if (!resource || !isDefaultMastermindPortalResource(resource)) return;
+    if (resource.id !== 'faith-ai' && !playableResourceIds.has(resource.id)) {
+      setTrainingStageId(selectedStageId);
+      setResourceFilter('focus');
+      setSearchQuery(resource.title);
+      setActiveTab('training');
+      return;
+    }
     handleOpen(resource);
   };
 
