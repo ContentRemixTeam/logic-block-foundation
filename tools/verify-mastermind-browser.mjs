@@ -56,12 +56,36 @@ const savedCycle = {
   updated_at: '2026-08-08T00:00:00.000Z',
 };
 
+const savedCycleWithoutInferredPath = {
+  ...savedCycle,
+  cycle_id: 'browser-qa-cycle-no-inferred-path',
+  goal: 'n',
+  focus_area: null,
+  biggest_bottleneck: null,
+  discover_score: null,
+  nurture_score: null,
+  convert_score: null,
+  audience_target: null,
+  audience_frustration: null,
+  signature_message: null,
+  why: null,
+  low_energy_version: 'Send one simple validation question to one qualified person.',
+  medium_energy_version: null,
+  high_energy_version: null,
+};
+
 const scenarios = [
   {
     name: 'saved-cycle-desktop',
     viewport: { width: 1280, height: 900, mobile: false, deviceScaleFactor: 1 },
     cycle: savedCycle,
     checks: ['savedCyclePath'],
+  },
+  {
+    name: 'saved-cycle-without-inferred-path-desktop',
+    viewport: { width: 1280, height: 900, mobile: false, deviceScaleFactor: 1 },
+    cycle: savedCycleWithoutInferredPath,
+    checks: ['cycleWithoutInferredPath'],
   },
   {
     name: 'saved-cycle-ios-safari-mobile-resources',
@@ -638,6 +662,7 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Built from this plan');
     await assertText(client, 'Your plan, tasks, training, and AI setup in one place.');
     await assertText(client, 'Task-ready');
+    await assertText(client, 'Add this weekly move');
     await assertText(client, 'Training progress');
     await assertText(client, 'AI workspace');
     await assertText(client, 'Ready');
@@ -697,6 +722,18 @@ async function runChecks(client, checks, label) {
     await assertNoText(client, 'Current Call Replays');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} training tab`);
+  }
+
+  if (checks.includes('cycleWithoutInferredPath')) {
+    await waitFor(client, 'document.body.innerText.includes("Current focus: Offer")', `${label} fallback offer focus`);
+    await assertText(client, 'Your 90-day plan');
+    await assertText(client, 'Do this this week');
+    await assertText(client, "Pick the thing you're going to sell this quarter.");
+    await assertText(client, 'Add this weekly move');
+    await assertText(client, 'This creates one task tied to this 90-day cycle.');
+    await assertText(client, 'Task-ready');
+    await assertNoText(client, 'Build 90-Day Plan');
+    await assertNoHorizontalOverflow(client, `${label} cycle without inferred path`);
   }
 
   if (checks.includes('noCyclePrompt')) {

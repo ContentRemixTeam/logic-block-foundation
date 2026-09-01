@@ -106,7 +106,7 @@ export function SuccessPathPlanCard({
     );
   }
 
-  if (!cycle || !successPath) {
+  if (!cycle) {
     return (
       <Card className="border-primary/30 bg-primary/5">
         <CardContent className="space-y-4 p-6">
@@ -212,7 +212,7 @@ export function SuccessPathPlanCard({
           <div className="rounded-lg border bg-background/85 p-4">
             <p className="text-xs font-semibold text-muted-foreground">Why this is first</p>
             <p className="mt-1 text-sm leading-relaxed">
-              {successPath.stageId === selectedStageId
+              {successPath?.stageId === selectedStageId
                 ? successPath.reason
                 : `You chose ${stage.label} because it feels like the most important constraint to solve first.`}
             </p>

@@ -509,6 +509,8 @@ try {
   assert.ok(successPathPlanCardSource.includes('Bring back this evidence'), 'The 90-day guidance card should define the evidence target');
   assert.ok(successPathPlanCardSource.includes('useResilientTaskMutation'), 'The 90-day guidance card should create weekly moves through the existing resilient Planner task path');
   assert.ok(successPathPlanCardSource.includes('Add this weekly move'), 'The 90-day guidance card should let members turn the move into one Planner task');
+  assert.ok(!successPathPlanCardSource.includes('!cycle || !successPath'), 'A saved 90-day plan must still show the weekly move when the routing recommendation is missing');
+  assert.ok(successPathPlanCardSource.includes('successPath?.stageId === selectedStageId'), 'The guidance reason should be optional so saved plans still render a task-ready move');
   assert.ok(successPathPlanCardSource.includes('Review 90-Day Plan'), 'The 90-day guidance card needs an honest direct plan-editing fallback');
   assert.ok(successPathPlanCardSource.includes('cycle_id: cycle.cycle_id'), 'Weekly move tasks should stay tied to the current 90-day cycle');
   assert.ok(successPathPlanCardSource.includes('done_enough_definition: round.doneEnough'), 'Weekly move tasks should carry the result/evidence completion standard');
