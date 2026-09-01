@@ -21,6 +21,21 @@ type SyncEventListener = (event: { type: SyncEventType; data?: any }) => void;
 let syncListeners: SyncEventListener[] = [];
 let isSyncing = false;
 
+function normalizeQueuedTaskData(data: any) {
+  if (
+    data?.status === 'focus' &&
+    Array.isArray(data.context_tags) &&
+    data.context_tags.includes('mastermind')
+  ) {
+    return {
+      ...data,
+      status: 'backlog',
+    };
+  }
+
+  return data;
+}
+
 /**
  * Add a sync event listener
  */
@@ -57,13 +72,15 @@ async function processMutation(mutation: QueuedMutation): Promise<boolean> {
     let useDirectUpdate = false;
 
     switch (mutation.table) {
-      case 'tasks':
+      case 'tasks': {
         endpoint = 'manage-task';
+        const taskData = normalizeQueuedTaskData(mutation.data);
         body = {
           action: mutation.type,
-          ...mutation.data,
+          ...taskData,
         };
         break;
+      }
       
       case 'daily_plans':
         endpoint = 'save-daily-plan';

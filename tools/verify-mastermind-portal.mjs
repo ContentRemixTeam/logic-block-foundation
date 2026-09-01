@@ -20,6 +20,7 @@ const aiStudioPlanCardSourcePath = path.join(projectRoot, 'src/components/master
 const phaseOneCatalogSourcePath = path.join(projectRoot, 'src/hooks/usePhaseOneCatalog.ts');
 const mastermindPortalAccessSourcePath = path.join(projectRoot, 'src/hooks/useMastermindPortalAccess.ts');
 const mastermindSuccessPathHookSourcePath = path.join(projectRoot, 'src/hooks/useMastermindSuccessPath.ts');
+const offlineSyncSourcePath = path.join(projectRoot, 'src/lib/offlineSync.ts');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -418,6 +419,7 @@ try {
   const phaseOneCatalogSource = readFileSync(phaseOneCatalogSourcePath, 'utf8');
   const mastermindPortalAccessSource = readFileSync(mastermindPortalAccessSourcePath, 'utf8');
   const mastermindSuccessPathHookSource = readFileSync(mastermindSuccessPathHookSourcePath, 'utf8');
+  const offlineSyncSource = readFileSync(offlineSyncSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
@@ -614,6 +616,10 @@ try {
   assert.ok(mastermindHubSource.includes('cycle={dashboardCycle}'), 'Mastermind child cards should receive the dashboard cycle fallback');
   assert.ok(mastermindSuccessPathHookSource.includes('Could not load saved Mastermind 90-day focus. Using the active plan fallback.'), 'Optional saved focus snapshots should fail soft and preserve the active 90-day plan');
   assert.ok(!mastermindSuccessPathHookSource.includes('if (snapshotError) throw snapshotError'), 'Optional saved focus snapshot errors must not erase the active 90-day plan');
+  assert.ok(offlineSyncSource.includes('normalizeQueuedTaskData'), 'Offline sync should normalize old Mastermind weekly move task payloads');
+  assert.ok(offlineSyncSource.includes("data?.status === 'focus'"), 'Offline sync should detect the old rejected Mastermind task status');
+  assert.ok(offlineSyncSource.includes("status: 'backlog'"), 'Offline sync should retry old Mastermind task payloads with a database-safe status');
+  assert.ok(offlineSyncSource.includes("data.context_tags.includes('mastermind')"), 'Offline sync status normalization should stay scoped to Mastermind task payloads');
   assert.ok(mastermindHubSource.includes('Ask Faith coaching brief'), '90-day hub should generate a plan-aware Ask Faith handoff brief');
   assert.ok(mastermindHubSource.includes('Copy Ask Faith brief'), '90-day hub should let members copy their coaching context before opening support');
   assert.ok(mastermindHubSource.includes('copyAskFaithBrief'), '90-day hub should provide a working clipboard handler for the Ask Faith brief');
