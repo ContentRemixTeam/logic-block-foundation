@@ -62,6 +62,7 @@ const readyCurriculumResourceIds = [
 const routes = [
   '/admin/mastermind-90-day-plan-preview',
   '/mastermind',
+  '/mastermind/replay-vault',
   ...readyCurriculumResourceIds.flatMap((resourceId) => [
     `/admin/mastermind-training-preview?resource=${encodeURIComponent(resourceId)}&from=phase-one`,
     `/mastermind/training?resource=${encodeURIComponent(resourceId)}`,
