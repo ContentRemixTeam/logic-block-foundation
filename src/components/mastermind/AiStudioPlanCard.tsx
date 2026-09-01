@@ -10,6 +10,7 @@ import {
   getAiStudioAccessSummary,
   getRecommendedAiProjectPack,
   getVisibleAiProjectPacks,
+  type AiProjectPackId,
   type VisibleAiPackState,
 } from '@/lib/mastermindAiStudio';
 import {
@@ -181,14 +182,20 @@ export function AiStudioPlanCard({
   const access = getAiStudioAccessSummary(membershipTier, isMastermind, memberScopes, previewCapabilities);
   const recommendedPack = getRecommendedAiProjectPack(selectedStageId, cycle);
   const visiblePacks = getVisibleAiProjectPacks(access, recommendedPack.id);
-  const workspaceTrackerKey = `${cycle?.cycle_id || 'active-cycle'}:${recommendedPack.id}`;
+  const [selectedPackId, setSelectedPackId] = useState<AiProjectPackId | null>(null);
+  const selectedPack =
+    visiblePacks.find((pack) => pack.id === selectedPackId && pack.visibility !== 'locked')
+    ?? visiblePacks.find((pack) => pack.id === recommendedPack.id && pack.visibility !== 'locked')
+    ?? visiblePacks.find((pack) => pack.access === 'planner_safe')
+    ?? recommendedPack;
+  const workspaceTrackerKey = `${cycle?.cycle_id || 'active-cycle'}:${selectedPack.id}`;
   const starterPacket = useMemo(
-    () => buildStarterPacket({ cycle, selectedStageId, recommendedPack }),
-    [cycle, recommendedPack, selectedStageId]
+    () => buildStarterPacket({ cycle, selectedStageId, recommendedPack: selectedPack }),
+    [cycle, selectedPack, selectedStageId]
   );
   const customInstallPacket = useMemo(
-    () => buildCustomInstallPacket({ cycle, selectedStageId, recommendedPack, customization }),
-    [cycle, customization, recommendedPack, selectedStageId]
+    () => buildCustomInstallPacket({ cycle, selectedStageId, recommendedPack: selectedPack, customization }),
+    [cycle, customization, selectedPack, selectedStageId]
   );
   const starterPacketText = useMemo(
     () =>
@@ -356,24 +363,31 @@ export function AiStudioPlanCard({
           <div className="rounded-lg border bg-muted/25 p-4">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Recommended from this plan</p>
-                <h3 className="mt-1 break-words text-lg font-semibold leading-snug">{recommendedPack.title}</h3>
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  {selectedPack.id === recommendedPack.id ? 'Recommended from this plan' : 'Selected setup'}
+                </p>
+                <h3 className="mt-1 break-words text-lg font-semibold leading-snug">{selectedPack.title}</h3>
               </div>
               <Sparkles className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
             </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">{recommendedPack.job}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{selectedPack.job}</p>
+            {selectedPack.id !== recommendedPack.id && (
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Selected from library. The plan-matched recommendation is {recommendedPack.title}.
+              </p>
+            )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-md bg-background p-3">
                 <p className="text-xs font-semibold text-muted-foreground">Interview focuses on</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {recommendedPack.interviewFocus.map((item) => (
+                  {selectedPack.interviewFocus.map((item) => (
                     <Badge key={item} variant="outline" className="text-[11px] capitalize">{item}</Badge>
                   ))}
                 </div>
               </div>
               <div className="rounded-md bg-background p-3">
                 <p className="text-xs font-semibold text-muted-foreground">First supervised test</p>
-                <p className="mt-2 text-sm leading-snug">{recommendedPack.firstTest}</p>
+                <p className="mt-2 text-sm leading-snug">{selectedPack.firstTest}</p>
               </div>
             </div>
           </div>
@@ -398,7 +412,7 @@ export function AiStudioPlanCard({
             <h3 className="text-sm font-semibold">What it will build</h3>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {recommendedPack.installOutputs.map((output) => (
+            {selectedPack.installOutputs.map((output) => (
               <div key={output} className="rounded-lg border bg-background p-3 text-sm leading-snug">
                 {output}
               </div>
@@ -455,7 +469,7 @@ export function AiStudioPlanCard({
                 id="ai-studio-first-asset"
                 value={customization.firstAsset}
                 onChange={(event) => updateCustomization('firstAsset', event.target.value)}
-                placeholder={recommendedPack.firstTest}
+                placeholder={selectedPack.firstTest}
                 className="min-h-20"
               />
             </label>
@@ -538,7 +552,7 @@ export function AiStudioPlanCard({
           <div className="mt-4 rounded-md bg-muted/35 p-3">
             <p className="text-xs font-semibold uppercase text-muted-foreground">First asset to test</p>
             <p className="mt-1 text-sm leading-relaxed">
-              {customization.firstAsset.trim() || recommendedPack.firstTest}
+              {customization.firstAsset.trim() || selectedPack.firstTest}
             </p>
           </div>
 
@@ -593,25 +607,42 @@ export function AiStudioPlanCard({
             </div>
           </div>
           <div className="grid gap-2 md:grid-cols-2">
-            {visiblePacks.slice(0, 6).map((pack) => (
-              <div key={pack.id} className="flex items-start gap-3 rounded-lg border bg-background p-3">
-                <div className={cn(
-                  'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
-                  pack.visibility === 'locked' ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
-                )}>
-                  {pack.visibility === 'locked' ? <Lock className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="break-words text-sm font-semibold leading-snug">{pack.title}</p>
-                    <Badge variant={pack.visibility === 'locked' ? 'outline' : 'secondary'} className="text-[11px]">
-                      {visibilityLabel[pack.visibility]}
-                    </Badge>
+            {visiblePacks.slice(0, 6).map((pack) => {
+              const canSelectPack = pack.visibility !== 'locked';
+              const isSelected = selectedPack.id === pack.id;
+
+              return (
+                <button
+                  key={pack.id}
+                  type="button"
+                  disabled={!canSelectPack}
+                  aria-pressed={isSelected}
+                  onClick={() => canSelectPack && setSelectedPackId(pack.id)}
+                  className={cn(
+                    'flex min-h-20 items-start gap-3 rounded-lg border bg-background p-3 text-left transition',
+                    canSelectPack && 'hover:border-primary/50 hover:bg-muted/35',
+                    isSelected && 'border-primary bg-primary/5',
+                    !canSelectPack && 'cursor-not-allowed opacity-70'
+                  )}
+                >
+                  <div className={cn(
+                    'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+                    pack.visibility === 'locked' ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
+                  )}>
+                    {pack.visibility === 'locked' ? <Lock className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                   </div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{pack.recommendedWhen}</p>
-                </div>
-              </div>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="break-words text-sm font-semibold leading-snug">{pack.title}</p>
+                      <Badge variant={pack.visibility === 'locked' ? 'outline' : 'secondary'} className="text-[11px]">
+                        {isSelected ? 'Selected' : visibilityLabel[pack.visibility]}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{pack.recommendedWhen}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </CardContent>

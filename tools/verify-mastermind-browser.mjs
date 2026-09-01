@@ -653,6 +653,7 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Coach me');
     await assertText(client, 'Only ready, playable curriculum videos appear here.');
     await assertText(client, 'Ask Faith');
+    await assertText(client, 'Selected');
     await assertText(client, 'Previewing packs, saving setup answers, copying install docs');
     await assertText(client, 'explicit pack confirmation');
     await clickText(client, 'Guidance');

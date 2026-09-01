@@ -526,11 +526,15 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('First test run'), 'AI Studio tracker should show whether the first supervised test was run');
   assert.ok(aiStudioPlanCardSource.includes('Mark workspace installed'), 'AI Studio tracker should let members mark the workspace installed');
   assert.ok(aiStudioPlanCardSource.includes('Mark first test complete'), 'AI Studio tracker should let members mark the first test complete');
-  assert.ok(aiStudioPlanCardSource.includes("`${cycle?.cycle_id || 'active-cycle'}:${recommendedPack.id}`"), 'AI Studio workspace tracker should be scoped to the current 90-day plan and recommended pack');
+  assert.ok(aiStudioPlanCardSource.includes("`${cycle?.cycle_id || 'active-cycle'}:${selectedPack.id}`"), 'AI Studio workspace tracker should be scoped to the current 90-day plan and selected pack');
   assert.ok(aiStudioPlanCardSource.includes('savePhaseOneState'), 'AI Studio workspace tracker should sync workspace setup to the app account');
   assert.ok(aiStudioPlanCardSource.includes('usePhaseOneState'), 'AI Studio workspace tracker should hydrate from saved Phase One state');
   assert.ok(aiStudioPlanCardSource.includes('Workspace ready is saved to this app account.'), 'AI Studio should tell members when workspace setup is durably saved');
   assert.ok(aiStudioPlanCardSource.includes('Full pack library access opens only when this app account has annual, lifetime, or approved full-library access.'), 'AI Studio should explain server-owned full-library access');
+  assert.ok(aiStudioPlanCardSource.includes('setSelectedPackId'), 'AI Studio should let eligible members select an included project pack');
+  assert.ok(aiStudioPlanCardSource.includes('aria-pressed={isSelected}'), 'AI Studio project pack selector should expose selected state accessibly');
+  assert.ok(aiStudioPlanCardSource.includes("pack.visibility !== 'locked'"), 'AI Studio should prevent locked project packs from being selected');
+  assert.ok(aiStudioPlanCardSource.includes('Selected from library'), 'AI Studio should explain when the member selected a non-recommended annual/library pack');
   assert.ok(mastermindHubSource.includes('useMastermindPortalAccess(aiStudioEnabled)'), 'MastermindHub should read the server-owned portal access receipt for AI Studio gating');
   assert.ok(mastermindHubSource.includes('memberScopes={portalAccessQuery.data?.memberScopes ?? []}'), 'MastermindHub should pass server member scopes into AI Studio');
   assert.ok(mastermindHubSource.includes('previewCapabilities={portalAccessQuery.data?.previewCapabilities ?? []}'), 'MastermindHub should pass server preview capabilities into AI Studio');

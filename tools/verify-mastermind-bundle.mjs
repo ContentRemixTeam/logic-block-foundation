@@ -80,6 +80,8 @@ const requiredMastermindHubStrings = [
   'Previewing packs, saving setup answers, copying install docs, or hitting a generation error does not use the monthly unlock',
   'explicit pack confirmation',
   'Full pack library access opens only when this app account has annual, lifetime, or approved full-library access.',
+  'Selected setup',
+  'Selected from library',
   'Add this weekly move',
   'Review 90-Day Plan',
   'This creates one task tied to this 90-day cycle.',
