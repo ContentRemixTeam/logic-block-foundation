@@ -2,6 +2,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -716,6 +717,127 @@ html.theme-transitioning * {
 @keyframes slide-out-right {
   from { transform: translateX(0); }
   to { transform: translateX(100%); }
+}
+
+/* =====================================================
+   HIDDEN MASTERMIND PORTAL BRAND SKIN
+   Scoped to the admin-gated Mastermind QA surface only.
+   ===================================================== */
+
+@layer components {
+  .mastermind-brand {
+    --mastermind-pink: #C8145E;
+    --mastermind-pink-hover: #A50F4D;
+    --mastermind-pink-soft: #FFF0F5;
+    --mastermind-ink: #111111;
+    --mastermind-paper: #F7F5F2;
+    --mastermind-muted: #555555;
+    --mastermind-gold: #B8860B;
+    color: var(--mastermind-ink);
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .mastermind-brand__hero {
+    box-shadow: 7px 7px 0 var(--mastermind-ink);
+  }
+
+  .mastermind-brand__title {
+    color: var(--mastermind-ink);
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    letter-spacing: 0;
+  }
+
+  .mastermind-brand__title span {
+    color: var(--mastermind-pink);
+  }
+
+  .mastermind-brand__subtitle {
+    color: var(--mastermind-muted);
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .mastermind-brand__eyebrow {
+    position: relative;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--mastermind-ink) !important;
+    padding-left: 2.25rem !important;
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .mastermind-brand__eyebrow::before {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 28px;
+    height: 2px;
+    background: var(--mastermind-gold);
+    content: '';
+    transform: translateY(-50%);
+  }
+
+  .mastermind-brand :where(.rounded-lg, .rounded-md, .rounded-full, .rounded-xl) {
+    border-radius: 0 !important;
+  }
+
+  .mastermind-brand :where(.shadow-sm, .shadow-md, .shadow-lg, .shadow-xl) {
+    box-shadow: none !important;
+  }
+
+  .mastermind-brand :where(.border, [class*="border-primary"]) {
+    border-width: 2px;
+    border-color: var(--mastermind-ink) !important;
+  }
+
+  .mastermind-brand [class*="border-primary"] {
+    border-color: var(--mastermind-pink) !important;
+  }
+
+  .mastermind-brand [class*="bg-primary/5"],
+  .mastermind-brand [class*="bg-primary/10"] {
+    background-color: var(--mastermind-pink-soft) !important;
+  }
+
+  .mastermind-brand [class*="text-primary"] {
+    color: var(--mastermind-pink) !important;
+  }
+
+  .mastermind-brand button {
+    min-height: 2.75rem;
+    border-radius: 0 !important;
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+  }
+
+  .mastermind-brand button:not([data-state="active"]) {
+    letter-spacing: 0;
+  }
+
+  .mastermind-brand :where(.bg-primary, [data-state="active"]) {
+    background-color: var(--mastermind-pink) !important;
+    color: #ffffff !important;
+  }
+
+  .mastermind-brand :where(.bg-primary, [data-state="active"]):hover {
+    background-color: var(--mastermind-pink-hover) !important;
+  }
+
+  .mastermind-brand [role="tablist"] {
+    border: 2px solid var(--mastermind-ink);
+    border-radius: 0 !important;
+    background: #ffffff;
+    padding: 0.25rem;
+  }
+
+  .mastermind-brand [role="tab"] {
+    border-radius: 0 !important;
+    font-weight: 700;
+  }
 }
 
 @keyframes scale-in {

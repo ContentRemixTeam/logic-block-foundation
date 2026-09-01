@@ -643,19 +643,21 @@ export default function MastermindHub() {
   return (
     <Layout>
       <AccessBoundary>
-        <div className="mx-auto max-w-6xl space-y-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="mastermind-brand mx-auto max-w-6xl space-y-6">
+          <div className="mastermind-brand__hero flex flex-col gap-3 border-2 border-[#111111] bg-[#F7F5F2] p-5 md:flex-row md:items-end md:justify-between md:p-8">
             <div className="space-y-2">
-              <Badge variant="secondary" className="w-fit">Becoming Boss Mastermind</Badge>
+              <Badge variant="secondary" className="mastermind-brand__eyebrow w-fit">Becoming Boss Mastermind</Badge>
               <div>
-                <h1 className="text-3xl font-bold">Your 90-Day Plan</h1>
-                <p className="text-muted-foreground">
+                <h1 className="mastermind-brand__title text-4xl font-normal leading-none md:text-6xl" aria-label="Your 90-Day Plan">
+                  Your 90-Day <span>Plan</span>
+                </h1>
+                <p className="mastermind-brand__subtitle mt-2 max-w-2xl text-sm md:text-base">
                   One goal, one weekly move, and the training that helps you make progress faster.
                 </p>
               </div>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <Button variant="outline" onClick={() => navigate('/weekly-review')}>
+              <Button className="mastermind-brand__button-outline" variant="outline" onClick={() => navigate('/weekly-review')}>
                 <ClipboardCheck className="mr-2 h-4 w-4" />
                 Weekly Check-In
               </Button>
