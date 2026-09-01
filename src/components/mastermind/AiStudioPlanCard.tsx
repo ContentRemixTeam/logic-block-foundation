@@ -575,6 +575,11 @@ export function AiStudioPlanCard({
             <div>
               <h3 className="text-sm font-semibold">Project Pack access</h3>
               <p className="text-sm text-muted-foreground">{access.monthlyUnlockCopy}</p>
+              {!access.canSeeFullLibrary && access.canUnlockMonthlyPack && (
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  Previewing packs, saving setup answers, copying install docs, or hitting a generation error does not use the monthly unlock. The unlock is counted only after explicit pack confirmation.
+                </p>
+              )}
             </div>
           </div>
           <div className="grid gap-2 md:grid-cols-2">

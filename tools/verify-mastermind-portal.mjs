@@ -488,6 +488,8 @@ try {
   assert.ok(aiStudioSource.includes('Monthly members get the planner-safe workspace plus one recommended project pack unlock per active month'), 'AI Studio should encode monthly limited access copy');
   assert.ok(aiStudioSource.includes('90-Day CEO Workspace'), 'AI Studio should include a planner-safe foundation workspace');
   assert.ok(aiStudioPlanCardSource.includes('Starter packet'), 'AI Studio should provide a usable starter packet, not just a theoretical feature card');
+  assert.ok(aiStudioPlanCardSource.includes('Previewing packs, saving setup answers, copying install docs, or hitting a generation error does not use the monthly unlock'), 'AI Studio should clarify that previews/copy/errors do not consume a monthly unlock');
+  assert.ok(aiStudioPlanCardSource.includes('explicit pack confirmation'), 'AI Studio should clarify that a monthly unlock needs explicit pack confirmation');
   for (const packetSection of ['Start Here', 'Business Profile', 'Project Instructions', 'First Test', 'Review Checklist']) {
     assert.ok(aiStudioPlanCardSource.includes(packetSection), 'AI Studio starter packet is missing section: ' + packetSection);
   }

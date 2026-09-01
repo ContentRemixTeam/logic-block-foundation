@@ -640,6 +640,8 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Coach me');
     await assertText(client, 'Only ready, playable curriculum videos appear here.');
     await assertText(client, 'Ask Faith');
+    await assertText(client, 'Previewing packs, saving setup answers, copying install docs');
+    await assertText(client, 'explicit pack confirmation');
     await clickText(client, 'Guidance');
     await waitFor(client, 'document.body.innerText.includes("Do this this week")', `${label} return to guidance`);
     await assertNoHorizontalOverflow(client, `${label} guidance`);

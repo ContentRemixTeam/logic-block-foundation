@@ -77,6 +77,8 @@ const requiredMastermindHubStrings = [
   'Find the next useful thing.',
   'Coach me',
   'Open AI key settings',
+  'Previewing packs, saving setup answers, copying install docs, or hitting a generation error does not use the monthly unlock',
+  'explicit pack confirmation',
   'Add this weekly move',
   'Review 90-Day Plan',
   'This creates one task tied to this 90-day cycle.',
