@@ -532,7 +532,7 @@ async function waitFor(client, expression, label, timeoutMs = 12000) {
 async function clickText(client, text) {
   const target = await evaluate(client, `
 (() => {
-  const candidates = Array.from(document.querySelectorAll('[role="tab"], button, a'));
+  const candidates = Array.from(document.querySelectorAll('[role="tab"], button, a, summary'));
   const matchesText = (element) => (element.textContent || '').trim().includes(${JSON.stringify(text)});
   const matchesExactText = (element) => (element.textContent || '').trim() === ${JSON.stringify(text)};
   const target =
@@ -657,6 +657,26 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Previewing packs, saving setup answers, copying install docs');
     await assertText(client, 'Download .md');
     await assertText(client, 'Advanced install docs');
+    const advancedDocsOpened = await evaluate(client, `
+(() => {
+  const summary = Array.from(document.querySelectorAll('summary'))
+    .find((element) => (element.textContent || '').includes('Advanced install docs'));
+  const details = summary?.closest('details');
+  if (!summary || !details) return false;
+  details.open = true;
+  return details.open === true;
+})()
+`);
+    assert.equal(advancedDocsOpened, true, 'Could not open AI Studio advanced install docs');
+    const advancedDocsText = await evaluate(client, `
+(() => {
+  const summary = Array.from(document.querySelectorAll('summary'))
+    .find((element) => (element.textContent || '').includes('Advanced install docs'));
+  return summary?.closest('details')?.textContent || '';
+})()
+`);
+    assert.ok(advancedDocsText.includes('Output Quality Benchmark'), 'AI Studio advanced docs should include the quality benchmark');
+    assert.ok(advancedDocsText.includes('Source Labels And Contradictions'), 'AI Studio advanced docs should include source-label and contradiction rules');
     await assertText(client, 'explicit pack confirmation');
     await clickText(client, 'Guidance');
     await waitFor(client, 'document.body.innerText.includes("Do this this week")', `${label} return to guidance`);

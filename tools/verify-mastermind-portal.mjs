@@ -520,6 +520,13 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('Download .md'), 'AI Studio should let members download install-ready markdown docs');
   assert.ok(aiStudioPlanCardSource.includes('downloadMarkdownFile'), 'AI Studio should use a local markdown download helper for install packets');
   assert.ok(aiStudioPlanCardSource.includes('Advanced install docs'), 'AI Studio should hide deeper install docs behind an advanced section');
+  assert.ok(aiStudioPlanCardSource.includes('Output Quality Benchmark'), 'AI Studio should include a hidden benchmark for comparing generic AI to the full project pack');
+  assert.ok(aiStudioPlanCardSource.includes('Same-context baseline'), 'AI Studio benchmark should compare against a plain same-context AI prompt');
+  assert.ok(aiStudioPlanCardSource.includes('Profile-only'), 'AI Studio benchmark should compare against business-profile-only prompting');
+  assert.ok(aiStudioPlanCardSource.includes('Full pack'), 'AI Studio benchmark should compare against the installed full project pack');
+  assert.ok(aiStudioPlanCardSource.includes('Source Labels And Contradictions'), 'AI Studio should include source-label and contradiction handling instructions');
+  assert.ok(aiStudioPlanCardSource.includes('plan evidence, buyer/customer evidence, member preference, or AI assumption'), 'AI Studio should require evidence labels in project instructions');
+  assert.ok(aiStudioPlanCardSource.includes('one recommendation, why it fits the 90-day plan, one lower-capacity version, one evidence target, assumptions to test'), 'AI Studio should define an exact answer format for higher quality outputs');
   assert.ok(aiStudioPlanCardSource.includes('AI_STUDIO_WORKSPACE_TRACKER_STORAGE_KEY'), 'AI Studio should persist member workspace setup progress locally');
   assert.ok(aiStudioPlanCardSource.includes('mastermind-ai-studio-workspace-tracker-v1'), 'AI Studio workspace tracker should use a stable storage key');
   assert.ok(aiStudioPlanCardSource.includes('Created from this plan'), 'AI Studio should show what the member has created from the current 90-day plan');

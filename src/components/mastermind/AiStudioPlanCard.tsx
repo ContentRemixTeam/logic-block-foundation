@@ -178,8 +178,10 @@ function buildCustomInstallPacket({
         `Member-specific guardrail: ${guardrails}`,
         'Start by restating the decision or asset I am asking for in plain language.',
         'Ask for missing context only when it would materially change the recommendation.',
-        'Format every answer with: one recommendation, one lower-capacity version, and one evidence target.',
+        'Use this answer format: one recommendation, why it fits the 90-day plan, one lower-capacity version, one evidence target, assumptions to test, and any contradiction to bring to coaching.',
+        'Label each important recommendation as plan evidence, buyer/customer evidence, member preference, or AI assumption.',
         'If the output starts becoming generic, bring it back to the current buyer, offer, capacity, and 90-day result.',
+        'If my request conflicts with the saved plan, Faith\'s curriculum, or the guardrails above, name the conflict before giving advice.',
       ].map((line) => `- ${line}`).join('\n'),
     },
     {
@@ -247,6 +249,25 @@ function buildAdvancedInstallDocs({
         'If it suggests too much, ask for the low-capacity version and the first test.',
         'If the advice contradicts Faith or your plan, bring the contradiction to coaching before changing direction.',
       ]),
+    },
+    {
+      title: 'Output Quality Benchmark',
+      body: [
+        'Run the same business question three ways before trusting this setup:',
+        '1. Same-context baseline: ask regular ChatGPT or Claude with only the business question.',
+        '2. Profile-only: paste the Business Profile, then ask the same question.',
+        `3. Full pack: ask inside the installed ${recommendedPack.title}.`,
+        'The full pack should win because it gives a clearer next move, protects the 90-day plan, uses buyer/customer evidence, respects guardrails, and names what to test next.',
+        'If the full pack does not clearly beat the baseline, update the Business Profile and guardrails before using it for real decisions.',
+      ].join('\n'),
+    },
+    {
+      title: 'Source Labels And Contradictions',
+      body: [
+        'Ask the AI to label important claims as plan evidence, buyer/customer evidence, member preference, Faith/program guidance, or AI assumption.',
+        'Do not let it treat a guess like a fact.',
+        'When advice conflicts with Faith, the saved plan, or real market evidence, it should name the contradiction and suggest the smallest evidence test or coaching question.',
+      ].join('\n'),
     },
   ];
 }
