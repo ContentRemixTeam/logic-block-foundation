@@ -12,6 +12,7 @@ import { MastermindSupportBot } from '@/components/mastermind/MastermindSupportB
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
 import { usePhaseOneCatalog, usePhaseOneState, type PhaseOneWorkspaceStatus } from '@/hooks/usePhaseOneCatalog';
 import { useMastermindPortalAccess } from '@/hooks/useMastermindPortalAccess';
+import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
 import {
   MASTERMIND_PORTAL_RESOURCES,
   getProtectedTrainingHref,
@@ -25,6 +26,7 @@ import {
   type MastermindStageId,
   type MastermindResourceRecommendation,
 } from '@/lib/mastermindSuccessPath';
+import { getMastermindPhaseRound } from '@/data/mastermindPhaseRounds';
 import {
   isDefaultMastermindPortalResource,
   isReadyMastermindCurriculumVideoResource,
@@ -41,6 +43,7 @@ import {
   Copy,
   ExternalLink,
   ListTodo,
+  Loader2,
   Pin,
   Search,
   Sparkles,
@@ -62,6 +65,10 @@ const TRAINING_TIME_OPTIONS = [
   { minutes: 120, label: '2 hours' },
   { minutes: 180, label: '3 hours' },
 ];
+const WEEKLY_MOVE_TASK_STORAGE_KEY = 'mastermind-weekly-move-task-keys';
+const PLACEHOLDER_GOALS = new Set(['my 90-day goal', 'my 90 day goal', 'n']);
+
+type DashboardWeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'failed';
 
 type ResourceFilterId = 'all' | 'focus' | 'core' | 'indexed';
 
@@ -84,6 +91,42 @@ function uniqueResourcesById<T>(items: T[], getId: (item: T) => string) {
   });
 }
 
+function getSavedWeeklyMoveTaskKeys() {
+  try {
+    const raw = window.localStorage.getItem(WEEKLY_MOVE_TASK_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((key): key is string => typeof key === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function hasSavedWeeklyMoveTaskKey(key: string) {
+  return getSavedWeeklyMoveTaskKeys().includes(key);
+}
+
+function rememberWeeklyMoveTaskKey(key: string) {
+  const nextKeys = [key, ...getSavedWeeklyMoveTaskKeys().filter((savedKey) => savedKey !== key)].slice(0, 80);
+  try {
+    window.localStorage.setItem(WEEKLY_MOVE_TASK_STORAGE_KEY, JSON.stringify(nextKeys));
+  } catch {
+    // The Planner task was already saved or queued; this memory only prevents repeat clicks.
+  }
+}
+
+function getTaskGoal(goal: string | null | undefined, fallback: string) {
+  const trimmed = goal?.trim();
+  if (!trimmed || PLACEHOLDER_GOALS.has(trimmed.toLowerCase())) return fallback;
+  return trimmed;
+}
+
+function getMomentumType(stageId: MastermindStageId) {
+  if (stageId === 'find' || stageId === 'nurture') return 'audience';
+  if (stageId === 'deliver') return 'delivery';
+  if (stageId === 'leverage') return 'operations';
+  return 'revenue';
+}
+
 export default function MastermindHub() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -97,6 +140,7 @@ export default function MastermindHub() {
     confirmStage,
     selectMilestone,
   } = useMastermindSuccessPath(cycleId);
+  const { resilientCreate } = useResilientTaskMutation();
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [resourceFilter, setResourceFilter] = useState<ResourceFilterId>('all');
@@ -106,6 +150,7 @@ export default function MastermindHub() {
   const [showWatchedResources, setShowWatchedResources] = useState(false);
   const [nextMoveMode, setNextMoveMode] = useState<'standard' | 'low'>('standard');
   const [weeklyTrainingMinutes, setWeeklyTrainingMinutes] = useState(180);
+  const [dashboardWeeklyMoveTaskState, setDashboardWeeklyMoveTaskState] = useState<DashboardWeeklyMoveTaskState>('idle');
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
   const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview;
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
@@ -171,6 +216,10 @@ export default function MastermindHub() {
   const currentMilestoneId = successPathData?.snapshot?.current_milestone_id ?? selectedStage.milestones[0].id;
   const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
     ?? selectedStage.milestones[0];
+  const currentRound = getMastermindPhaseRound(selectedStageId, currentMilestone.id);
+  const dashboardWeeklyMoveTaskKey = successPathData?.cycle
+    ? [successPathData.cycle.cycle_id, selectedStageId, currentMilestone.id, 'build', currentRound.primaryResourceId].join(':')
+    : null;
   const portalResourceById = useMemo(
     () => new Map(MASTERMIND_PORTAL_RESOURCES.map((resource) => [resource.id, resource])),
     []
@@ -234,6 +283,14 @@ export default function MastermindHub() {
       // The hook preserves the previous saved milestone and exposes the error inline.
     }
   };
+
+  useEffect(() => {
+    if (!dashboardWeeklyMoveTaskKey || !hasSavedWeeklyMoveTaskKey(dashboardWeeklyMoveTaskKey)) {
+      setDashboardWeeklyMoveTaskState('idle');
+      return;
+    }
+    setDashboardWeeklyMoveTaskState('saved');
+  }, [dashboardWeeklyMoveTaskKey]);
 
   const resourceFilters = useMemo(() => (
     [
@@ -438,6 +495,61 @@ export default function MastermindHub() {
     selectedStage.quickWin.evidence,
     successPathData?.cycle,
   ]);
+
+  const addDashboardWeeklyMoveToPlanner = async () => {
+    const cycle = successPathData?.cycle;
+    if (!cycle) {
+      navigate('/cycle-setup');
+      return;
+    }
+
+    if (!dashboardWeeklyMoveTaskKey) return;
+
+    if (hasSavedWeeklyMoveTaskKey(dashboardWeeklyMoveTaskKey)) {
+      setDashboardWeeklyMoveTaskState('saved');
+      return;
+    }
+
+    setDashboardWeeklyMoveTaskState('saving');
+
+    const recommendedTraining = nextReadyPortalResource?.title
+      ?? nextPlannedPlanResource?.resource.title
+      ?? currentRound.primaryResourceTitle;
+
+    try {
+      const result = await resilientCreate({
+        task_text: `${selectedStage.label}: ${currentNextMove}`.slice(0, 500),
+        task_description: [
+          `90-day plan: ${getTaskGoal(cycle.goal, selectedStage.milestone)}`,
+          `Current focus: ${selectedStage.label}`,
+          `Checkpoint: ${currentRound.question}`,
+          `Evidence to bring back: ${currentRound.evidence}`,
+          `Done enough: ${currentRound.doneEnough}`,
+          `Low-capacity version: ${lowCapacityNextMove}`,
+          `Suggested training: ${recommendedTraining}`,
+        ].join('\n\n'),
+        cycle_id: cycle.cycle_id,
+        status: 'focus',
+        priority: 'high',
+        energy_level: nextMoveMode === 'low' ? 'low_energy' : 'medium',
+        estimated_minutes: nextMoveMode === 'low' ? 20 : 60,
+        context_tags: ['mastermind', '90-day-plan', selectedStage.id, currentMilestone.id],
+        momentum_type: getMomentumType(selectedStage.id),
+        done_enough_definition: currentRound.doneEnough,
+        system_source: 'mastermind-90-day-plan',
+        is_system_generated: true,
+        task_type: 'weekly_move',
+        template_key: `mastermind:${selectedStage.id}:${currentMilestone.id}`,
+      });
+
+      rememberWeeklyMoveTaskKey(dashboardWeeklyMoveTaskKey);
+      setDashboardWeeklyMoveTaskState(result.queued ? 'queued' : 'saved');
+      toast.success(result.queued ? 'Weekly move saved for sync.' : 'Weekly move added to Planner.');
+    } catch {
+      setDashboardWeeklyMoveTaskState('failed');
+      toast.error('Could not add that move yet. The plan is still safe.');
+    }
+  };
 
   const workspaceStatus = phaseOneStateQuery.data?.workspace_status ?? 'not_started';
   const planDashboardItems = [
@@ -661,6 +773,44 @@ export default function MastermindHub() {
                       </div>
                     </div>
                     <div className="mt-4 grid gap-2">
+                      {successPathData?.cycle && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="w-full"
+                            data-testid="mastermind-dashboard-weekly-move"
+                            onClick={() => void addDashboardWeeklyMoveToPlanner()}
+                            disabled={dashboardWeeklyMoveTaskState === 'saving' || dashboardWeeklyMoveTaskState === 'saved' || dashboardWeeklyMoveTaskState === 'queued'}
+                          >
+                            {dashboardWeeklyMoveTaskState === 'saving' ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                            ) : dashboardWeeklyMoveTaskState === 'saved' || dashboardWeeklyMoveTaskState === 'queued' ? (
+                              <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                            ) : (
+                              <ListTodo className="mr-2 h-4 w-4" aria-hidden="true" />
+                            )}
+                            {dashboardWeeklyMoveTaskState === 'saving'
+                              ? 'Adding to Planner...'
+                              : dashboardWeeklyMoveTaskState === 'queued'
+                                ? 'Saved for sync'
+                                : dashboardWeeklyMoveTaskState === 'saved'
+                                  ? 'Added to Planner'
+                                  : dashboardWeeklyMoveTaskState === 'failed'
+                                    ? 'Try adding again'
+                                    : 'Add this weekly move'}
+                          </Button>
+                          <p className="text-xs leading-snug text-muted-foreground" role="status" aria-live="polite">
+                            {dashboardWeeklyMoveTaskState === 'queued'
+                              ? 'Saved locally and will sync when the Planner can reconnect.'
+                              : dashboardWeeklyMoveTaskState === 'saved'
+                                ? 'This move is now in your Planner tasks.'
+                                : dashboardWeeklyMoveTaskState === 'failed'
+                                  ? 'Try again, or copy the Ask Faith brief below.'
+                                  : 'This creates one task tied to this 90-day cycle.'}
+                          </p>
+                        </>
+                      )}
                       {nextReadyPlanResource ? (
                         <Button type="button" className="w-full" onClick={() => handleOpenRecommendedResource(nextReadyPlanResource)}>
                           {nextReadyPortalResource?.id === 'faith-ai'

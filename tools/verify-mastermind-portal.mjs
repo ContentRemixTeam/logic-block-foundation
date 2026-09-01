@@ -596,6 +596,11 @@ try {
   assert.ok(mastermindHubSource.includes('nextMoveMode'), 'Next-step panel should support a quick-win mode instead of one fixed action');
   assert.ok(mastermindHubSource.includes('Low capacity'), 'Next-step panel should expose the smaller next move for low-capacity weeks');
   assert.ok(mastermindHubSource.includes('currentNextMove'), 'Next-step panel should render the selected standard or low-capacity action');
+  assert.ok(mastermindHubSource.includes('data-testid="mastermind-dashboard-weekly-move"'), '90-day hub should expose a dashboard-level weekly Planner handoff');
+  assert.ok(mastermindHubSource.includes('addDashboardWeeklyMoveToPlanner'), '90-day hub should create the weekly move from the dashboard next-step panel');
+  assert.ok(mastermindHubSource.includes('useResilientTaskMutation'), '90-day hub should reuse the resilient Planner task save path for dashboard weekly moves');
+  assert.ok(mastermindHubSource.includes("system_source: 'mastermind-90-day-plan'"), 'Dashboard weekly move tasks should be labeled as Mastermind 90-day plan work');
+  assert.ok(mastermindHubSource.includes('rememberWeeklyMoveTaskKey(dashboardWeeklyMoveTaskKey)'), 'Dashboard weekly move handoff should prevent repeat task creation after save or queued sync');
   assert.ok(mastermindHubSource.includes('Ask Faith coaching brief'), '90-day hub should generate a plan-aware Ask Faith handoff brief');
   assert.ok(mastermindHubSource.includes('Copy Ask Faith brief'), '90-day hub should let members copy their coaching context before opening support');
   assert.ok(mastermindHubSource.includes('copyAskFaithBrief'), '90-day hub should provide a working clipboard handler for the Ask Faith brief');
