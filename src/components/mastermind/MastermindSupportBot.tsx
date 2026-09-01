@@ -165,13 +165,19 @@ export function MastermindSupportBot({
       .slice(0, 3);
   }, [completedResourceIds, searchableQuestion, selectedStageId, visibleResources]);
 
+  const unwatchedFinderResults = useMemo(
+    () => finderResults.filter((resource) => !completedResourceIds.has(resource.id)),
+    [completedResourceIds, finderResults]
+  );
+
   const coachTraining = useMemo(() => {
     const ids = normalizeTrainingIds(coachTrainingIds, visibleResources);
-    if (ids.length === 0) return finderResults;
+    if (ids.length === 0) return coachResult ? [] : unwatchedFinderResults;
     return ids
       .map((id) => visibleResources.find((resource) => resource.id === id))
-      .filter((resource): resource is MastermindPortalResource => Boolean(resource));
-  }, [coachTrainingIds, finderResults, visibleResources]);
+      .filter((resource): resource is MastermindPortalResource => Boolean(resource))
+      .filter((resource) => !completedResourceIds.has(resource.id));
+  }, [coachResult, coachTrainingIds, completedResourceIds, unwatchedFinderResults, visibleResources]);
 
   const coachingTrainingContext = useMemo(() => {
     const seen = new Set<string>();
@@ -188,7 +194,12 @@ export function MastermindSupportBot({
       .slice(0, 12);
   }, [finderResults, selectedStageId, visibleResources]);
 
-  const displayedRecommendations = mode === 'coach' ? coachTraining : finderResults;
+  const displayedRecommendations = mode === 'coach' ? coachTraining : unwatchedFinderResults;
+  const emptyRecommendationCopy = mode === 'coach' && coachResult
+    ? 'No new training is needed for this answer. Do the next move first, then bring back evidence for the next check-in.'
+    : finderResults.length > 0 && unwatchedFinderResults.length === 0
+      ? 'Everything ready for this focus is already watched. Bring your evidence to the next check-in, or open the Training Library if you want to rewatch.'
+      : 'No ready trainings match yet. Try a simpler search like offer, content, sales, or mindset.';
 
   const fallbackTrainingIds = useMemo(
     () => finderResults.filter((resource) => !completedResourceIds.has(resource.id)).slice(0, 1).map((resource) => resource.id),
@@ -431,7 +442,7 @@ export function MastermindSupportBot({
 
           {displayedRecommendations.length === 0 && (
             <div className="rounded-lg border border-dashed bg-muted p-4 text-sm text-muted-foreground">
-              No ready trainings match yet. Try a simpler search like offer, content, sales, or mindset.
+              {emptyRecommendationCopy}
             </div>
           )}
         </div>
