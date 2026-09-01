@@ -419,6 +419,11 @@ try {
   assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');
   assert.ok(mastermindHubSource.includes("location.pathname.startsWith('/admin/mastermind-90-day-plan-preview')"), 'Admin 90-day preview should detect its hidden route');
   assert.ok(mastermindHubSource.includes('const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview'), 'Hidden admin QA route should show AI Studio without enabling the public feature flag');
+  assert.ok(mastermindHubSource.includes("const TRAINING_TIME_STORAGE_KEY = 'mastermind-weekly-training-minutes'"), 'Training tab should remember the member weekly watch budget');
+  assert.ok(mastermindHubSource.includes("This week's playlist"), 'Training tab should create a weekly playlist instead of only listing all videos');
+  assert.ok(mastermindHubSource.includes('Fit training into the time you actually have.'), 'Training playlist should help members choose videos based on available time');
+  assert.ok(mastermindHubSource.includes('duration_seconds'), 'Training playlist should use live catalog durations from the Lovable-connected app database');
+  assert.ok(mastermindHubSource.includes('weeklyWatchPlan'), 'Training playlist should compute a focused weekly watch plan');
   assert.ok(mastermindHubSource.includes('const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate'), 'Admin 90-day preview must rely on the route allowlist instead of the inner member gate');
   assert.ok(mastermindHubSource.includes("navigate(`/admin/mastermind-training-preview?${params.toString()}`)"), 'Admin 90-day preview must keep curriculum clicks on the hidden training route');
   assert.ok(mastermindHubSource.includes('completedResourceIds.has(resource.resourceId)'), '90-day guidance should label watched recommendation videos');

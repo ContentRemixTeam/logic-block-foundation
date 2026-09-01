@@ -34,6 +34,7 @@ import {
   Bot,
   Calendar,
   CheckCircle2,
+  Clock,
   ClipboardCheck,
   ExternalLink,
   Pin,
@@ -47,7 +48,14 @@ import {
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'mastermind-pinned-resources';
+const TRAINING_TIME_STORAGE_KEY = 'mastermind-weekly-training-minutes';
 const SHOW_AI_STUDIO = import.meta.env.VITE_ENABLE_MASTERMIND_AI_STUDIO === 'true';
+const TRAINING_TIME_OPTIONS = [
+  { minutes: 30, label: '30 min' },
+  { minutes: 60, label: '1 hour' },
+  { minutes: 120, label: '2 hours' },
+  { minutes: 180, label: '3 hours' },
+];
 
 type ResourceFilterId = 'all' | 'focus' | 'core' | 'indexed';
 
@@ -74,6 +82,7 @@ export default function MastermindHub() {
   const [activeTab, setActiveTab] = useState('guidance');
   const [trainingStageId, setTrainingStageId] = useState<MastermindStageId | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
+  const [weeklyTrainingMinutes, setWeeklyTrainingMinutes] = useState(180);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
   const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview;
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
@@ -99,10 +108,22 @@ export default function MastermindHub() {
     }
   }, []);
 
+  useEffect(() => {
+    const stored = getStorageItem(TRAINING_TIME_STORAGE_KEY);
+    const parsed = Number.parseInt(stored ?? '', 10);
+    if (TRAINING_TIME_OPTIONS.some((option) => option.minutes === parsed)) {
+      setWeeklyTrainingMinutes(parsed);
+    }
+  }, []);
 
   const savePinned = (ids: string[]) => {
     setStorageItem(STORAGE_KEY, JSON.stringify(ids));
     setPinnedIds(ids);
+  };
+
+  const updateWeeklyTrainingMinutes = (minutes: number) => {
+    setStorageItem(TRAINING_TIME_STORAGE_KEY, String(minutes));
+    setWeeklyTrainingMinutes(minutes);
   };
 
   const togglePin = (id: string) => {
@@ -186,6 +207,14 @@ export default function MastermindHub() {
     return MASTERMIND_PORTAL_RESOURCES.filter(isReadyMastermindCurriculumVideoResource);
   }, []);
 
+  const durationByResourceId = useMemo(() => {
+    return new Map(
+      (catalogQuery.data ?? [])
+        .filter((row) => typeof row.duration_seconds === 'number')
+        .map((row) => [row.portal_resource_id, row.duration_seconds])
+    );
+  }, [catalogQuery.data]);
+
   const indexedResourceCount = useMemo(() => {
     return visibleResources.filter((resource) =>
       resource.transcriptStatus === 'transcript_ready' || resource.transcriptStatus === 'description_indexed'
@@ -216,6 +245,37 @@ export default function MastermindHub() {
       };
     })
   ), [completedResourceIds, visibleResources]);
+
+  const weeklyWatchPlan = useMemo(() => {
+    const resourcesById = new Map(visibleResources.map((resource) => [resource.id, resource]));
+    const planOrderedResources = selectedStage.resources
+      .map((resource) => resourcesById.get(resource.resourceId))
+      .filter((resource): resource is MastermindPortalResource => Boolean(resource));
+    const planResourceIds = new Set(planOrderedResources.map((resource) => resource.id));
+    const fallbackResources = visibleResources.filter((resource) => !planResourceIds.has(resource.id));
+    const candidates = [...planOrderedResources, ...fallbackResources]
+      .filter((resource) => !completedResourceIds.has(resource.id));
+
+    const targetSeconds = weeklyTrainingMinutes * 60;
+    const selected: Array<{ resource: MastermindPortalResource; durationSeconds: number | null }> = [];
+    let selectedSeconds = 0;
+
+    for (const resource of candidates) {
+      const durationSeconds = durationByResourceId.get(resource.id) ?? null;
+      const estimatedSeconds = durationSeconds ?? 30 * 60;
+      if (selectedSeconds + estimatedSeconds <= targetSeconds || selected.length === 0) {
+        selected.push({ resource, durationSeconds });
+        selectedSeconds += estimatedSeconds;
+      }
+      if (selectedSeconds >= targetSeconds) break;
+    }
+
+    return {
+      resources: selected,
+      selectedSeconds,
+      targetSeconds,
+    };
+  }, [completedResourceIds, durationByResourceId, selectedStage.resources, visibleResources, weeklyTrainingMinutes]);
 
   const filteredResources = useMemo(() => {
     const resources = searchMastermindPortalResources(
@@ -633,6 +693,76 @@ export default function MastermindHub() {
                 </CardContent>
               </Card>
 
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <Badge variant="outline" className="mb-2 w-fit">This week's playlist</Badge>
+                      <CardTitle>Fit training into the time you actually have.</CardTitle>
+                      <CardDescription>
+                        Choose a weekly watch budget and this page will prioritize unwatched videos from your current 90-day focus first.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="secondary" className="w-fit">
+                      {weeklyWatchPlan.resources.length > 0
+                        ? `${formatWatchDuration(weeklyWatchPlan.selectedSeconds)} of ${formatWatchDuration(weeklyWatchPlan.targetSeconds)}`
+                        : `0 of ${formatWatchDuration(weeklyWatchPlan.targetSeconds)}`}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {TRAINING_TIME_OPTIONS.map((option) => (
+                      <Button
+                        key={option.minutes}
+                        type="button"
+                        variant={weeklyTrainingMinutes === option.minutes ? 'default' : 'outline'}
+                        size="sm"
+                        className="min-h-9"
+                        onClick={() => updateWeeklyTrainingMinutes(option.minutes)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {weeklyWatchPlan.resources.length > 0 ? (
+                    <div className="grid gap-3 lg:grid-cols-3">
+                      {weeklyWatchPlan.resources.map(({ resource, durationSeconds }, index) => (
+                        <button
+                          key={resource.id}
+                          type="button"
+                          onClick={() => handleOpen(resource)}
+                          className="flex h-full flex-col rounded-lg border bg-background p-4 text-left transition hover:border-primary/50 hover:bg-muted/40"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <Badge variant={index === 0 ? 'secondary' : 'outline'} className="mb-2 text-[11px]">
+                                {index === 0 ? 'Watch first' : `Video ${index + 1}`}
+                              </Badge>
+                              <h3 className="break-words text-sm font-semibold leading-snug">{resource.title}</h3>
+                            </div>
+                            <Clock className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                          </div>
+                          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{resource.memberJob}</p>
+                          <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                            <Badge variant="outline" className="text-[11px]">{formatWatchDuration(durationSeconds)}</Badge>
+                            <Badge variant="outline" className="text-[11px]">{resource.stages[0]}</Badge>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border bg-muted/35 p-4">
+                      <p className="text-sm font-medium">Everything ready is watched.</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Use the section browser below to rewatch a lesson, or ask Faith what deserves pressure-testing next.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {!searchQuery && resourceFilter === 'all' && (
                 <Card>
                   <CardHeader>
@@ -860,6 +990,16 @@ function AuditMetric({ title, value }: AuditMetricProps) {
       <p className="mt-1 text-lg font-semibold leading-none">{value}</p>
     </div>
   );
+}
+
+function formatWatchDuration(seconds: number | null) {
+  if (!seconds || seconds <= 0) return 'About 30 min';
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  if (remainingMinutes === 0) return `${hours} hr`;
+  return `${hours} hr ${remainingMinutes} min`;
 }
 
 interface SupportCardProps extends StatusCardProps {
