@@ -518,6 +518,8 @@ try {
   assert.ok(mastermindHubSource.includes('Open at timestamp'), 'Curriculum timestamp matches should open the protected player at the matched moment');
   assert.ok(phaseOneCatalogSource.includes('usePhaseOneCurriculumMomentSearch'), 'Phase One hook should include the hidden curriculum moment search query');
   assert.ok(phaseOneCatalogSource.includes('search_my_mastermind_curriculum_moments'), 'Phase One hook should call the server-side curriculum moment RPC');
+  assert.ok(phaseOneCatalogSource.includes("queryKey: ['phase-one-curriculum-moments', preview ? 'preview' : 'member'"), 'Curriculum moment search hook should cache preview and member searches separately');
+  assert.ok(phaseOneCatalogSource.includes('p_preview: preview'), 'Curriculum moment search hook should send preview mode only when explicitly requested');
   assert.ok(curriculumMomentSearchMigrationSource.includes('search_my_mastermind_curriculum_moments'), 'Hidden curriculum moment search migration must create the RPC');
   assert.ok(curriculumMomentSearchMigrationSource.includes("approved_access_scope = 'core_curriculum'"), 'Curriculum moment search must only search core_curriculum records');
   assert.ok(curriculumMomentSearchMigrationSource.includes('replay_transcript_segments'), 'Curriculum moment search must use approved transcript segments');
@@ -530,6 +532,7 @@ try {
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
   assert.ok(mastermindHubSource.includes('<MastermindSupportBot'), 'Support tab should mount the embedded coaching and finder bot');
   assert.ok(mastermindHubSource.includes('enableCurriculumMomentSearch={isAdminPreview}'), 'Support Bot curriculum timestamp search must stay hidden to the admin preview route');
+  assert.ok(mastermindHubSource.includes('curriculumMomentSearchPreview={isAdminPreview}'), 'Support Bot transcript search should request preview access only on the hidden admin route');
   assert.ok(mastermindHubSource.includes('onOpenMoment={handleOpenCurriculumMoment}'), 'Support Bot timestamp results should open through the protected training player');
   assert.ok(mastermindHubSource.includes('title="Ask Faith"'), 'Support tab should keep human Ask Faith separate from the embedded bot');
   assert.ok(mastermindSupportBotSource.includes("type SupportBotMode = 'coach' | 'find'"), 'Support bot should have coaching and finder modes');
@@ -661,11 +664,13 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('aria-pressed={isSelected}'), 'AI Studio project pack selector should expose selected state accessibly');
   assert.ok(aiStudioPlanCardSource.includes("pack.visibility !== 'locked'"), 'AI Studio should prevent locked project packs from being selected');
   assert.ok(aiStudioPlanCardSource.includes('Selected from library'), 'AI Studio should explain when the member selected a non-recommended annual/library pack');
-  assert.ok(mastermindHubSource.includes('useMastermindPortalAccess(aiStudioEnabled)'), 'MastermindHub should read the server-owned portal access receipt for AI Studio gating');
+  assert.ok(mastermindHubSource.includes('useMastermindPortalAccess(aiStudioEnabled, isAdminPreview)'), 'MastermindHub should read the server-owned portal access receipt with explicit preview/member mode');
   assert.ok(mastermindHubSource.includes('memberScopes={portalAccessQuery.data?.memberScopes ?? []}'), 'MastermindHub should pass server member scopes into AI Studio');
   assert.ok(mastermindHubSource.includes('previewCapabilities={portalAccessQuery.data?.previewCapabilities ?? []}'), 'MastermindHub should pass server preview capabilities into AI Studio');
   assert.ok(mastermindPortalAccessSource.includes("supabase.functions.invoke('get-mastermind-portal-access'"), 'AI Studio access hook should reuse the existing portal access function');
-  assert.ok(mastermindPortalAccessSource.includes('body: { preview: true }'), 'AI Studio access hook should ask the server to evaluate hidden preview capability');
+  assert.ok(mastermindPortalAccessSource.includes("queryKey: ['mastermind-portal-access', preview ? 'preview' : 'member']"), 'AI Studio access hook should cache preview and member access separately');
+  assert.ok(mastermindPortalAccessSource.includes('body: { preview }'), 'AI Studio access hook should ask for preview capability only when the hidden preview route is active');
+  assert.ok(mastermindTrainingSource.includes('preview: isAdminTrainingPreview'), 'Training playback should request preview access only from the hidden admin training route');
   assert.ok(phaseOneCatalogSource.includes('save_my_mastermind_phase_one_state'), 'Phase One state hook should use the existing server save contract');
   assert.ok(phaseOneCatalogSource.includes("queryKey: ['phase-one-state']"), 'Phase One state hook should expose a stable query key');
   assert.ok(mastermindHubSource.includes('Built from this plan'), '90-day hub should summarize what has been created from the current plan');

@@ -187,7 +187,7 @@ export default function MastermindHub() {
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
   const catalogQuery = usePhaseOneCatalog();
   const phaseOneStateQuery = usePhaseOneState(Boolean(dashboardCycle?.cycle_id));
-  const portalAccessQuery = useMastermindPortalAccess(aiStudioEnabled);
+  const portalAccessQuery = useMastermindPortalAccess(aiStudioEnabled, isAdminPreview);
   const catalogRows = catalogQuery.data;
   const playableResourceIds = useMemo(
     () => new Set((catalogRows ?? []).map((row) => row.portal_resource_id)),
@@ -250,7 +250,8 @@ export default function MastermindHub() {
   const curriculumMomentSearchQuery = usePhaseOneCurriculumMomentSearch(
     normalizedTrainingSearchQuery,
     resourceFilter === 'focus' ? activeTrainingStageId : null,
-    showCurriculumMomentSearch
+    showCurriculumMomentSearch,
+    isAdminPreview
   );
   const curriculumMomentRows = curriculumMomentSearchQuery.data ?? [];
   const currentMilestoneId = successPathData?.snapshot?.current_milestone_id ?? selectedStage.milestones[0].id;
@@ -1138,6 +1139,7 @@ export default function MastermindHub() {
                 completedResourceIds={completedResourceIds}
                 onOpenResource={handleOpen}
                 enableCurriculumMomentSearch={isAdminPreview}
+                curriculumMomentSearchPreview={isAdminPreview}
                 onOpenMoment={handleOpenCurriculumMoment}
                 onOpenAiSettings={() => navigate('/ai-copywriting/settings')}
               />

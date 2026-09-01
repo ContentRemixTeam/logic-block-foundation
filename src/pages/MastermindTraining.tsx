@@ -165,7 +165,7 @@ export default function MastermindTraining() {
           momentId: nextTarget.momentId,
           responseShape: 'verified_cue_v1',
           surface: 'curriculum',
-          preview: true,
+          preview: isAdminTrainingPreview,
         },
       });
       const { data, error } = await Promise.race([playbackRequestPromise, timeout]).finally(() => {

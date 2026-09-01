@@ -31,6 +31,7 @@ interface MastermindSupportBotProps {
   completedResourceIds: Set<string>;
   onOpenResource: (resource: MastermindPortalResource) => void;
   enableCurriculumMomentSearch?: boolean;
+  curriculumMomentSearchPreview?: boolean;
   onOpenMoment?: (moment: PhaseOneCurriculumMomentRow) => void;
   onOpenAiSettings: () => void;
 }
@@ -143,6 +144,7 @@ export function MastermindSupportBot({
   completedResourceIds,
   onOpenResource,
   enableCurriculumMomentSearch = false,
+  curriculumMomentSearchPreview = false,
   onOpenMoment,
   onOpenAiSettings,
 }: MastermindSupportBotProps) {
@@ -162,7 +164,8 @@ export function MastermindSupportBot({
   const supportMomentSearchQuery = usePhaseOneCurriculumMomentSearch(
     trimmedQuestion,
     selectedStageId,
-    shouldSearchCurriculumMoments
+    shouldSearchCurriculumMoments,
+    curriculumMomentSearchPreview
   );
 
   const finderResults = useMemo(() => {

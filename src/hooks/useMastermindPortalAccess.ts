@@ -31,15 +31,15 @@ function normalizeAccessReceipt(value: unknown): MastermindPortalAccessReceipt {
   };
 }
 
-export function useMastermindPortalAccess(enabled = true) {
+export function useMastermindPortalAccess(enabled = true, preview = false) {
   return useQuery({
-    queryKey: ['mastermind-portal-access', 'preview'],
+    queryKey: ['mastermind-portal-access', preview ? 'preview' : 'member'],
     enabled,
     staleTime: 60_000,
     retry: 1,
     queryFn: async (): Promise<MastermindPortalAccessReceipt> => {
       const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', {
-        body: { preview: true },
+        body: { preview },
       });
       if (error) throw error;
       return normalizeAccessReceipt(data);

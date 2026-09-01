@@ -70,12 +70,12 @@ export function usePhaseOneCatalog(enabled = true) {
   });
 }
 
-export function usePhaseOneCurriculumMomentSearch(query: string, stage: string | null | undefined, enabled = true) {
+export function usePhaseOneCurriculumMomentSearch(query: string, stage: string | null | undefined, enabled = true, preview = false) {
   const normalizedQuery = query.trim().slice(0, 160);
   const normalizedStage = stage?.trim() || null;
 
   return useQuery({
-    queryKey: ['phase-one-curriculum-moments', normalizedQuery, normalizedStage ?? 'all'],
+    queryKey: ['phase-one-curriculum-moments', preview ? 'preview' : 'member', normalizedQuery, normalizedStage ?? 'all'],
     enabled: enabled && normalizedQuery.length >= 2,
     staleTime: 60_000,
     queryFn: async (): Promise<PhaseOneCurriculumMomentRow[]> => {
@@ -85,7 +85,7 @@ export function usePhaseOneCurriculumMomentSearch(query: string, stage: string |
         p_query: normalizedQuery,
         p_stage: normalizedStage,
         p_limit: 12,
-        p_preview: true,
+        p_preview: preview,
       });
       if (error) throw error;
       return (Array.isArray(data) ? data : []) as PhaseOneCurriculumMomentRow[];
