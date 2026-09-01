@@ -27,6 +27,7 @@
     "qa:mastermind-live-gates": "node tools/qa-mastermind-live-gates.mjs",
     "qa:mastermind-live-gates:dry-run": "node tools/qa-mastermind-live-gates.mjs --dry-run",
     "qa:mastermind-live-gates:mock": "node tools/qa-mastermind-live-gates-mock.mjs",
+    "qa:mastermind-live-browser-routes": "node tools/qa-mastermind-live-browser-routes.mjs",
     "build:replay-vault-import": "python3 tools/build-membershipio-replay-vault-import.py",
     "verify:replay-vault-import": "python3 tools/verify-replay-vault-import.py",
     "enrich:replay-vault-import": "python3 tools/enrich-replay-vault-media-manifest.py",
