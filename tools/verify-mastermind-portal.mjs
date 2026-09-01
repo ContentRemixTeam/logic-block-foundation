@@ -812,6 +812,12 @@ try {
   for (const guard of requiredSuccessPathLayoutGuards) {
     assert.ok(successPathPlanCardSource.includes(guard), 'SuccessPathPlanCard is missing responsive layout guard: ' + guard);
   }
+  assert.ok(successPathPlanCardSource.includes('const roundModeButtonClass'), 'Build/improve toggle should use an explicit readable selected-button class');
+  assert.ok(successPathPlanCardSource.includes("data-selected={roundMode === 'build'}"), 'Build round button should mark selected state without the default variant color collision');
+  assert.ok(successPathPlanCardSource.includes("data-selected={roundMode === 'improve'}"), 'Improve round button should mark selected state without the default variant color collision');
+  assert.ok(successPathPlanCardSource.includes('data-[selected=true]:text-white'), 'Selected build/improve buttons must keep white text on pink');
+  assert.equal(successPathPlanCardSource.includes("variant={roundMode === 'build' ? 'default' : 'outline'}"), false, 'Build/improve toggle must not use default variant because it can make labels illegible under the Mastermind brand skin');
+  assert.equal(successPathPlanCardSource.includes('text-primary-foreground'), false, 'Build/improve toggle should avoid text-primary-foreground because broad legacy brand selectors can treat it as text-primary');
 
   for (const [sourceName, source] of [
     ['MastermindHub', mastermindHubSource],

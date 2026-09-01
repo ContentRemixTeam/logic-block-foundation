@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
+import { cn } from '@/lib/utils';
 import {
   getMastermindWeeklyGuidance,
   type MastermindPlanCycle,
@@ -35,6 +36,9 @@ interface SuccessPathPlanCardProps {
 const PLACEHOLDER_GOALS = new Set(['my 90-day goal', 'my 90 day goal', 'n']);
 const WEEKLY_MOVE_TASK_STORAGE_KEY = 'mastermind-weekly-move-task-keys';
 type WeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'failed';
+
+const roundModeButtonClass =
+  'border-primary text-primary hover:bg-primary/10 hover:text-primary data-[selected=true]:bg-primary data-[selected=true]:text-white data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-white';
 
 function getRealGoal(goal: string | null | undefined) {
   const normalized = goal?.trim().toLowerCase();
@@ -222,10 +226,22 @@ export function SuccessPathPlanCard({
             <p className="text-sm font-semibold">Are you building this or improving what already works?</p>
             <p className="mt-1 text-sm text-muted-foreground">This only changes the current round. It does not label your business or make you restart.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <Button type="button" variant={roundMode === 'build' ? 'default' : 'outline'} onClick={() => setRoundMode('build')}>
+              <Button
+                type="button"
+                variant="outline"
+                data-selected={roundMode === 'build'}
+                className={cn(roundModeButtonClass)}
+                onClick={() => setRoundMode('build')}
+              >
                 Build it for the first time
               </Button>
-              <Button type="button" variant={roundMode === 'improve' ? 'default' : 'outline'} onClick={() => setRoundMode('improve')}>
+              <Button
+                type="button"
+                variant="outline"
+                data-selected={roundMode === 'improve'}
+                className={cn(roundModeButtonClass)}
+                onClick={() => setRoundMode('improve')}
+              >
                 Improve what already works
               </Button>
             </div>
