@@ -655,6 +655,8 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Ask Faith');
     await assertText(client, 'Selected');
     await assertText(client, 'Previewing packs, saving setup answers, copying install docs');
+    await assertText(client, 'Download .md');
+    await assertText(client, 'Advanced install docs');
     await assertText(client, 'explicit pack confirmation');
     await clickText(client, 'Guidance');
     await waitFor(client, 'document.body.innerText.includes("Do this this week")', `${label} return to guidance`);

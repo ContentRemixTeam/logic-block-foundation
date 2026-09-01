@@ -516,12 +516,15 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('Business context this AI must remember'), 'AI Studio should collect business context before generating instructions');
   assert.ok(aiStudioPlanCardSource.includes('What it should not change without asking'), 'AI Studio should collect member authority guardrails');
   assert.ok(aiStudioPlanCardSource.includes('Custom install docs'), 'AI Studio should generate custom install docs');
-  assert.ok(aiStudioPlanCardSource.includes('Copy custom install docs'), 'AI Studio should let members copy customized install docs');
+  assert.ok(aiStudioPlanCardSource.includes('Copy install packet'), 'AI Studio should let members copy customized install docs');
+  assert.ok(aiStudioPlanCardSource.includes('Download .md'), 'AI Studio should let members download install-ready markdown docs');
+  assert.ok(aiStudioPlanCardSource.includes('downloadMarkdownFile'), 'AI Studio should use a local markdown download helper for install packets');
+  assert.ok(aiStudioPlanCardSource.includes('Advanced install docs'), 'AI Studio should hide deeper install docs behind an advanced section');
   assert.ok(aiStudioPlanCardSource.includes('AI_STUDIO_WORKSPACE_TRACKER_STORAGE_KEY'), 'AI Studio should persist member workspace setup progress locally');
   assert.ok(aiStudioPlanCardSource.includes('mastermind-ai-studio-workspace-tracker-v1'), 'AI Studio workspace tracker should use a stable storage key');
   assert.ok(aiStudioPlanCardSource.includes('Created from this plan'), 'AI Studio should show what the member has created from the current 90-day plan');
   assert.ok(aiStudioPlanCardSource.includes('Setup answers saved'), 'AI Studio tracker should show whether setup answers were saved');
-  assert.ok(aiStudioPlanCardSource.includes('Install docs copied'), 'AI Studio tracker should show whether install docs were copied');
+  assert.ok(aiStudioPlanCardSource.includes('Install docs copied or downloaded'), 'AI Studio tracker should show whether install docs were copied or downloaded');
   assert.ok(aiStudioPlanCardSource.includes('Workspace installed'), 'AI Studio tracker should show whether the workspace was installed');
   assert.ok(aiStudioPlanCardSource.includes('First test run'), 'AI Studio tracker should show whether the first supervised test was run');
   assert.ok(aiStudioPlanCardSource.includes('Mark workspace installed'), 'AI Studio tracker should let members mark the workspace installed');

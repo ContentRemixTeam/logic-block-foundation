@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bot, CheckCircle2, ClipboardCheck, Copy, KeyRound, Lock, Sparkles } from 'lucide-react';
+import { Bot, CheckCircle2, ClipboardCheck, Copy, Download, KeyRound, Lock, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,6 +69,36 @@ function clean(value: string | null | undefined, fallback: string) {
   return trimmed && trimmed.toLowerCase() !== 'n' ? trimmed : fallback;
 }
 
+function formatPacket(sections: { title: string; body: string }[]) {
+  return sections
+    .map((section) => `## ${section.title}\n${section.body}`)
+    .join('\n\n');
+}
+
+function formatList(items: string[]) {
+  return items.map((item) => `- ${item}`).join('\n');
+}
+
+function slugifyFilePart(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'ai-workspace';
+}
+
+function downloadMarkdownFile(filename: string, body: string) {
+  const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function buildStarterPacket({
   cycle,
   selectedStageId,
@@ -127,36 +157,96 @@ function buildCustomInstallPacket({
   const guardrails = clean(customization.guardrails, 'Do not suggest a full rebuild, a new funnel, or a complicated automation unless the evidence proves it is needed.');
   const firstAsset = clean(customization.firstAsset, recommendedPack.firstTest);
   const installHome = clean(customization.installHome, DEFAULT_CUSTOMIZATION.installHome);
+  const audience = clean(cycle?.audience_target, 'The buyer or audience from my current plan.');
+  const message = clean(cycle?.signature_message, 'Use my current offer, voice, and point of view.');
+  const capacity = clean(cycle?.low_energy_version || cycle?.medium_energy_version || cycle?.high_energy_version, 'Keep the next step small enough to complete this week.');
 
   return [
     {
       title: 'Start Here',
-      body: `Install this as: ${recommendedPack.title}. Use it inside: ${installHome}. The job is to help me make progress on this 90-day result: ${goal}.`,
+      body: `Install this as: ${recommendedPack.title}. Use it inside: ${installHome}. Its job is to help me make progress on this 90-day result: ${goal}. It should act like a strategic implementation assistant, not a generic brainstorming tool.`,
     },
     {
       title: 'Business Profile',
-      body: `Current focus: ${stage.label}\nBusiness context to remember: ${context}\nMain constraint or bottleneck: ${clean(cycle?.biggest_bottleneck, stage.memberQuestion)}\nCapacity rule: ${clean(cycle?.low_energy_version || cycle?.medium_energy_version || cycle?.high_energy_version, 'Keep the next step small enough to complete this week.')}`,
+      body: `Current focus: ${stage.label}\nAudience: ${audience}\nBusiness context to remember: ${context}\nMessage or offer language: ${message}\nMain constraint or bottleneck: ${clean(cycle?.biggest_bottleneck, stage.memberQuestion)}\nCapacity rule: ${capacity}`,
     },
     {
       title: 'Project Instructions',
       body: [
+        `Primary job: ${recommendedPack.job}`,
         ...recommendedPack.operatingRules,
         `Member-specific guardrail: ${guardrails}`,
-        'Before giving advice, ask for missing context only when it changes the decision.',
+        'Start by restating the decision or asset I am asking for in plain language.',
+        'Ask for missing context only when it would materially change the recommendation.',
         'Format every answer with: one recommendation, one lower-capacity version, and one evidence target.',
+        'If the output starts becoming generic, bring it back to the current buyer, offer, capacity, and 90-day result.',
       ].map((line) => `- ${line}`).join('\n'),
     },
     {
-      title: 'Knowledge Docs To Add',
-      body: recommendedPack.knowledgeDocs.map((doc) => `- ${doc}`).join('\n'),
-    },
-    {
       title: 'First Test',
-      body: firstAsset,
+      body: `${firstAsset}\n\nAfter the first answer, ask: "What part of this is based on evidence, and what part is an assumption I should test?"`,
     },
     {
       title: 'Review Checklist',
-      body: recommendedPack.outputChecks.map((check) => `- ${check}`).join('\n'),
+      body: [
+        ...recommendedPack.outputChecks,
+        'The output is specific to my business instead of generic best practices.',
+        'The next action is small enough to complete before the next check-in.',
+        'The evidence target tells me what to watch for after I use it.',
+      ].map((check) => `- ${check}`).join('\n'),
+    },
+  ];
+}
+
+function buildAdvancedInstallDocs({
+  cycle,
+  selectedStageId,
+  recommendedPack,
+  customization,
+}: {
+  cycle: MastermindPlanCycle | null | undefined;
+  selectedStageId: MastermindStageId;
+  recommendedPack: ReturnType<typeof getRecommendedAiProjectPack>;
+  customization: AiStudioCustomization;
+}) {
+  const stage = MASTERMIND_SUCCESS_STAGES.find((item) => item.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
+  const goal = clean(cycle?.goal, 'Choose one clear 90-day business result.');
+  const guardrails = clean(customization.guardrails, 'Keep recommendations simple, evidence-based, and aligned with the current plan.');
+
+  return [
+    {
+      title: 'Installation Steps',
+      body: [
+        'Create a new Claude Project, ChatGPT Project, custom GPT, or Codex workspace.',
+        `Name it ${recommendedPack.title}.`,
+        'Paste the Project Instructions section into the instruction area.',
+        'Add the Business Profile as a project knowledge document.',
+        'Add the Knowledge Docs below as separate notes when the platform allows it.',
+        'Run the First Test before using it for real business decisions.',
+      ].map((step, index) => `${index + 1}. ${step}`).join('\n'),
+    },
+    {
+      title: 'Knowledge Docs To Add',
+      body: [
+        `90-day result: ${goal}`,
+        `Current section: ${stage.label}`,
+        `AI setup purpose: ${recommendedPack.job}`,
+        `Member guardrails: ${guardrails}`,
+        ...recommendedPack.knowledgeDocs.map((doc) => `Create a note called "${doc}" and keep it updated as real evidence comes in.`),
+      ].map((item) => `- ${item}`).join('\n'),
+    },
+    {
+      title: 'Weekly Use Prompt',
+      body: `Use my current 90-day plan and this week's check-in. Give me one useful next move for ${stage.label}, one lower-capacity version, and one evidence target. Do not give me a full strategy rebuild unless the evidence says the plan is wrong.`,
+    },
+    {
+      title: 'Troubleshooting',
+      body: formatList([
+        'If the answer is too broad, ask it to choose one next action for this week only.',
+        'If the answer sounds generic, paste in more buyer language, offer context, or proof.',
+        'If it suggests too much, ask for the low-capacity version and the first test.',
+        'If the advice contradicts Faith or your plan, bring the contradiction to coaching before changing direction.',
+      ]),
     },
   ];
 }
@@ -174,6 +264,7 @@ export function AiStudioPlanCard({
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [customCopied, setCustomCopied] = useState(false);
+  const [customDownloaded, setCustomDownloaded] = useState(false);
   const [answersSaved, setAnswersSaved] = useState(false);
   const [serverSyncStatus, setServerSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const [customization, setCustomization] = useState<AiStudioCustomization>(DEFAULT_CUSTOMIZATION);
@@ -197,19 +288,23 @@ export function AiStudioPlanCard({
     () => buildCustomInstallPacket({ cycle, selectedStageId, recommendedPack: selectedPack, customization }),
     [cycle, customization, selectedPack, selectedStageId]
   );
+  const advancedInstallDocs = useMemo(
+    () => buildAdvancedInstallDocs({ cycle, selectedStageId, recommendedPack: selectedPack, customization }),
+    [cycle, customization, selectedPack, selectedStageId]
+  );
   const starterPacketText = useMemo(
-    () =>
-      starterPacket
-        .map((section) => `## ${section.title}\n${section.body}`)
-        .join('\n\n'),
+    () => formatPacket(starterPacket),
     [starterPacket]
   );
-  const customInstallPacketText = useMemo(
+  const fullInstallPacketText = useMemo(
     () =>
-      customInstallPacket
-        .map((section) => `## ${section.title}\n${section.body}`)
-        .join('\n\n'),
-    [customInstallPacket]
+      [
+        `# ${selectedPack.title} Install Packet`,
+        `Generated from this 90-day plan in the Planner app.`,
+        formatPacket(customInstallPacket),
+        `## Advanced Install Docs\n${formatPacket(advancedInstallDocs)}`,
+      ].join('\n\n'),
+    [advancedInstallDocs, customInstallPacket, selectedPack.title]
   );
 
   useEffect(() => {
@@ -296,7 +391,7 @@ export function AiStudioPlanCard({
 
   const copyCustomInstallPacket = async () => {
     try {
-      await navigator.clipboard.writeText(customInstallPacketText);
+      await navigator.clipboard.writeText(fullInstallPacketText);
       updateWorkspaceProgress({ customDocsCopiedAt: new Date().toISOString() });
       void syncPhaseOneWorkspace('in_progress');
       setCustomCopied(true);
@@ -304,6 +399,14 @@ export function AiStudioPlanCard({
     } catch {
       setCustomCopied(false);
     }
+  };
+
+  const downloadCustomInstallPacket = () => {
+    downloadMarkdownFile(`${slugifyFilePart(selectedPack.title)}-install-packet.md`, fullInstallPacketText);
+    updateWorkspaceProgress({ customDocsCopiedAt: new Date().toISOString() });
+    void syncPhaseOneWorkspace('in_progress');
+    setCustomDownloaded(true);
+    window.setTimeout(() => setCustomDownloaded(false), 1800);
   };
 
   const markWorkspaceInstalled = () => {
@@ -334,7 +437,7 @@ export function AiStudioPlanCard({
   };
   const workspaceChecklist = [
     { label: 'Setup answers saved', complete: Boolean(currentProgress.setupSavedAt) },
-    { label: 'Install docs copied', complete: Boolean(currentProgress.customDocsCopiedAt) },
+    { label: 'Install docs copied or downloaded', complete: Boolean(currentProgress.customDocsCopiedAt) },
     { label: 'Workspace installed', complete: Boolean(currentProgress.workspaceInstalledAt) },
     { label: 'First test run', complete: Boolean(currentProgress.firstAssetTestedAt) },
   ];
@@ -480,13 +583,19 @@ export function AiStudioPlanCard({
               <div>
                 <h4 className="text-sm font-semibold">Custom install docs</h4>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Includes project instructions, knowledge docs, the first supervised test, and output checks.
+                  Copy or download the install packet, then add it to the member's own AI workspace.
                 </p>
               </div>
-              <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={copyCustomInstallPacket}>
-                <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
-                {customCopied ? 'Copied' : 'Copy custom install docs'}
-              </Button>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={copyCustomInstallPacket}>
+                  <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {customCopied ? 'Copied' : 'Copy install packet'}
+                </Button>
+                <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={downloadCustomInstallPacket}>
+                  <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {customDownloaded ? 'Downloaded' : 'Download .md'}
+                </Button>
+              </div>
             </div>
             <div className="mt-4 grid gap-3">
               {customInstallPacket.map((section) => (
@@ -496,6 +605,17 @@ export function AiStudioPlanCard({
                 </div>
               ))}
             </div>
+            <details className="mt-4 rounded-md border bg-background p-3">
+              <summary className="cursor-pointer text-sm font-semibold">Advanced install docs</summary>
+              <div className="mt-3 grid gap-3">
+                {advancedInstallDocs.map((section) => (
+                  <div key={section.title} className="rounded-md bg-muted/35 p-3">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">{section.title}</p>
+                    <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{section.body}</p>
+                  </div>
+                ))}
+              </div>
+            </details>
           </div>
         </div>
 

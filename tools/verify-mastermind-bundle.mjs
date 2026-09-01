@@ -82,6 +82,8 @@ const requiredMastermindHubStrings = [
   'Full pack library access opens only when this app account has annual, lifetime, or approved full-library access.',
   'Selected setup',
   'Selected from library',
+  'Download .md',
+  'Advanced install docs',
   'Add this weekly move',
   'Review 90-Day Plan',
   'This creates one task tied to this 90-day cycle.',
