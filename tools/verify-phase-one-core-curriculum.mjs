@@ -121,6 +121,9 @@ for (const contract of [
   "if (serverCompleted) setProgressSaved(true)",
   "savePhaseOneVideoProgress",
   "invalidateQueries({ queryKey: ['phase-one-catalog'] })",
+  "PLAYBACK_REQUEST_TIMEOUT_MS",
+  "playback_request_timeout",
+  "This training is taking longer than expected to open. Your access has not changed.",
 ]) {
   assert.ok(trainingSource.includes(contract), `training preview must keep completion contract: ${contract}`);
 }

@@ -30,6 +30,7 @@ import { savePhaseOneVideoProgress, usePhaseOneCatalog } from '@/hooks/usePhaseO
 
 const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'lesson'}`;
 const STAGE_IDS = new Set<MastermindStageId>(MASTERMIND_SUCCESS_STAGES.map((stage) => stage.id));
+const PLAYBACK_REQUEST_TIMEOUT_MS = 30_000;
 
 function isMastermindStageId(value: string | null): value is MastermindStageId {
   return Boolean(value && STAGE_IDS.has(value as MastermindStageId));
@@ -153,7 +154,11 @@ export default function MastermindTraining() {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('get-mastermind-playback-link', {
+      let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error('playback_request_timeout')), PLAYBACK_REQUEST_TIMEOUT_MS);
+      });
+      const playbackRequestPromise = supabase.functions.invoke('get-mastermind-playback-link', {
         body: {
           resourceId: nextTarget.resourceId,
           questionId: nextTarget.questionId,
@@ -162,6 +167,9 @@ export default function MastermindTraining() {
           surface: 'curriculum',
           preview: true,
         },
+      });
+      const { data, error } = await Promise.race([playbackRequestPromise, timeout]).finally(() => {
+        if (timeoutId) window.clearTimeout(timeoutId);
       });
       if (controller.signal.aborted || playbackRequest.current.generation !== generation) return false;
       const result = error ? null : validatePlaybackResponse(data, nextTarget);
@@ -177,10 +185,16 @@ export default function MastermindTraining() {
       setActivationNonce((value) => value + 1);
       setRecoveryFailed(false);
       return true;
-    } catch {
+    } catch (error) {
       if (!controller.signal.aborted && playbackRequest.current.generation === generation) {
         if (options.recovery) setRecoveryFailed(true);
-        else setPlaybackError('This training is temporarily unavailable. Your access has not changed.');
+        else {
+          setPlaybackError(
+            error instanceof Error && error.message === 'playback_request_timeout'
+              ? 'This training is taking longer than expected to open. Your access has not changed.'
+              : 'This training is temporarily unavailable. Your access has not changed.',
+          );
+        }
       }
       return false;
     } finally {
