@@ -11,6 +11,7 @@ const tempDir = mkdtempSync(path.join(tmpdir(), 'mastermind-portal-verify-'));
 const entryPath = path.join(tempDir, 'entry.ts');
 const outputPath = path.join(tempDir, 'entry.mjs');
 const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.tsx');
+const mastermindTrainingSourcePath = path.join(projectRoot, 'src/pages/MastermindTraining.tsx');
 const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermindPortalResources.ts');
 const successPathPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/SuccessPathPlanCard.tsx');
 const mastermindSupportBotSourcePath = path.join(projectRoot, 'src/components/mastermind/MastermindSupportBot.tsx');
@@ -407,6 +408,7 @@ try {
   await import(pathToFileURL(outputPath).href);
 
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
+  const mastermindTrainingSource = readFileSync(mastermindTrainingSourcePath, 'utf8');
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
   const mastermindSupportBotSource = readFileSync(mastermindSupportBotSourcePath, 'utf8');
@@ -469,6 +471,14 @@ try {
   assert.ok(mastermindHubSource.includes('best next watch'), 'Training playlist should handle a single recommended video longer than the weekly watch budget gracefully');
   assert.ok(mastermindHubSource.includes('const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate'), 'Admin 90-day preview must rely on the route allowlist instead of the inner member gate');
   assert.ok(mastermindHubSource.includes("navigate(`/admin/mastermind-training-preview?${params.toString()}`)"), 'Admin 90-day preview must keep curriculum clicks on the hidden training route');
+  assert.ok(mastermindHubSource.includes('params.set(\'stage\', activeTrainingStageId)'), 'Training links should carry the current plan section into the hidden player');
+  assert.ok(mastermindResourcesSource.includes("params.set('stage', stageId)"), 'Protected training URLs should preserve section context when it is available');
+  assert.ok(mastermindTrainingSource.includes('Lesson context'), 'Training player should explain why the member is watching the lesson');
+  assert.ok(mastermindTrainingSource.includes('Connected outcome'), 'Training player should connect lessons to the 90-day outcome');
+  assert.ok(mastermindTrainingSource.includes('After watching'), 'Training player should name the specific output after the lesson');
+  assert.ok(mastermindTrainingSource.includes('Evidence to bring back'), 'Training player should name the evidence to collect after the lesson');
+  assert.ok(mastermindTrainingSource.includes('findLessonRecommendation'), 'Training player should reuse the approved curriculum recommendation map');
+  assert.ok(mastermindTrainingSource.includes('lessonStage?.quickWin.evidence'), 'Training player should reuse stage evidence targets instead of generic completion copy');
   assert.ok(mastermindHubSource.includes('completedResourceIds.has(resource.resourceId)'), '90-day guidance should label watched recommendation videos');
   assert.ok(mastermindHubSource.includes("'Watch again'"), 'Watched recommendation videos should not look like new assignments');
   assert.ok(mastermindHubSource.includes('showWatchedResources'), 'Training tab should let members reveal watched videos only when they ask');

@@ -10,6 +10,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { VaultPlayer } from '@/components/replay-vault/VaultPlayer';
 import { MastermindCurriculumTranscript } from '@/components/mastermind/MastermindCurriculumTranscript';
 import {
+  MASTERMIND_PORTAL_RESOURCES,
+  type MastermindPortalResource,
+} from '@/data/mastermindPortalResources';
+import {
+  MASTERMIND_SUCCESS_STAGES,
+  type MastermindResourceRecommendation,
+  type MastermindStageId,
+} from '@/lib/mastermindSuccessPath';
+import {
   formatCompactTime,
   isStableVaultId,
   shouldAutoRefresh,
@@ -20,6 +29,29 @@ import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekC
 import { savePhaseOneVideoProgress, usePhaseOneCatalog } from '@/hooks/usePhaseOneCatalog';
 
 const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'lesson'}`;
+const STAGE_IDS = new Set<MastermindStageId>(MASTERMIND_SUCCESS_STAGES.map((stage) => stage.id));
+
+function isMastermindStageId(value: string | null): value is MastermindStageId {
+  return Boolean(value && STAGE_IDS.has(value as MastermindStageId));
+}
+
+function findLessonRecommendation(resourceId: string, stageId: MastermindStageId | null): MastermindResourceRecommendation | null {
+  const stageOrderedRecommendations = MASTERMIND_SUCCESS_STAGES.flatMap((stage) => stage.resources);
+  if (stageId) {
+    const stage = MASTERMIND_SUCCESS_STAGES.find((item) => item.id === stageId);
+    const recommendation = stage?.resources.find((item) => item.resourceId === resourceId);
+    if (recommendation) return recommendation;
+  }
+  return stageOrderedRecommendations.find((item) => item.resourceId === resourceId) ?? null;
+}
+
+function getLessonStage(resource: MastermindPortalResource | null, requestedStageId: MastermindStageId | null) {
+  const fallbackStageId = resource?.stages[0] ?? null;
+  const stageId = requestedStageId && resource?.stages.includes(requestedStageId)
+    ? requestedStageId
+    : fallbackStageId;
+  return MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === stageId) ?? null;
+}
 
 export default function MastermindTraining() {
   const navigate = useNavigate();
@@ -31,6 +63,8 @@ export default function MastermindTraining() {
   const recoveryAttemptsRef = useRef(0);
   const lastProgressSaveRef = useRef(0);
   const resourceId = searchParams.get('resource') ?? '';
+  const stageParam = searchParams.get('stage');
+  const requestedStageId = isMastermindStageId(stageParam) ? stageParam : null;
   const momentId = searchParams.get('moment');
   const questionId = searchParams.get('question');
   const fromPhaseOne = searchParams.get('from') === 'phase-one';
@@ -47,6 +81,23 @@ export default function MastermindTraining() {
   const queryClient = useQueryClient();
   const catalogQuery = usePhaseOneCatalog(isStableVaultId(resourceId));
   const catalogRows = catalogQuery.data;
+  const resourceMetadata = useMemo(
+    () => MASTERMIND_PORTAL_RESOURCES.find((resource) => resource.id === resourceId) ?? null,
+    [resourceId],
+  );
+  const lessonStage = useMemo(
+    () => getLessonStage(resourceMetadata, requestedStageId),
+    [requestedStageId, resourceMetadata],
+  );
+  const lessonRecommendation = useMemo(
+    () => findLessonRecommendation(resourceId, lessonStage?.id ?? null),
+    [lessonStage?.id, resourceId],
+  );
+  const lessonAfterWatching = lessonRecommendation?.afterWatching
+    ?? resourceMetadata?.sourceStatus
+    ?? 'Go back to your plan and record the action or evidence this lesson helps you create.';
+  const lessonEvidence = lessonStage?.quickWin.evidence
+    ?? 'Record what you tried, what happened, and what you will do next.';
   // Only "checking" while an authorized fetch is genuinely in flight.
   const catalogPending = catalogQuery.isFetching && catalogQuery.data === undefined;
   const serverCompleted = useMemo(
@@ -257,6 +308,37 @@ export default function MastermindTraining() {
           </Card>
         )}
 
+        {initialTarget && resourceMetadata && (
+          <Card className="border-primary/20">
+            <CardHeader>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="w-fit">Lesson context</Badge>
+                {lessonStage && <Badge variant="outline" className="w-fit">{lessonStage.label}</Badge>}
+              </div>
+              <CardTitle>{resourceMetadata.title}</CardTitle>
+              <CardDescription>{resourceMetadata.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-lg border bg-background p-3">
+                <p className="text-xs font-semibold text-muted-foreground">Use this when</p>
+                <p className="mt-1 text-sm leading-relaxed">{lessonRecommendation?.useWhen ?? resourceMetadata.memberJob}</p>
+              </div>
+              <div className="rounded-lg border bg-background p-3">
+                <p className="text-xs font-semibold text-muted-foreground">Connected outcome</p>
+                <p className="mt-1 text-sm leading-relaxed">{lessonStage?.milestone ?? 'Make the next 90-day move easier to complete.'}</p>
+              </div>
+              <div className="rounded-lg border bg-background p-3">
+                <p className="text-xs font-semibold text-muted-foreground">After watching</p>
+                <p className="mt-1 text-sm leading-relaxed">{lessonAfterWatching}</p>
+              </div>
+              <div className="rounded-lg border bg-background p-3">
+                <p className="text-xs font-semibold text-muted-foreground">Evidence to bring back</p>
+                <p className="mt-1 text-sm leading-relaxed">{lessonEvidence}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {initialTarget && loading && (
           <Card>
             <CardContent className="flex items-center gap-3 p-6 text-sm text-muted-foreground">
@@ -310,7 +392,10 @@ export default function MastermindTraining() {
                   <p className="text-sm font-semibold">After watching</p>
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Go back to your plan and record the action or evidence this lesson helps you create.
+                  {lessonAfterWatching}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed">
+                  <span className="font-semibold">Bring back: </span>{lessonEvidence}
                 </p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                   <Button type="button" variant="secondary" className="w-full sm:w-auto" disabled={catalogPending} onClick={() => void persistProgress(true)}>

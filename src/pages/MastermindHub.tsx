@@ -413,10 +413,11 @@ export default function MastermindHub() {
   ];
 
   const handleOpen = (resource: MastermindPortalResource) => {
-    const protectedHref = getProtectedTrainingHref(resource);
+    const protectedHref = getProtectedTrainingHref(resource, activeTrainingStageId);
     if (protectedHref) {
       if (isAdminPreview && resource.protectedPlayback?.surface === 'curriculum') {
         const params = new URLSearchParams({ resource: resource.protectedPlayback.resourceId });
+        if (resource.stages.includes(activeTrainingStageId)) params.set('stage', activeTrainingStageId);
         navigate(`/admin/mastermind-training-preview?${params.toString()}`);
       } else {
         navigate(protectedHref);

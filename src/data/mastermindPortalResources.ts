@@ -97,10 +97,11 @@ const coreTraining = ({
   },
 });
 
-export function getProtectedTrainingHref(resource: MastermindPortalResource) {
+export function getProtectedTrainingHref(resource: MastermindPortalResource, stageId?: MastermindStageId | null) {
   const playback = resource.protectedPlayback;
   if (!playback || playback.status !== 'ready') return null;
   const params = new URLSearchParams({ resource: playback.resourceId });
+  if (stageId && resource.stages.includes(stageId)) params.set('stage', stageId);
   if (playback.surface === 'vault') return `/mastermind/replay-vault?${params.toString()}`;
   return `/mastermind/training?${params.toString()}`;
 }

@@ -175,6 +175,10 @@ function findMastermindHubBundle(files) {
   return files.find((filePath) => path.basename(filePath).startsWith('MastermindHub-') && filePath.endsWith('.js'));
 }
 
+function findMastermindTrainingBundle(files) {
+  return files.find((filePath) => path.basename(filePath).startsWith('MastermindTraining-') && filePath.endsWith('.js'));
+}
+
 assert.ok(existsSync(distDir), 'dist directory does not exist; run `npm run build` before `npm run verify:mastermind-bundle`');
 assert.ok(statSync(distDir).isDirectory(), 'dist path exists but is not a directory');
 
@@ -206,12 +210,29 @@ for (const group of forbiddenGroups) {
 
 const mastermindHubBundle = findMastermindHubBundle(files);
 assert.ok(mastermindHubBundle, 'expected a built MastermindHub chunk in dist/assets');
+const mastermindTrainingBundle = findMastermindTrainingBundle(files);
+assert.ok(mastermindTrainingBundle, 'expected a built MastermindTraining chunk in dist/assets');
 
 const mastermindHubText = readFileSync(mastermindHubBundle, 'utf8');
 for (const requiredString of requiredMastermindHubStrings) {
   assert.ok(
     mastermindHubText.includes(requiredString),
     `MastermindHub bundle missing expected member-facing string: ${requiredString}`
+  );
+}
+
+const mastermindTrainingText = readFileSync(mastermindTrainingBundle, 'utf8');
+for (const requiredString of [
+  'Lesson context',
+  'Connected outcome',
+  'Use this when',
+  'After watching',
+  'Evidence to bring back',
+  'Bring back: ',
+]) {
+  assert.ok(
+    mastermindTrainingText.includes(requiredString),
+    `MastermindTraining bundle missing expected lesson-guidance string: ${requiredString}`
   );
 }
 
