@@ -11,8 +11,8 @@ const baseUrl = (process.env.MASTERMIND_LIVE_BASE_URL || 'https://plan.faithmari
 const artifactPath = process.env.MASTERMIND_LIVE_BROWSER_ARTIFACT || '';
 const protectedTerms = [
   '90-Day Goal Setting: Start Here',
-  '90-Day Goal Setting Workshop',
-  'Find Your Next Money Move',
+  '90-Day Goal Setting: Plan Your Quarter',
+  'Choose Your Money Move',
   'Package Your Money Move',
   'Create Your Sales Plan',
   'Great Marketing Breakthrough',

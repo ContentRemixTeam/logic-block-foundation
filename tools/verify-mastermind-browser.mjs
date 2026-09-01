@@ -378,7 +378,7 @@ function buildMockScript(cycle) {
     },
     {
       portal_resource_id: 'bosses-make-sales-day-one',
-      title: 'Bosses Make Sales: Day One',
+      title: 'Bosses Make Sales: Day 1',
       product_title: 'Mastermind Core Curriculum',
       category_title: 'Sales',
       resource_type: 'training',
@@ -771,7 +771,7 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Open training');
     await clickText(client, 'Training');
     await waitFor(client, 'document.body.innerText.includes("Find a training")', `${label} training tab`);
-    await assertText(client, 'Bosses Make Sales: Day One');
+    await assertText(client, 'Bosses Make Sales: Day 1');
     await assertText(client, 'Sell focus');
     await assertText(client, 'Action step');
     await assertText(client, 'Evidence to bring back');
@@ -824,7 +824,7 @@ async function runChecks(client, checks, label) {
     await assertNoHorizontalOverflow(client, `${label} Training Finder default`);
 
     await clickText(client, 'Sell focus');
-    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day One")', `${label} Sell focus filter`);
+    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day 1")', `${label} Sell focus filter`);
     await assertNoText(client, 'Grow Your Email List');
     await assertNoText(client, 'Sales & Marketing');
     await assertNoText(client, 'Current Call Replays');
@@ -840,10 +840,10 @@ async function runChecks(client, checks, label) {
     await assertNoHorizontalOverflow(client, `${label} transcript-backed filter`);
 
     await clickText(client, 'All');
-    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day One")', `${label} All filter reset`);
+    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day 1")', `${label} All filter reset`);
 
     await setSearch(client, 'sales');
-    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day One")', `${label} server-ready sales search`);
+    await waitFor(client, 'document.body.innerText.includes("Bosses Make Sales: Day 1")', `${label} server-ready sales search`);
     await assertNoText(client, 'Launch Aligned');
     await assertNoText(client, 'Money Moves Sprint');
     await assertNoHorizontalOverflow(client, `${label} server-ready sales search`);

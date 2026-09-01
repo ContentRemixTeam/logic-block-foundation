@@ -160,7 +160,7 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
   },
   {
     resourceId: 'money-move-day-one',
-    title: 'Money Moves Sprint Day One: Find Your Next Money Move',
+    title: 'Money Moves Sprint: Choose Your Money Move',
     requirement: 'optional',
     order: 10,
     durationLabel: '1:11:11',
@@ -174,14 +174,14 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
   },
   {
     resourceId: 'money-move-day-two',
-    title: 'Money Moves Sprint Day Two: Package Your Money Move',
+    title: 'Money Moves Sprint: Package Your Money Move',
     requirement: 'optional',
     order: 11,
     durationLabel: '1:04:15',
     lessonState: 'ready',
     transcriptState: 'candidate_ready_pairing_required',
     whyRecommended: 'Turn the chosen money move into something you can offer.',
-    showWhen: 'Offer and sell support: open this after Day One, when the money move needs to become an offer.',
+    showWhen: 'Offer and sell support: open this after choosing the money move, when it needs to become an offer.',
     afterWatchingAction:
       'Turn the money move into one clear offer, invitation, or experiment.',
     doneEnoughLine: 'The offer or experiment is described in one sentence.',
@@ -189,14 +189,14 @@ export const PHASE_ONE_LESSONS: readonly PhaseOneLesson[] = [
   },
   {
     resourceId: 'money-move-day-three',
-    title: 'Money Moves Sprint Day Three: Create Your Sales Plan',
+    title: 'Money Moves Sprint: Create Your Sales Plan',
     requirement: 'optional',
     order: 12,
     durationLabel: '2:03:10',
     lessonState: 'ready',
     transcriptState: 'candidate_ready_pairing_required',
     whyRecommended: 'Create the simplest plan to follow through on the money move.',
-    showWhen: 'Offer and sell support: open this after Day Two, when you need the simplest way to sell it.',
+    showWhen: 'Offer and sell support: open this after packaging the money move, when you need the simplest way to sell it.',
     afterWatchingAction:
       'Create the simplest sales plan for the chosen money move.',
     doneEnoughLine: 'The sales plan has one channel, one message, and one follow-up step.',
