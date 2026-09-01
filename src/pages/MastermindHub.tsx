@@ -82,6 +82,7 @@ export default function MastermindHub() {
   const [activeTab, setActiveTab] = useState('guidance');
   const [trainingStageId, setTrainingStageId] = useState<MastermindStageId | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
+  const [showWatchedResources, setShowWatchedResources] = useState(false);
   const [weeklyTrainingMinutes, setWeeklyTrainingMinutes] = useState(180);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
   const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview;
@@ -301,21 +302,31 @@ export default function MastermindHub() {
 
   const pinnedResources = useMemo(() => {
     return visibleResources
-      .filter((r) => pinnedIds.includes(r.id))
+      .filter((r) => pinnedIds.includes(r.id) && (showWatchedResources || !completedResourceIds.has(r.id)))
       .sort((a, b) => {
         const completedA = completedResourceIds.has(a.id) ? 1 : 0;
         const completedB = completedResourceIds.has(b.id) ? 1 : 0;
         return completedA - completedB;
       });
-  }, [completedResourceIds, pinnedIds, visibleResources]);
+  }, [completedResourceIds, pinnedIds, showWatchedResources, visibleResources]);
 
   const unpinnedResources = useMemo(() => {
     return filteredResources.filter((r) => !pinnedIds.includes(r.id));
   }, [filteredResources, pinnedIds]);
 
+  const defaultUnwatchedResources = useMemo(() => {
+    if (showWatchedResources) return unpinnedResources;
+    return unpinnedResources.filter((resource) => !completedResourceIds.has(resource.id));
+  }, [completedResourceIds, showWatchedResources, unpinnedResources]);
+
   const displayedResources = useMemo(() => {
-    return searchQuery || resourceFilter !== 'all' ? filteredResources : unpinnedResources;
-  }, [filteredResources, resourceFilter, searchQuery, unpinnedResources]);
+    return searchQuery || resourceFilter !== 'all' ? filteredResources : defaultUnwatchedResources;
+  }, [defaultUnwatchedResources, filteredResources, resourceFilter, searchQuery]);
+
+  const hiddenWatchedResourceCount = useMemo(() => {
+    if (showWatchedResources || searchQuery || resourceFilter !== 'all') return 0;
+    return visibleResources.filter((resource) => completedResourceIds.has(resource.id)).length;
+  }, [completedResourceIds, resourceFilter, searchQuery, showWatchedResources, visibleResources]);
 
   const handleOpen = (resource: MastermindPortalResource) => {
     const protectedHref = getProtectedTrainingHref(resource);
@@ -914,7 +925,24 @@ export default function MastermindHub() {
                         {filter.label}
                       </Button>
                     ))}
+                    {watchedVisibleResourceCount > 0 && (
+                      <Button
+                        type="button"
+                        variant={showWatchedResources ? 'secondary' : 'outline'}
+                        size="sm"
+                        className="min-h-9 whitespace-normal text-left leading-tight"
+                        onClick={() => setShowWatchedResources((visible) => !visible)}
+                      >
+                        {showWatchedResources ? 'Hide watched' : `Show watched (${watchedVisibleResourceCount})`}
+                      </Button>
+                    )}
                   </div>
+
+                  {watchedVisibleResourceCount > 0 && !showWatchedResources && !searchQuery && resourceFilter === 'all' && (
+                    <p className="text-sm text-muted-foreground">
+                      Watched videos are hidden from the default list and still available through search or section filters.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -964,6 +992,15 @@ export default function MastermindHub() {
                       {searchQuery
                         ? `No ready trainings match "${searchQuery}"`
                         : 'No ready trainings match this filter yet.'}
+                    </p>
+                  </div>
+                )}
+
+                {filteredResources.length > 0 && displayedResources.length === 0 && hiddenWatchedResourceCount > 0 && (
+                  <div className="rounded-lg border bg-muted/35 p-6 text-center">
+                    <p className="text-sm font-medium">All ready trainings are watched.</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Use Show watched to rewatch, or choose another focus area if your plan has changed.
                     </p>
                   </div>
                 )}

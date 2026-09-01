@@ -449,6 +449,10 @@ try {
   assert.ok(mastermindHubSource.includes("navigate(`/admin/mastermind-training-preview?${params.toString()}`)"), 'Admin 90-day preview must keep curriculum clicks on the hidden training route');
   assert.ok(mastermindHubSource.includes('completedResourceIds.has(resource.resourceId)'), '90-day guidance should label watched recommendation videos');
   assert.ok(mastermindHubSource.includes("'Watch again'"), 'Watched recommendation videos should not look like new assignments');
+  assert.ok(mastermindHubSource.includes('showWatchedResources'), 'Training tab should let members reveal watched videos only when they ask');
+  assert.ok(mastermindHubSource.includes('defaultUnwatchedResources'), 'Training tab should remove watched videos from the default watch list');
+  assert.ok(mastermindHubSource.includes('Watched videos are hidden from the default list'), 'Training tab should explain where completed lessons went');
+  assert.ok(mastermindHubSource.includes('Show watched'), 'Training tab should provide a clear watched-video recovery control');
   assert.ok(mastermindHubSource.includes('aria-label="Clear resource search"'), 'Clear search icon button needs an accessible label');
   assert.ok(mastermindHubSource.includes('aria-label={isPinned ? `Unpin ${resource.title}`'), 'Pin icon button needs resource-specific accessible labels');
   assert.ok(successPathPlanCardSource.includes('Do this this week'), 'The 90-day guidance card should name one concrete weekly move');
