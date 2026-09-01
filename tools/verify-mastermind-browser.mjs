@@ -412,7 +412,7 @@ function buildMockScript(cycle, email = mockEmail) {
     }
   ];
   const currentReplayResults = {
-    results: [
+    groups: [
       {
         resourceId: 'current-replay-offer-coaching-2026-09',
         title: 'Offer Coaching Call',
@@ -420,14 +420,19 @@ function buildMockScript(cycle, email = mockEmail) {
         sourceType: 'video',
         accessScope: 'current_replay_30_day',
         durationSeconds: 3502.28,
-        momentId: 'current-moment-pricing-001',
-        questionId: null,
-        matchType: 'best_answer',
-        startSeconds: 519,
-        endSeconds: 584,
-        snippet: 'A focused answer about tightening the offer promise and choosing a clear pricing test for this week.',
-        reason: 'Matches the current plan because it turns pricing confusion into one sales action.',
-        answerer: 'Faith',
+        moments: [
+          {
+            momentId: 'current-moment-pricing-001',
+            questionId: null,
+            matchType: 'best_answer',
+            accessScope: 'current_replay_30_day',
+            startSeconds: 519,
+            endSeconds: 584,
+            snippet: 'A focused answer about tightening the offer promise and choosing a clear pricing test for this week.',
+            reason: 'Matches the current plan because it turns pricing confusion into one sales action.',
+            answerer: 'Faith',
+          },
+        ],
       },
       {
         resourceId: 'old-vault-result-that-must-not-render',
@@ -436,14 +441,19 @@ function buildMockScript(cycle, email = mockEmail) {
         sourceType: 'video',
         accessScope: 'current_replay_30_day',
         durationSeconds: 4800,
-        momentId: 'old-vault-moment-001',
-        questionId: null,
-        matchType: 'transcript',
-        startSeconds: 120,
-        endSeconds: 180,
-        snippet: 'This stale full Vault result must not appear on the Current Replays page.',
-        reason: 'stale full Vault result',
-        answerer: 'Faith',
+        moments: [
+          {
+            momentId: 'old-vault-moment-001',
+            questionId: null,
+            matchType: 'transcript',
+            accessScope: 'current_replay_30_day',
+            startSeconds: 120,
+            endSeconds: 180,
+            snippet: 'This stale full Vault result must not appear on the Current Replays page.',
+            reason: 'stale full Vault result',
+            answerer: 'Faith',
+          },
+        ],
       },
       {
         resourceId: 'old-vault-scope-result-that-must-not-render',
@@ -452,14 +462,19 @@ function buildMockScript(cycle, email = mockEmail) {
         sourceType: 'video',
         accessScope: 'replay_vault',
         durationSeconds: 4800,
-        momentId: 'old-vault-moment-002',
-        questionId: null,
-        matchType: 'transcript',
-        startSeconds: 120,
-        endSeconds: 180,
-        snippet: 'This replay_vault scoped result must not appear on the Current Replays page.',
-        reason: 'wrong access scope',
-        answerer: 'Faith',
+        moments: [
+          {
+            momentId: 'old-vault-moment-002',
+            questionId: null,
+            matchType: 'transcript',
+            accessScope: 'replay_vault',
+            startSeconds: 120,
+            endSeconds: 180,
+            snippet: 'This replay_vault scoped result must not appear on the Current Replays page.',
+            reason: 'wrong access scope',
+            answerer: 'Faith',
+          },
+        ],
       },
     ],
   };

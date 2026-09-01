@@ -48,20 +48,31 @@ function currentReplayField(row: Record<string, unknown>, keys: string[]) {
   return '';
 }
 
-function isCurrentReplaySearchRow(row: unknown) {
+function hasCurrentReplayScope(row: unknown) {
   if (!row || typeof row !== 'object') return false;
   const record = row as Record<string, unknown>;
   const accessScope = currentReplayField(record, ['accessScope', 'access_scope', 'approved_access_scope']);
+  return accessScope === CURRENT_REPLAY_ACCESS_SCOPE;
+}
+
+function hasCurrentReplaySource(row: unknown) {
+  if (!row || typeof row !== 'object') return false;
+  const record = row as Record<string, unknown>;
   const category = currentReplayField(record, ['category', 'categoryTitle', 'category_title']);
   const productTitle = currentReplayField(record, ['productTitle', 'product_title']);
-  const isCurrentReplaySource = category.includes(CURRENT_REPLAY_LABEL) || productTitle.includes(CURRENT_REPLAY_LABEL);
-  return accessScope === CURRENT_REPLAY_ACCESS_SCOPE && isCurrentReplaySource;
+  return category.includes(CURRENT_REPLAY_LABEL) || productTitle.includes(CURRENT_REPLAY_LABEL);
+}
+
+function isCurrentReplaySearchRow(row: unknown) {
+  return hasCurrentReplayScope(row) && hasCurrentReplaySource(row);
 }
 
 function isCurrentReplayGroup(group: unknown) {
   if (!group || typeof group !== 'object') return false;
   const moments = (group as Record<string, unknown>).moments;
-  if (Array.isArray(moments)) return moments.length > 0 && moments.every(isCurrentReplaySearchRow);
+  if (Array.isArray(moments)) {
+    return hasCurrentReplaySource(group) && moments.length > 0 && moments.every(hasCurrentReplayScope);
+  }
   return isCurrentReplaySearchRow(group);
 }
 
