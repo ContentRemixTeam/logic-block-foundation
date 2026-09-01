@@ -819,10 +819,15 @@ try {
     'className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"',
     'className="border-t bg-background/60 px-6 py-4 md:px-8"',
     'Choose/change focus',
+    'After the planning wizard',
+    'The wizard sets the 90-day result.',
+    'Watch only what helps the move.',
+    'Bring results back to check-in.',
   ];
   for (const guard of requiredSuccessPathLayoutGuards) {
     assert.ok(successPathPlanCardSource.includes(guard), 'SuccessPathPlanCard is missing responsive layout guard: ' + guard);
   }
+  assert.ok(mastermindHubSource.includes('After your planning wizard is saved'), 'MastermindHub should clarify that the planning wizard comes before the Mastermind execution page');
   assert.ok(successPathPlanCardSource.includes('const roundModeButtonClass'), 'Build/improve toggle should use an explicit readable selected-button class');
   assert.ok(successPathPlanCardSource.includes("data-selected={roundMode === 'build'}"), 'Build round button should mark selected state without the default variant color collision');
   assert.ok(successPathPlanCardSource.includes("data-selected={roundMode === 'improve'}"), 'Improve round button should mark selected state without the default variant color collision');

@@ -41,6 +41,14 @@ type WeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'failed';
 const roundModeButtonClass =
   'border-primary text-primary hover:bg-primary/10 hover:text-primary data-[selected=true]:bg-primary data-[selected=true]:text-white data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-white';
 
+const planFlowSteps = [
+  { label: 'Plan saved', detail: 'The wizard sets the 90-day result.' },
+  { label: 'Focus chosen', detail: 'Pick the bottleneck for this cycle.' },
+  { label: 'Weekly move', detail: 'Add one action to the Planner.' },
+  { label: 'Training', detail: 'Watch only what helps the move.' },
+  { label: 'Evidence', detail: 'Bring results back to check-in.' },
+];
+
 function getRealGoal(goal: string | null | undefined) {
   const normalized = goal?.trim().toLowerCase();
   if (!normalized || PLACEHOLDER_GOALS.has(normalized)) return null;
@@ -218,6 +226,26 @@ export function SuccessPathPlanCard({
                 Choose/change focus
               </Button>
             )}
+          </div>
+
+          <div className="rounded-lg border bg-background/85 p-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <ListTodo className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+              <span>After the planning wizard</span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-5">
+              {planFlowSteps.map((step, index) => (
+                <div key={step.label} className="min-w-0 rounded-md bg-muted/45 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold leading-none text-white">
+                      {index + 1}
+                    </span>
+                    <p className="min-w-0 break-words text-xs font-semibold leading-snug">{step.label}</p>
+                  </div>
+                  <p className="text-xs leading-snug text-muted-foreground">{step.detail}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="max-w-3xl">

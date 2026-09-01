@@ -676,7 +676,7 @@ export default function MastermindHub() {
                   Your 90-Day <span>Plan</span>
                 </h1>
                 <p className="mastermind-brand__subtitle mt-2 max-w-2xl text-sm md:text-base">
-                  One goal, one weekly move, and the training that helps you make progress faster.
+                  After your planning wizard is saved, use this page to choose the focus, do the weekly move, and watch only the training that helps.
                 </p>
               </div>
             </div>
