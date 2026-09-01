@@ -25,6 +25,9 @@ interface AiStudioPlanCardProps {
   selectedStageId: MastermindStageId;
   isMastermind: boolean;
   membershipTier: string | null;
+  memberScopes?: string[];
+  previewCapabilities?: string[];
+  accessLoading?: boolean;
   onOpenAiSettings: () => void;
 }
 
@@ -162,6 +165,9 @@ export function AiStudioPlanCard({
   selectedStageId,
   isMastermind,
   membershipTier,
+  memberScopes = [],
+  previewCapabilities = [],
+  accessLoading = false,
   onOpenAiSettings,
 }: AiStudioPlanCardProps) {
   const queryClient = useQueryClient();
@@ -172,7 +178,7 @@ export function AiStudioPlanCard({
   const [customization, setCustomization] = useState<AiStudioCustomization>(DEFAULT_CUSTOMIZATION);
   const [workspaceTracker, setWorkspaceTracker] = useState<AiStudioWorkspaceTracker>({});
   const phaseOneStateQuery = usePhaseOneState(Boolean(cycle?.cycle_id));
-  const access = getAiStudioAccessSummary(membershipTier, isMastermind);
+  const access = getAiStudioAccessSummary(membershipTier, isMastermind, memberScopes, previewCapabilities);
   const recommendedPack = getRecommendedAiProjectPack(selectedStageId, cycle);
   const visiblePacks = getVisibleAiProjectPacks(access, recommendedPack.id);
   const workspaceTrackerKey = `${cycle?.cycle_id || 'active-cycle'}:${recommendedPack.id}`;
@@ -333,6 +339,7 @@ export function AiStudioPlanCard({
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className="w-fit">Plan-matched setup</Badge>
           <Badge variant="outline" className="w-fit">{access.tierLabel}</Badge>
+          {accessLoading && <Badge variant="outline" className="w-fit">Checking access</Badge>}
         </div>
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -580,6 +587,9 @@ export function AiStudioPlanCard({
                   Previewing packs, saving setup answers, copying install docs, or hitting a generation error does not use the monthly unlock. The unlock is counted only after explicit pack confirmation.
                 </p>
               )}
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Full pack library access opens only when this app account has annual, lifetime, or approved full-library access.
+              </p>
             </div>
           </div>
           <div className="grid gap-2 md:grid-cols-2">

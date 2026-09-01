@@ -11,6 +11,7 @@ import { AiStudioPlanCard } from '@/components/mastermind/AiStudioPlanCard';
 import { MastermindSupportBot } from '@/components/mastermind/MastermindSupportBot';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
 import { usePhaseOneCatalog, usePhaseOneState, type PhaseOneWorkspaceStatus } from '@/hooks/usePhaseOneCatalog';
+import { useMastermindPortalAccess } from '@/hooks/useMastermindPortalAccess';
 import {
   MASTERMIND_PORTAL_RESOURCES,
   getProtectedTrainingHref,
@@ -107,6 +108,7 @@ export default function MastermindHub() {
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
   const catalogQuery = usePhaseOneCatalog();
   const phaseOneStateQuery = usePhaseOneState(Boolean(successPathData?.cycle?.cycle_id));
+  const portalAccessQuery = useMastermindPortalAccess(aiStudioEnabled);
   const catalogRows = catalogQuery.data;
   const playableResourceIds = useMemo(
     () => new Set((catalogRows ?? []).map((row) => row.portal_resource_id)),
@@ -836,8 +838,11 @@ export default function MastermindHub() {
                 <AiStudioPlanCard
                   cycle={successPathData?.cycle}
                   selectedStageId={selectedStageId}
-                  isMastermind={isMastermind}
-                  membershipTier={membershipTier}
+                  isMastermind={isMastermind || portalAccessQuery.data?.memberEntitled === true}
+                  membershipTier={portalAccessQuery.data?.memberTier ?? membershipTier}
+                  memberScopes={portalAccessQuery.data?.memberScopes ?? []}
+                  previewCapabilities={portalAccessQuery.data?.previewCapabilities ?? []}
+                  accessLoading={portalAccessQuery.isLoading}
                   onOpenAiSettings={() => navigate('/ai-copywriting/settings')}
                 />
               )}

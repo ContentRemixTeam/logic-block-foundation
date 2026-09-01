@@ -413,6 +413,17 @@ function buildMockScript(cycle) {
     if (url.includes('/rest/v1/rpc/search_my_mastermind_phase_one_resources')) {
       return json(phaseOneCatalog);
     }
+    if (url.includes('/functions/v1/get-mastermind-portal-access')) {
+      return json({
+        allowed: false,
+        memberEntitled: true,
+        memberTier: 'monthly',
+        memberScopes: ['core_curriculum', 'current_replay_30_day'],
+        previewCapabilities: [],
+        previewActive: false,
+        launchState: 'disabled',
+      });
+    }
     if (url.includes('/rest/v1/rpc/save_my_mastermind_phase_one_video_progress')) {
       return json(true);
     }

@@ -17,6 +17,7 @@ const mastermindSupportBotSourcePath = path.join(projectRoot, 'src/components/ma
 const aiStudioSourcePath = path.join(projectRoot, 'src/lib/mastermindAiStudio.ts');
 const aiStudioPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/AiStudioPlanCard.tsx');
 const phaseOneCatalogSourcePath = path.join(projectRoot, 'src/hooks/usePhaseOneCatalog.ts');
+const mastermindPortalAccessSourcePath = path.join(projectRoot, 'src/hooks/useMastermindPortalAccess.ts');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -345,10 +346,12 @@ assert.equal(offerValidationGuidance.primaryResource.resourceId, 'money-move-day
 assert.ok(AI_PROJECT_PACKS.length >= 7, 'AI Studio should include the foundation pack plus each stage pack');
 const monthlyAccess = getAiStudioAccessSummary('mastermind', true);
 const annualAccess = getAiStudioAccessSummary('mastermind_annual', true);
+const annualScopedAccess = getAiStudioAccessSummary('monthly', true, ['core_curriculum', 'current_replay_30_day', 'replay_vault']);
 const plannerAccess = getAiStudioAccessSummary(null, false);
 assert.equal(monthlyAccess.canSeeFullLibrary, false, 'monthly members should not receive the full AI library by default');
 assert.equal(monthlyAccess.canUnlockMonthlyPack, true, 'monthly members should be able to unlock one recommended pack');
 assert.equal(annualAccess.canSeeFullLibrary, true, 'annual/lifetime members should be eligible for the full approved AI library');
+assert.equal(annualScopedAccess.canSeeFullLibrary, true, 'server scopes should unlock the full AI library for annual/lifetime access');
 assert.equal(plannerAccess.canUnlockMonthlyPack, false, 'planner-only members should not unlock Mastermind AI packs');
 assert.equal(getRecommendedAiProjectPack('offer', cycle({ biggest_bottleneck: 'offer clarity' })).id, 'offer-lab');
 const monthlyPacks = getVisibleAiProjectPacks(monthlyAccess, 'offer-lab');
@@ -409,6 +412,7 @@ try {
   const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
   const aiStudioPlanCardSource = readFileSync(aiStudioPlanCardSourcePath, 'utf8');
   const phaseOneCatalogSource = readFileSync(phaseOneCatalogSourcePath, 'utf8');
+  const mastermindPortalAccessSource = readFileSync(mastermindPortalAccessSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
@@ -495,6 +499,8 @@ try {
   assert.ok(successPathPlanCardSource.includes('Open AI settings'), 'The 90-day guidance card should send AI recommendations to settings');
   assert.ok(successPathPlanCardSource.includes('After setup: '), 'The 90-day guidance card should not use watch-language for AI setup recommendations');
   assert.ok(aiStudioSource.includes('Monthly members get the planner-safe workspace plus one recommended project pack unlock per active month'), 'AI Studio should encode monthly limited access copy');
+  assert.ok(aiStudioSource.includes('ai_asset_full_library_access'), 'AI Studio should recognize server full-library access scopes');
+  assert.ok(aiStudioSource.includes('ai_asset_monthly_unlock_access'), 'AI Studio should recognize server monthly AI unlock scopes');
   assert.ok(aiStudioSource.includes('90-Day CEO Workspace'), 'AI Studio should include a planner-safe foundation workspace');
   assert.ok(aiStudioPlanCardSource.includes('Starter packet'), 'AI Studio should provide a usable starter packet, not just a theoretical feature card');
   assert.ok(aiStudioPlanCardSource.includes('Previewing packs, saving setup answers, copying install docs, or hitting a generation error does not use the monthly unlock'), 'AI Studio should clarify that previews/copy/errors do not consume a monthly unlock');
@@ -524,6 +530,12 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('savePhaseOneState'), 'AI Studio workspace tracker should sync workspace setup to the app account');
   assert.ok(aiStudioPlanCardSource.includes('usePhaseOneState'), 'AI Studio workspace tracker should hydrate from saved Phase One state');
   assert.ok(aiStudioPlanCardSource.includes('Workspace ready is saved to this app account.'), 'AI Studio should tell members when workspace setup is durably saved');
+  assert.ok(aiStudioPlanCardSource.includes('Full pack library access opens only when this app account has annual, lifetime, or approved full-library access.'), 'AI Studio should explain server-owned full-library access');
+  assert.ok(mastermindHubSource.includes('useMastermindPortalAccess(aiStudioEnabled)'), 'MastermindHub should read the server-owned portal access receipt for AI Studio gating');
+  assert.ok(mastermindHubSource.includes('memberScopes={portalAccessQuery.data?.memberScopes ?? []}'), 'MastermindHub should pass server member scopes into AI Studio');
+  assert.ok(mastermindHubSource.includes('previewCapabilities={portalAccessQuery.data?.previewCapabilities ?? []}'), 'MastermindHub should pass server preview capabilities into AI Studio');
+  assert.ok(mastermindPortalAccessSource.includes("supabase.functions.invoke('get-mastermind-portal-access'"), 'AI Studio access hook should reuse the existing portal access function');
+  assert.ok(mastermindPortalAccessSource.includes('body: { preview: true }'), 'AI Studio access hook should ask the server to evaluate hidden preview capability');
   assert.ok(phaseOneCatalogSource.includes('save_my_mastermind_phase_one_state'), 'Phase One state hook should use the existing server save contract');
   assert.ok(phaseOneCatalogSource.includes("queryKey: ['phase-one-state']"), 'Phase One state hook should expose a stable query key');
   assert.ok(mastermindHubSource.includes('Built from this plan'), '90-day hub should summarize what has been created from the current plan');

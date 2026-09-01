@@ -178,11 +178,21 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
   },
 ];
 
-export function getAiStudioAccessSummary(memberTier: string | null | undefined, isMastermind: boolean): AiStudioAccessSummary {
+export function getAiStudioAccessSummary(
+  memberTier: string | null | undefined,
+  isMastermind: boolean,
+  memberScopes: string[] = [],
+  previewCapabilities: string[] = []
+): AiStudioAccessSummary {
   const normalizedTier = memberTier?.toLowerCase() ?? '';
-  const canSeeFullLibrary = ['annual', 'lifetime', 'mastermind_annual', 'mastermind_lifetime', 'admin'].some((tier) =>
-    normalizedTier.includes(tier)
-  );
+  const normalizedScopes = memberScopes.map((scope) => scope.toLowerCase());
+  const normalizedPreviewCapabilities = previewCapabilities.map((capability) => capability.toLowerCase());
+  const canSeeFullLibrary =
+    ['annual', 'lifetime', 'mastermind_annual', 'mastermind_lifetime', 'admin'].some((tier) =>
+      normalizedTier.includes(tier)
+    )
+    || normalizedScopes.some((scope) => ['replay_vault', 'vault', 'ai_asset_full_library_access'].includes(scope))
+    || normalizedPreviewCapabilities.includes('preview_unpublished');
 
   if (canSeeFullLibrary) {
     return {
@@ -194,7 +204,9 @@ export function getAiStudioAccessSummary(memberTier: string | null | undefined, 
     };
   }
 
-  if (isMastermind) {
+  const hasMastermindScope = normalizedScopes.some((scope) => ['core_curriculum', 'current_replay_30_day', 'ai_asset_monthly_unlock_access'].includes(scope));
+
+  if (isMastermind || hasMastermindScope) {
     return {
       tierLabel: 'Monthly Mastermind',
       canUsePlannerPack: true,
