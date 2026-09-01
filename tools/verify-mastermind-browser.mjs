@@ -102,6 +102,21 @@ const scenarios = [
     checks: ['savedCyclePath', 'resourceFinder'],
   },
   {
+    name: 'current-replays-desktop',
+    path: '/admin/mastermind-current-replays-preview',
+    viewport: { width: 1280, height: 900, mobile: false, deviceScaleFactor: 1 },
+    cycle: savedCycle,
+    checks: ['currentReplaySurface'],
+  },
+  {
+    name: 'current-replays-ios-safari-mobile',
+    path: '/admin/mastermind-current-replays-preview',
+    viewport: { width: 390, height: 844, mobile: true, deviceScaleFactor: 2 },
+    browserProfile: browserProfiles.iosSafari,
+    cycle: savedCycle,
+    checks: ['currentReplaySurface'],
+  },
+  {
     name: 'no-cycle-desktop-firefox-profile',
     viewport: { width: 1366, height: 900, mobile: false, deviceScaleFactor: 1 },
     browserProfile: browserProfiles.desktopFirefox,
@@ -396,6 +411,37 @@ function buildMockScript(cycle, email = mockEmail) {
       last_position_seconds: 6891
     }
   ];
+  const currentReplayResults = {
+    results: [
+      {
+        resourceId: 'current-replay-offer-coaching-2026-09',
+        title: 'Offer Coaching Call',
+        category: 'Current Call Replays',
+        sourceType: 'video',
+        durationSeconds: 3502.28,
+        momentId: 'current-moment-pricing-001',
+        questionId: null,
+        matchType: 'best_answer',
+        startSeconds: 519,
+        endSeconds: 584,
+        snippet: 'A focused answer about tightening the offer promise and choosing a clear pricing test for this week.',
+        reason: 'Matches the current plan because it turns pricing confusion into one sales action.',
+        answerer: 'Faith',
+      },
+    ],
+  };
+  const currentReplayPlayback = {
+    resourceId: 'current-replay-offer-coaching-2026-09',
+    title: 'Offer Coaching Call',
+    provider: 'dropbox',
+    playbackUrl: '/sounds/timer-complete.mp3',
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    accessScope: 'current_replay_30_day',
+    startSeconds: 519,
+    endSeconds: 584,
+    momentId: 'current-moment-pricing-001',
+    questionId: null,
+  };
   let aiStudioUnlocks = [];
   const json = (body, status = 200) => Promise.resolve(new Response(JSON.stringify(body), {
     status,
@@ -404,6 +450,7 @@ function buildMockScript(cycle, email = mockEmail) {
   const empty = () => Promise.resolve(new Response(null, { status: 204 }));
 
   try {
+    window.__mastermindBrowserQaRequests = [];
     localStorage.setItem('sb-${supabaseProjectRef}-auth-token', JSON.stringify(session));
     localStorage.setItem('ninety-day-planner-tour-seen', 'true');
     localStorage.setItem('ninety-day-planner-checklist-dismissed', 'true');
@@ -426,6 +473,10 @@ function buildMockScript(cycle, email = mockEmail) {
   const originalFetch = window.fetch.bind(window);
   window.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input?.url || String(input);
+    let requestBody = {};
+    try {
+      requestBody = typeof init?.body === 'string' ? JSON.parse(init.body || '{}') : {};
+    } catch {}
 
     if (url.includes('/auth/v1/token')) {
       return json(session);
@@ -446,6 +497,19 @@ function buildMockScript(cycle, email = mockEmail) {
       return json(phaseOneCatalog);
     }
     if (url.includes('/functions/v1/get-mastermind-portal-access')) {
+      window.__mastermindBrowserQaRequests.push({ endpoint: 'get-mastermind-portal-access', body: requestBody });
+      if (requestBody.surface === 'recent_replay') {
+        return json({
+          allowed: true,
+          memberEntitled: true,
+          memberTier: 'monthly',
+          memberScopes: ['core_curriculum', 'current_replay_30_day'],
+          previewCapabilities: ['preview_recent_replay'],
+          previewActive: true,
+          launchState: 'disabled',
+          surface: 'recent_replay',
+        });
+      }
       return json({
         allowed: false,
         memberEntitled: true,
@@ -454,7 +518,22 @@ function buildMockScript(cycle, email = mockEmail) {
         previewCapabilities: [],
         previewActive: false,
         launchState: 'disabled',
+        surface: requestBody.surface || 'curriculum',
       });
+    }
+    if (url.includes('/functions/v1/search-mastermind-resources')) {
+      window.__mastermindBrowserQaRequests.push({ endpoint: 'search-mastermind-resources', body: requestBody });
+      if (requestBody.surface === 'recent_replay') {
+        return json(currentReplayResults);
+      }
+      return json({ results: [] });
+    }
+    if (url.includes('/functions/v1/get-mastermind-playback-link')) {
+      window.__mastermindBrowserQaRequests.push({ endpoint: 'get-mastermind-playback-link', body: requestBody });
+      if (requestBody.surface === 'recent_replay') {
+        return json(currentReplayPlayback);
+      }
+      return json(null, 403);
     }
     if (url.includes('/rest/v1/rpc/save_my_mastermind_phase_one_video_progress')) {
       return json(true);
@@ -700,6 +779,61 @@ async function runChecks(client, checks, label) {
     return;
   }
 
+  if (checks.includes('currentReplaySurface')) {
+    await waitFor(client, 'document.body.innerText.includes("Current Call Replays")', `${label} current replay shell`);
+    await assertText(client, 'Last 30 days');
+    await assertText(client, 'What do you need help with this week?');
+    await assertText(client, 'Search current replays');
+    await assertText(client, 'offers');
+    await assertText(client, 'pricing');
+    await assertNoText(client, 'Full Vault');
+    await assertNoText(client, 'Saved moments');
+    await assertNoText(client, 'Video Search');
+    await assertNoHorizontalOverflow(client, `${label} current replay shell`);
+
+    await clickText(client, 'pricing');
+    await waitFor(client, 'document.body.innerText.includes("Offer Coaching Call")', `${label} current replay results`);
+    await assertText(client, 'A focused answer about tightening the offer promise');
+    await assertText(client, 'Watch answer');
+    await assertNoHorizontalOverflow(client, `${label} current replay results`);
+
+    await clickText(client, 'Watch answer');
+    await waitFor(client, 'document.querySelectorAll("video").length === 1', `${label} current replay protected player`);
+    await assertText(client, 'Playing answer at');
+    await assertText(client, 'Watch the useful part, then go back to your 90-day plan');
+    await assertNoText(client, 'Full-replay saving');
+    await assertNoText(client, 'Transcript');
+    await assertNoHorizontalOverflow(client, `${label} current replay protected player`);
+
+    const requestProof = await evaluate(client, `
+(() => {
+  const requests = window.__mastermindBrowserQaRequests || [];
+  const access = requests.find((request) => request.endpoint === 'get-mastermind-portal-access');
+  const search = requests.find((request) => request.endpoint === 'search-mastermind-resources');
+  const playback = requests.find((request) => request.endpoint === 'get-mastermind-playback-link');
+  return {
+    accessSurface: access?.body?.surface || null,
+    accessPreview: access?.body?.preview === true,
+    searchSurface: search?.body?.surface || null,
+    searchMoments: search?.body?.momentsPerReplay ?? null,
+    searchLimit: search?.body?.limit ?? null,
+    playbackSurface: playback?.body?.surface || null,
+    playbackResponseShape: playback?.body?.responseShape || null,
+  };
+})()
+`);
+    assert.deepEqual(requestProof, {
+      accessSurface: 'recent_replay',
+      accessPreview: true,
+      searchSurface: 'recent_replay',
+      searchMoments: 3,
+      searchLimit: 10,
+      playbackSurface: 'recent_replay',
+      playbackResponseShape: 'verified_cue_v1',
+    }, `${label} should use only the protected current-replay surface contract`);
+    return;
+  }
+
   await waitFor(client, 'document.body && document.body.innerText.includes("Your 90-Day Plan")', `${label} Mastermind shell`);
   await assertNoText(client, 'Video Search');
   await assertNoHorizontalOverflow(client, `${label} initial view`);
@@ -941,7 +1075,8 @@ async function runScenario(baseUrl, debugPort, scenario, passNumber) {
       source: buildMockScript(scenario.cycle, scenario.mockEmail || mockEmail),
     });
 
-    const url = `${baseUrl}${qaPath}?browserQa=${encodeURIComponent(scenario.name)}&pass=${passNumber}`;
+    const pathName = scenario.path || qaPath;
+    const url = `${baseUrl}${pathName}?browserQa=${encodeURIComponent(scenario.name)}&pass=${passNumber}`;
     await client.send('Page.navigate', { url });
     await waitFor(client, 'document.readyState === "complete"', `${scenario.name} document complete`);
     await runChecks(client, scenario.checks, `${scenario.name} pass ${passNumber}`);
