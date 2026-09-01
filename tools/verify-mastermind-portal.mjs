@@ -583,6 +583,9 @@ try {
   assert.ok(mastermindHubSource.includes('hasCompletedNextReadyResource'), 'Next-step panel should avoid presenting watched resources as new assignments');
   assert.ok(mastermindHubSource.includes('Use next'), 'Next-step panel should name the next resource without making members browse');
   assert.ok(mastermindHubSource.includes('Record this'), 'Next-step panel should make evidence capture visible before the long curriculum map');
+  assert.ok(mastermindHubSource.includes('nextMoveMode'), 'Next-step panel should support a quick-win mode instead of one fixed action');
+  assert.ok(mastermindHubSource.includes('Low capacity'), 'Next-step panel should expose the smaller next move for low-capacity weeks');
+  assert.ok(mastermindHubSource.includes('currentNextMove'), 'Next-step panel should render the selected standard or low-capacity action');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);

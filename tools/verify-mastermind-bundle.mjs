@@ -101,6 +101,8 @@ const requiredMastermindHubStrings = [
   'Do the next step, then bring back evidence.',
   'Use next',
   'Record this',
+  'Standard',
+  'Low capacity',
   'AI workspace',
   'Only ready, playable curriculum videos appear here.',
   'Ask Faith',

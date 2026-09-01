@@ -102,6 +102,7 @@ export default function MastermindHub() {
   const [trainingStageId, setTrainingStageId] = useState<MastermindStageId | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [showWatchedResources, setShowWatchedResources] = useState(false);
+  const [nextMoveMode, setNextMoveMode] = useState<'standard' | 'low'>('standard');
   const [weeklyTrainingMinutes, setWeeklyTrainingMinutes] = useState(180);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
   const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview;
@@ -397,6 +398,9 @@ export default function MastermindHub() {
   const hasCompletedNextReadyResource = Boolean(
     nextReadyPlanResource && completedResourceIds.has(nextReadyPlanResource.resourceId)
   );
+  const lowCapacityNextMove = successPathData?.cycle?.low_energy_version?.trim()
+    || selectedStage.quickWin.lowEnergy;
+  const currentNextMove = nextMoveMode === 'low' ? lowCapacityNextMove : selectedStage.doThis;
 
   const workspaceStatus = phaseOneStateQuery.data?.workspace_status ?? 'not_started';
   const planDashboardItems = [
@@ -546,7 +550,27 @@ export default function MastermindHub() {
                         <Target className="h-4 w-4 text-primary" aria-hidden="true" />
                         <p className="text-sm font-semibold">Do this</p>
                       </div>
-                      <p className="text-sm leading-relaxed">{selectedStage.doThis}</p>
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={nextMoveMode === 'standard' ? 'secondary' : 'outline'}
+                          className="min-h-8"
+                          onClick={() => setNextMoveMode('standard')}
+                        >
+                          Standard
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={nextMoveMode === 'low' ? 'secondary' : 'outline'}
+                          className="min-h-8"
+                          onClick={() => setNextMoveMode('low')}
+                        >
+                          Low capacity
+                        </Button>
+                      </div>
+                      <p className="text-sm leading-relaxed">{currentNextMove}</p>
                     </div>
                     <div className="rounded-lg border bg-background p-4">
                       <div className="mb-2 flex items-center gap-2">
