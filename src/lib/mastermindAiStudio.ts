@@ -275,11 +275,17 @@ export function getRecommendedAiProjectPack(stageId: MastermindStageId, cycle?: 
   return AI_PROJECT_PACKS.find((pack) => pack.stageId === stageId) ?? AI_PROJECT_PACKS[0];
 }
 
-export function getVisibleAiProjectPacks(access: AiStudioAccessSummary, recommendedPackId: AiProjectPackId): VisibleAiProjectPack[] {
+export function getVisibleAiProjectPacks(
+  access: AiStudioAccessSummary,
+  recommendedPackId: AiProjectPackId,
+  unlockedPackIds: AiProjectPackId[] = []
+): VisibleAiProjectPack[] {
+  const unlocked = new Set(unlockedPackIds);
+
   return AI_PROJECT_PACKS.map((pack) => {
     let visibility: VisibleAiPackState = 'locked';
 
-    if (access.canSeeFullLibrary || pack.access === 'planner_safe') {
+    if (access.canSeeFullLibrary || pack.access === 'planner_safe' || unlocked.has(pack.id)) {
       visibility = 'included';
     } else if (access.canUnlockMonthlyPack && pack.id === recommendedPackId) {
       visibility = 'recommended_unlock';

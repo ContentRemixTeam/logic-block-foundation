@@ -18,6 +18,8 @@ const mastermindSupportBotSourcePath = path.join(projectRoot, 'src/components/ma
 const aiStudioSourcePath = path.join(projectRoot, 'src/lib/mastermindAiStudio.ts');
 const aiStudioPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/AiStudioPlanCard.tsx');
 const phaseOneCatalogSourcePath = path.join(projectRoot, 'src/hooks/usePhaseOneCatalog.ts');
+const aiStudioUnlockHookSourcePath = path.join(projectRoot, 'src/hooks/useMastermindAiStudioUnlocks.ts');
+const aiStudioUnlockMigrationSourcePath = path.join(projectRoot, 'supabase/migrations/20260901123000_mastermind_ai_asset_unlocks.sql');
 const mastermindPortalAccessSourcePath = path.join(projectRoot, 'src/hooks/useMastermindPortalAccess.ts');
 const mastermindSuccessPathHookSourcePath = path.join(projectRoot, 'src/hooks/useMastermindSuccessPath.ts');
 const offlineSyncSourcePath = path.join(projectRoot, 'src/lib/offlineSync.ts');
@@ -417,6 +419,8 @@ try {
   const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
   const aiStudioPlanCardSource = readFileSync(aiStudioPlanCardSourcePath, 'utf8');
   const phaseOneCatalogSource = readFileSync(phaseOneCatalogSourcePath, 'utf8');
+  const aiStudioUnlockHookSource = readFileSync(aiStudioUnlockHookSourcePath, 'utf8');
+  const aiStudioUnlockMigrationSource = readFileSync(aiStudioUnlockMigrationSourcePath, 'utf8');
   const mastermindPortalAccessSource = readFileSync(mastermindPortalAccessSourcePath, 'utf8');
   const mastermindSuccessPathHookSource = readFileSync(mastermindSuccessPathHookSourcePath, 'utf8');
   const offlineSyncSource = readFileSync(offlineSyncSourcePath, 'utf8');
@@ -536,19 +540,43 @@ try {
   assert.ok(aiStudioSource.includes('ai_asset_full_library_access'), 'AI Studio should recognize server full-library access scopes');
   assert.ok(aiStudioSource.includes('ai_asset_monthly_unlock_access'), 'AI Studio should recognize server monthly AI unlock scopes');
   assert.ok(aiStudioSource.includes('90-Day CEO Workspace'), 'AI Studio should include a planner-safe foundation workspace');
+  assert.ok(aiStudioSource.includes('unlockedPackIds'), 'AI Studio access logic should preserve previously unlocked monthly packs');
   assert.ok(aiStudioPlanCardSource.includes('Starter packet'), 'AI Studio should provide a usable starter packet, not just a theoretical feature card');
   assert.ok(aiStudioPlanCardSource.includes('Previewing packs, saving setup answers, copying install docs, or hitting a generation error does not use the monthly unlock'), 'AI Studio should clarify that previews/copy/errors do not consume a monthly unlock');
   assert.ok(aiStudioPlanCardSource.includes('explicit pack confirmation'), 'AI Studio should clarify that a monthly unlock needs explicit pack confirmation');
-  assert.ok(aiStudioPlanCardSource.includes('AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY'), 'AI Studio should keep monthly unlock confirmations separate from setup drafts');
-  assert.ok(aiStudioPlanCardSource.includes('mastermind-ai-studio-unlock-confirmations-v1'), 'AI Studio should use a stable monthly unlock confirmation storage key');
+  assert.ok(aiStudioPlanCardSource.includes('useMastermindAiStudioUnlocks'), 'AI Studio should read confirmed monthly unlocks from the app account');
+  assert.ok(aiStudioPlanCardSource.includes('confirmMastermindAiAssetUnlock'), 'AI Studio should confirm monthly unlocks through the server RPC');
+  assert.ok(aiStudioPlanCardSource.includes('MASTERMIND_AI_STUDIO_UNLOCKS_QUERY_KEY'), 'AI Studio should invalidate the account-backed unlock query after confirmation');
+  assert.equal(aiStudioPlanCardSource.includes('AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY'), false, 'AI Studio monthly unlock confirmation must not be browser-local only');
+  assert.equal(aiStudioPlanCardSource.includes('mastermind-ai-studio-unlock-confirmations-v1'), false, 'AI Studio must not unlock monthly packs from local storage');
   assert.ok(aiStudioPlanCardSource.includes('requiresMonthlyUnlockConfirmation'), 'AI Studio should gate monthly install docs behind explicit confirmation');
   assert.ok(aiStudioPlanCardSource.includes('Confirm this monthly unlock'), 'AI Studio should show a monthly unlock confirmation state');
   assert.ok(aiStudioPlanCardSource.includes('Confirm project pack'), 'AI Studio should require an explicit pack confirmation action');
-  assert.ok(aiStudioPlanCardSource.includes('Monthly unlock confirmed'), 'AI Studio should show when the local monthly unlock confirmation is complete');
+  assert.ok(aiStudioPlanCardSource.includes('Monthly unlock confirmed'), 'AI Studio should show when the server monthly unlock confirmation is complete');
+  assert.ok(aiStudioPlanCardSource.includes('Saving confirmation to this app account'), 'AI Studio should show server confirmation progress');
+  assert.ok(aiStudioPlanCardSource.includes('No unlock was used; try again'), 'AI Studio should fail closed without consuming unlocks on errors');
+  assert.ok(aiStudioPlanCardSource.includes('No second unlock was used'), 'AI Studio should explain monthly conflict handling without mutating access');
   assert.ok(aiStudioPlanCardSource.includes('Confirm this monthly unlock to generate this section'), 'AI Studio should hide custom install doc bodies until monthly unlock confirmation');
   assert.ok(aiStudioPlanCardSource.includes('Confirm this monthly unlock to copy the install-ready version'), 'AI Studio should hide starter packet bodies until monthly unlock confirmation');
   assert.ok(aiStudioPlanCardSource.includes('disabled={requiresMonthlyUnlockConfirmation}'), 'AI Studio copy/download actions should be disabled until monthly unlock confirmation');
   assert.ok(aiStudioPlanCardSource.includes('confirmMonthlyUnlock'), 'AI Studio should have a dedicated monthly unlock confirmation handler');
+  assert.ok(aiStudioUnlockHookSource.includes('mastermind_ai_asset_unlocks'), 'AI Studio unlock hook should read the server unlock table');
+  assert.ok(aiStudioUnlockHookSource.includes('confirm_my_mastermind_ai_asset_unlock'), 'AI Studio unlock hook should use the server confirmation RPC');
+  assert.ok(aiStudioUnlockHookSource.includes('consumedMonthlyUnlock'), 'AI Studio unlock hook should normalize whether a monthly unlock was consumed');
+  assert.ok(aiStudioUnlockMigrationSource.includes('CREATE TABLE IF NOT EXISTS public.mastermind_ai_asset_unlocks'), 'AI Studio unlock migration should create the account-backed unlock table');
+  assert.ok(aiStudioUnlockMigrationSource.includes('UNIQUE (user_id, unlock_month)'), 'AI Studio unlock migration should allow only one confirmed monthly unlock per user/month');
+  assert.ok(aiStudioUnlockMigrationSource.includes('FOR SELECT TO authenticated'), 'AI Studio unlock table should expose read-only member access');
+  assert.ok(aiStudioUnlockMigrationSource.includes('auth.uid() = user_id'), 'AI Studio unlock rows should be scoped to the signed-in member');
+  assert.ok(aiStudioUnlockMigrationSource.includes('ON CONFLICT (user_id, unlock_month) DO NOTHING'), 'AI Studio unlock confirmation should be idempotent under repeated clicks');
+  assert.ok(aiStudioUnlockMigrationSource.includes('v_row.pack_id <> v_pack_id'), 'AI Studio unlock confirmation should fail closed when a different monthly pack was already chosen');
+  assert.ok(aiStudioUnlockMigrationSource.includes('replay_vault_admin_preview_enabled(v_user_id, true)'), 'AI Studio unlock confirmation should allow hidden preview QA without broad member launch');
+  assert.ok(aiStudioUnlockMigrationSource.includes("v_vault_tier IN ('annual', 'lifetime')"), 'AI Studio unlock confirmation should avoid consuming monthly unlocks for full-library members');
+  assert.ok(aiStudioUnlockMigrationSource.includes('GRANT EXECUTE ON FUNCTION public.confirm_my_mastermind_ai_asset_unlock'), 'AI Studio unlock RPC should be callable only through the explicit server contract');
+  assert.equal(
+    /CREATE POLICY[\s\S]{0,160}mastermind_ai_asset_unlocks FOR (INSERT|UPDATE|DELETE)/.test(aiStudioUnlockMigrationSource),
+    false,
+    'AI Studio unlock rows must not allow direct member writes',
+  );
   for (const packetSection of ['Start Here', 'Business Profile', 'Project Instructions', 'First Test', 'Review Checklist']) {
     assert.ok(aiStudioPlanCardSource.includes(packetSection), 'AI Studio starter packet is missing section: ' + packetSection);
   }

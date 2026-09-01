@@ -13,6 +13,10 @@ const phaseOne = readFileSync(
   new URL("../supabase/migrations/20260830154500_phase_one_private_test_contracts.sql", import.meta.url),
   "utf8",
 );
+const aiStudioUnlocks = readFileSync(
+  new URL("../supabase/migrations/20260901123000_mastermind_ai_asset_unlocks.sql", import.meta.url),
+  "utf8",
+);
 
 const requiredMigrationContracts = [
   "UNIQUE (user_id, idempotency_key)",
@@ -82,6 +86,25 @@ assert.equal(
   /CREATE POLICY[\s\S]{0,120}mastermind_phase_one_(state|resource_progress) FOR (INSERT|UPDATE|DELETE)/.test(phaseOne),
   false,
   "Phase One writes must remain validated RPC-only",
+);
+
+const requiredAiStudioUnlockContracts = [
+  "mastermind_ai_asset_unlocks",
+  "confirm_my_mastermind_ai_asset_unlock",
+  "UNIQUE (user_id, unlock_month)",
+  "auth.uid() = user_id",
+  "ON CONFLICT (user_id, unlock_month) DO NOTHING",
+  "v_row.pack_id <> v_pack_id",
+  "replay_vault_admin_preview_enabled(v_user_id, true)",
+  "GRANT EXECUTE ON FUNCTION public.confirm_my_mastermind_ai_asset_unlock",
+];
+for (const contract of requiredAiStudioUnlockContracts) {
+  assert.ok(aiStudioUnlocks.includes(contract), `missing AI Studio unlock contract: ${contract}`);
+}
+assert.equal(
+  /CREATE POLICY[\s\S]{0,160}mastermind_ai_asset_unlocks FOR (INSERT|UPDATE|DELETE)/.test(aiStudioUnlocks),
+  false,
+  "AI Studio monthly unlocks must be confirmed through RPC, not direct member writes",
 );
 
 console.log("Phase One Planner connector contracts verified.");

@@ -7,6 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { savePhaseOneState, usePhaseOneState, type PhaseOneWorkspaceStatus } from '@/hooks/usePhaseOneCatalog';
 import {
+  MASTERMIND_AI_STUDIO_UNLOCKS_QUERY_KEY,
+  confirmMastermindAiAssetUnlock,
+  useMastermindAiStudioUnlocks,
+} from '@/hooks/useMastermindAiStudioUnlocks';
+import {
   getAiStudioAccessSummary,
   getRecommendedAiProjectPack,
   getVisibleAiProjectPacks,
@@ -40,7 +45,6 @@ const visibilityLabel: Record<VisibleAiPackState, string> = {
 
 const AI_STUDIO_CUSTOMIZATION_STORAGE_KEY = 'mastermind-ai-studio-customization-v1';
 const AI_STUDIO_WORKSPACE_TRACKER_STORAGE_KEY = 'mastermind-ai-studio-workspace-tracker-v1';
-const AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY = 'mastermind-ai-studio-unlock-confirmations-v1';
 
 interface AiStudioCustomization {
   installHome: string;
@@ -57,7 +61,6 @@ interface AiStudioWorkspaceProgress {
 }
 
 type AiStudioWorkspaceTracker = Record<string, AiStudioWorkspaceProgress>;
-type AiStudioUnlockConfirmations = Record<string, string>;
 
 const DEFAULT_CUSTOMIZATION: AiStudioCustomization = {
   installHome: 'Claude Project, ChatGPT Project, custom GPT, or Codex workspace',
@@ -296,11 +299,18 @@ export function AiStudioPlanCard({
   const [serverSyncStatus, setServerSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const [customization, setCustomization] = useState<AiStudioCustomization>(DEFAULT_CUSTOMIZATION);
   const [workspaceTracker, setWorkspaceTracker] = useState<AiStudioWorkspaceTracker>({});
-  const [unlockConfirmations, setUnlockConfirmations] = useState<AiStudioUnlockConfirmations>({});
+  const [unlockSyncStatus, setUnlockSyncStatus] = useState<'idle' | 'confirming' | 'confirmed' | 'failed' | 'conflict'>('idle');
+  const [recentlyConfirmedPackId, setRecentlyConfirmedPackId] = useState<AiProjectPackId | null>(null);
+  const [conflictingPackId, setConflictingPackId] = useState<AiProjectPackId | null>(null);
   const phaseOneStateQuery = usePhaseOneState(Boolean(cycle?.cycle_id));
   const access = getAiStudioAccessSummary(membershipTier, isMastermind, memberScopes, previewCapabilities);
+  const aiUnlocksQuery = useMastermindAiStudioUnlocks(access.canUnlockMonthlyPack || access.canSeeFullLibrary);
+  const serverUnlockedPackIds = useMemo(
+    () => Array.from(new Set((aiUnlocksQuery.data ?? []).map((unlock) => unlock.pack_id))),
+    [aiUnlocksQuery.data]
+  );
   const recommendedPack = getRecommendedAiProjectPack(selectedStageId, cycle);
-  const visiblePacks = getVisibleAiProjectPacks(access, recommendedPack.id);
+  const visiblePacks = getVisibleAiProjectPacks(access, recommendedPack.id, serverUnlockedPackIds);
   const [selectedPackId, setSelectedPackId] = useState<AiProjectPackId | null>(null);
   const selectedPack =
     visiblePacks.find((pack) => pack.id === selectedPackId && pack.visibility !== 'locked')
@@ -334,9 +344,16 @@ export function AiStudioPlanCard({
       ].join('\n\n'),
     [advancedInstallDocs, customInstallPacket, selectedPack.title]
   );
-  const unlockConfirmationKey = `${cycle?.cycle_id || 'active-cycle'}:${selectedPack.id}`;
+  const selectedPackIsConfirmedUnlock =
+    selectedPack.access === 'monthly_unlockable'
+    && !access.canSeeFullLibrary
+    && (serverUnlockedPackIds.includes(selectedPack.id) || recentlyConfirmedPackId === selectedPack.id);
+  const shouldShowMonthlyUnlockReceipt =
+    selectedPack.access === 'monthly_unlockable'
+    && !access.canSeeFullLibrary
+    && (selectedPack.visibility === 'recommended_unlock' || selectedPackIsConfirmedUnlock);
   const requiresMonthlyUnlockConfirmation =
-    selectedPack.visibility === 'recommended_unlock' && !unlockConfirmations[unlockConfirmationKey];
+    selectedPack.visibility === 'recommended_unlock' && !selectedPackIsConfirmedUnlock;
   const previewPacketSections = customInstallPacket.map((section) => ({
     title: section.title,
     body: 'Confirm this monthly unlock to generate this section for your own AI workspace.',
@@ -370,16 +387,14 @@ export function AiStudioPlanCard({
         setWorkspaceTracker({});
       }
     }
-
-    const storedUnlocks = getStorageItem(AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY);
-    if (storedUnlocks) {
-      try {
-        setUnlockConfirmations(JSON.parse(storedUnlocks) as AiStudioUnlockConfirmations);
-      } catch {
-        setUnlockConfirmations({});
-      }
-    }
   }, []);
+
+  useEffect(() => {
+    if (recentlyConfirmedPackId && selectedPack.id !== recentlyConfirmedPackId && unlockSyncStatus !== 'confirming') {
+      setUnlockSyncStatus('idle');
+      setConflictingPackId(null);
+    }
+  }, [recentlyConfirmedPackId, selectedPack.id, unlockSyncStatus]);
 
   const updateWorkspaceProgress = (progress: AiStudioWorkspaceProgress) => {
     setWorkspaceTracker((current) => {
@@ -469,13 +484,31 @@ export function AiStudioPlanCard({
     updateWorkspaceProgress({ firstAssetTestedAt: new Date().toISOString() });
   };
 
-  const confirmMonthlyUnlock = () => {
-    const next = {
-      ...unlockConfirmations,
-      [unlockConfirmationKey]: new Date().toISOString(),
-    };
-    setUnlockConfirmations(next);
-    setStorageItem(AI_STUDIO_UNLOCK_CONFIRMATION_STORAGE_KEY, JSON.stringify(next));
+  const confirmMonthlyUnlock = async () => {
+    if (selectedPack.visibility !== 'recommended_unlock' || unlockSyncStatus === 'confirming') return;
+    setUnlockSyncStatus('confirming');
+    setConflictingPackId(null);
+    try {
+      const receipt = await confirmMastermindAiAssetUnlock({
+        packId: selectedPack.id,
+        cycleId: cycle?.cycle_id ?? null,
+      });
+      if (receipt.confirmed && receipt.packId === selectedPack.id) {
+        setRecentlyConfirmedPackId(selectedPack.id);
+        setUnlockSyncStatus('confirmed');
+        await queryClient.invalidateQueries({ queryKey: MASTERMIND_AI_STUDIO_UNLOCKS_QUERY_KEY });
+        return;
+      }
+      if (receipt.conflict) {
+        setConflictingPackId(receipt.currentPackId);
+        setUnlockSyncStatus('conflict');
+        return;
+      }
+      setUnlockSyncStatus('failed');
+    } catch (error) {
+      console.error('Unable to confirm AI Studio monthly unlock:', error);
+      setUnlockSyncStatus('failed');
+    }
   };
 
   const localProgress = workspaceTracker[workspaceTrackerKey] ?? {};
@@ -680,7 +713,7 @@ export function AiStudioPlanCard({
                 </Button>
               </div>
             </div>
-            {selectedPack.visibility === 'recommended_unlock' && (
+            {shouldShowMonthlyUnlockReceipt && (
               <div className="mt-4 rounded-md border bg-background p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
@@ -690,10 +723,29 @@ export function AiStudioPlanCard({
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                       This confirms which project pack you are choosing to build next. Previewing the pack, saving setup answers, copying install docs, or hitting a generation error does not create a second unlock.
                     </p>
+                    {unlockSyncStatus === 'confirming' && (
+                      <p className="mt-2 text-xs font-medium text-muted-foreground">Saving confirmation to this app account...</p>
+                    )}
+                    {unlockSyncStatus === 'failed' && (
+                      <p className="mt-2 text-xs font-medium text-destructive">
+                        Could not confirm this app account yet. No unlock was used; try again.
+                      </p>
+                    )}
+                    {unlockSyncStatus === 'conflict' && (
+                      <p className="mt-2 text-xs font-medium text-destructive">
+                        This month already has {conflictingPackId ? `${conflictingPackId} ` : ''}confirmed. No second unlock was used.
+                      </p>
+                    )}
                   </div>
                   {requiresMonthlyUnlockConfirmation && (
-                    <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={confirmMonthlyUnlock}>
-                      Confirm project pack
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full sm:w-auto"
+                      disabled={unlockSyncStatus === 'confirming'}
+                      onClick={confirmMonthlyUnlock}
+                    >
+                      {unlockSyncStatus === 'confirming' ? 'Confirming...' : 'Confirm project pack'}
                     </Button>
                   )}
                 </div>
@@ -834,8 +886,10 @@ export function AiStudioPlanCard({
             {visiblePacks.slice(0, 6).map((pack) => {
               const canSelectPack = pack.visibility !== 'locked';
               const isSelected = selectedPack.id === pack.id;
-              const confirmationKey = `${cycle?.cycle_id || 'active-cycle'}:${pack.id}`;
-              const isConfirmedUnlock = pack.visibility === 'recommended_unlock' && Boolean(unlockConfirmations[confirmationKey]);
+              const isConfirmedUnlock =
+                pack.access === 'monthly_unlockable'
+                && !access.canSeeFullLibrary
+                && (pack.visibility === 'included' || recentlyConfirmedPackId === pack.id);
 
               return (
                 <button

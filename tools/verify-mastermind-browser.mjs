@@ -389,6 +389,7 @@ function buildMockScript(cycle) {
       last_position_seconds: 6891
     }
   ];
+  let aiStudioUnlocks = [];
   const json = (body, status = 200) => Promise.resolve(new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' }
@@ -402,7 +403,6 @@ function buildMockScript(cycle) {
     localStorage.setItem('install_nudge_dismissed_at', String(Date.now()));
     localStorage.setItem('install_banner_dismissed_at', String(Date.now()));
     localStorage.setItem('mastermind-pinned-resources', JSON.stringify([]));
-    localStorage.removeItem('mastermind-ai-studio-unlock-confirmations-v1');
   } catch {}
 
   try {
@@ -452,6 +452,36 @@ function buildMockScript(cycle) {
     if (url.includes('/rest/v1/rpc/save_my_mastermind_phase_one_video_progress')) {
       return json(true);
     }
+    if (url.includes('/rest/v1/rpc/confirm_my_mastermind_ai_asset_unlock')) {
+      const body = typeof init?.body === 'string' ? JSON.parse(init.body || '{}') : {};
+      const packId = body.p_pack_id || 'sales-room';
+      if (!aiStudioUnlocks.some((unlock) => unlock.pack_id === packId)) {
+        aiStudioUnlocks = [
+          ...aiStudioUnlocks,
+          {
+            pack_id: packId,
+            unlock_month: '2026-09-01',
+            cycle_id: body.p_cycle_id || cycle?.cycle_id || null,
+            confirmed_at: '2026-09-01T12:00:00.000Z',
+          }
+        ];
+      }
+      return json({
+        confirmed: true,
+        packId,
+        pack_id: packId,
+        unlockMonth: '2026-09-01',
+        unlock_month: '2026-09-01',
+        confirmedAt: '2026-09-01T12:00:00.000Z',
+        confirmed_at: '2026-09-01T12:00:00.000Z',
+        alreadyConfirmed: false,
+        already_confirmed: false,
+        conflict: false,
+        consumedMonthlyUnlock: true,
+        consumed_monthly_unlock: true,
+        access: 'monthly',
+      });
+    }
     if (url.includes('/rest/v1/mastermind_phase_one_state')) {
       return json({
         cycle_id: cycle?.cycle_id ?? null,
@@ -465,6 +495,9 @@ function buildMockScript(cycle) {
         completed_at: null,
         updated_at: '2026-08-08T00:05:00.000Z',
       });
+    }
+    if (url.includes('/rest/v1/mastermind_ai_asset_unlocks')) {
+      return json(aiStudioUnlocks);
     }
     if (url.includes('/functions/v1/get-projects')) {
       return json({ data: [] });
@@ -679,7 +712,6 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Coach me');
     await assertText(client, 'Only ready, playable curriculum videos appear here.');
     await assertText(client, 'Ask Faith');
-    await assertText(client, 'Selected');
     await assertText(client, 'Previewing packs, saving setup answers, copying install docs');
     await assertText(client, 'SETUP INTERVIEW');
     await assertText(client, 'What is the revenue target, offer price, and number of sales needed this cycle?');
@@ -699,6 +731,7 @@ async function runChecks(client, checks, label) {
     assert.equal(installActionsLocked, true, 'Monthly AI Studio install actions should stay locked before explicit pack confirmation');
     await clickText(client, 'Confirm project pack');
     await waitFor(client, 'document.body.innerText.includes("Monthly unlock confirmed")', `${label} monthly unlock confirmation`);
+    await assertText(client, 'Confirmed');
     await assertText(client, 'Advanced install docs');
     const installActionsUnlocked = await evaluate(client, `
 (() => {
