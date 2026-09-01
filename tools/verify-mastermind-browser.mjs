@@ -669,7 +669,7 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Evidence to bring back');
     await assertText(client, 'Done when');
     await assertText(client, 'ready to watch');
-    await assertText(client, 'Being added');
+    await assertNoText(client, 'Being added');
     await assertText(client, 'Ask Faith');
     await clickText(client, 'Get Support');
     await waitFor(client, 'document.body.innerText.includes("Support Bot")', `${label} support tab`);
@@ -716,8 +716,9 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Sell focus');
     await assertText(client, 'Action step');
     await assertText(client, 'Evidence to bring back');
-    await assertText(client, 'Search only finds ready videos; planned lessons appear in section cards.');
-    await assertText(client, 'Being added next');
+    await assertText(client, 'Search only finds videos that are ready to watch.');
+    await assertNoText(client, 'Being added next');
+    await assertNoText(client, 'Ready soon');
     await assertNoText(client, 'Sales & Marketing');
     await assertNoText(client, 'Current Call Replays');
     await assertNoText(client, 'Money Moves Sprint');
@@ -754,8 +755,9 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Sell focus');
     await assertText(client, 'Watch the videos that are ready inside this app.');
     await assertText(client, 'This finder only shows curriculum videos that open in the in-app player');
-    await assertText(client, 'Search only finds ready videos; planned lessons appear in section cards.');
-    await assertText(client, 'Being added next');
+    await assertText(client, 'Search only finds videos that are ready to watch.');
+    await assertNoText(client, 'Being added next');
+    await assertNoText(client, 'Ready soon');
     await assertNoText(client, 'Current Call Replays');
     await assertNoText(client, 'Faith AI');
     await assertNoText(client, 'Ask Faith');

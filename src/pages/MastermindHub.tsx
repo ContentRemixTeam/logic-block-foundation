@@ -74,11 +74,6 @@ type DashboardWeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'fa
 
 type ResourceFilterId = 'all' | 'focus' | 'core' | 'indexed';
 
-interface PlannedCurriculumResource {
-  recommendation: MastermindResourceRecommendation;
-  resource: MastermindPortalResource;
-}
-
 function PreviewAccessBoundary({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
@@ -276,20 +271,6 @@ export default function MastermindHub() {
       });
   }, [completedResourceIds, playableResourceIds, stageResourceCandidatesForCurrentMilestone]);
 
-  const plannedStageResourcesForCurrentMilestone = useMemo(() => {
-    const plannedResources = stageResourceCandidatesForCurrentMilestone
-      .filter((recommendation) => recommendation.resourceId !== 'faith-ai' && !playableResourceIds.has(recommendation.resourceId))
-      .map((recommendation) => ({
-        recommendation,
-        resource: portalResourceById.get(recommendation.resourceId),
-      }))
-      .filter((item): item is PlannedCurriculumResource =>
-        Boolean(item.resource) && isReadyMastermindCurriculumVideoResource(item.resource)
-      );
-
-    return uniqueResourcesById(plannedResources, (item) => item.resource.id).slice(0, 2);
-  }, [playableResourceIds, portalResourceById, stageResourceCandidatesForCurrentMilestone]);
-
   const handleStageSelect = async (stageId: typeof selectedStageId) => {
     if (!successPathData?.cycle) {
       navigate('/cycle-setup');
@@ -376,24 +357,14 @@ export default function MastermindHub() {
         });
       const watchedVideos = videos.filter((resource) => completedResourceIds.has(resource.id));
       const nextVideo = videos.find((resource) => !completedResourceIds.has(resource.id)) ?? null;
-      const plannedResources = uniqueResourcesById(
-        stage.resources
-          .map((recommendation) => portalResourceById.get(recommendation.resourceId))
-          .filter((resource): resource is MastermindPortalResource => Boolean(resource))
-          .filter((resource) => isReadyMastermindCurriculumVideoResource(resource))
-          .filter((resource) => !playableResourceIds.has(resource.id)),
-        (resource) => resource.id
-      );
-
       return {
         stage,
         videos,
         watchedVideos,
         nextVideo,
-        plannedResources,
       };
     })
-  ), [completedResourceIds, playableResourceIds, portalResourceById, visibleResources]);
+  ), [completedResourceIds, visibleResources]);
 
   const trainingSectionStatsToShow = useMemo(() => {
     if (resourceFilter !== 'focus') return curriculumSectionStats;
@@ -480,7 +451,6 @@ export default function MastermindHub() {
   const nextReadyPortalResource = nextUnwatchedPlanResource
     ? portalResourceById.get(nextUnwatchedPlanResource.resourceId) ?? null
     : null;
-  const nextPlannedPlanResource = plannedStageResourcesForCurrentMilestone[0] ?? null;
   const hasCompletedCurrentMilestoneResources =
     stageResourcesForCurrentMilestone.length > 0 && !nextUnwatchedPlanResource;
   const lowCapacityNextMove = dashboardCycle?.low_energy_version?.trim()
@@ -489,7 +459,6 @@ export default function MastermindHub() {
   const askFaithBrief = useMemo(() => {
     const cycle = dashboardCycle;
     const recommendedTraining = nextReadyPortalResource?.title
-      ?? nextPlannedPlanResource?.resource.title
       ?? 'No extra video needed for this exact step yet.';
 
     return [
@@ -515,7 +484,6 @@ export default function MastermindHub() {
     currentMilestone.output,
     currentNextMove,
     lowCapacityNextMove,
-    nextPlannedPlanResource?.resource.title,
     nextReadyPortalResource?.title,
     selectedStage.label,
     selectedStage.quickWin.evidence,
@@ -539,7 +507,6 @@ export default function MastermindHub() {
     setDashboardWeeklyMoveTaskState('saving');
 
     const recommendedTraining = nextReadyPortalResource?.title
-      ?? nextPlannedPlanResource?.resource.title
       ?? currentRound.primaryResourceTitle;
 
     try {
@@ -768,13 +735,6 @@ export default function MastermindHub() {
                             {nextUnwatchedPlanResource.useWhen}
                           </p>
                         </>
-                      ) : nextPlannedPlanResource ? (
-                        <>
-                          <p className="text-sm font-medium leading-snug">{nextPlannedPlanResource.resource.title}</p>
-                          <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                            This lesson is being added. Use the action step while it is being finished.
-                          </p>
-                        </>
                       ) : hasCompletedCurrentMilestoneResources ? (
                         <p className="text-sm leading-relaxed text-muted-foreground">
                           Training for this checkpoint is complete. Do the move, record evidence, and use Show watched in the Training Library if you need to rewatch.
@@ -884,7 +844,7 @@ export default function MastermindHub() {
                       <Badge variant="outline" className="mb-2 w-fit">Curriculum sections</Badge>
                       <CardTitle>Use the section that matches the current bottleneck.</CardTitle>
                       <CardDescription>
-                        Each section points to one outcome, one quick win, the videos ready to watch now, and the core lessons being added next.
+                        Each section points to one outcome, one quick win, and the videos that are ready to watch now.
                       </CardDescription>
                     </div>
                     <Badge variant="secondary" className="w-fit">{visibleResources.length} videos ready now</Badge>
@@ -892,11 +852,10 @@ export default function MastermindHub() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {curriculumSectionStats.map(({ stage, videos, watchedVideos, nextVideo, plannedResources }) => {
+                    {curriculumSectionStats.map(({ stage, videos, watchedVideos, nextVideo }) => {
                       const isSelected = selectedStageId === stage.id;
                       const watchedCount = watchedVideos.length;
                       const readyCount = videos.length;
-                      const beingAddedCount = plannedResources.length;
 
                       return (
                         <div
@@ -938,18 +897,11 @@ export default function MastermindHub() {
                             </div>
                             <div className="flex flex-wrap gap-2">
                               <Badge variant="outline" className="text-[11px]">{readyCount} ready to watch</Badge>
-                              {beingAddedCount > 0 && (
-                                <Badge variant="outline" className="text-[11px]">{beingAddedCount} being added</Badge>
-                              )}
                               <Badge variant={watchedCount > 0 ? 'success' : 'outline'} className="text-[11px]">{watchedCount} watched</Badge>
                             </div>
                             {nextVideo ? (
                               <p className="text-xs leading-snug text-muted-foreground">
                                 Next useful video: <span className="font-medium text-foreground">{nextVideo.title}</span>
-                              </p>
-                            ) : plannedResources.length > 0 ? (
-                              <p className="text-xs leading-snug text-muted-foreground">
-                                Next planned lesson: <span className="font-medium text-foreground">{plannedResources[0].title}</span> is being added to the in-app player. Use the quick win while the video is being finished.
                               </p>
                             ) : readyCount > 0 ? (
                               <p className="text-xs leading-snug text-muted-foreground">
@@ -1108,39 +1060,7 @@ export default function MastermindHub() {
                         </div>
                       ))}
 
-                      {plannedStageResourcesForCurrentMilestone.length > 0 && (
-                        <div className="rounded-lg border border-dashed bg-muted/35 p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-                              +
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold">Being added to this app</p>
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                These are in the approved curriculum map but will not get watch buttons until the video is ready and tested.
-                              </p>
-                              <div className="mt-3 space-y-2">
-                                {plannedStageResourcesForCurrentMilestone.map(({ recommendation, resource }) => (
-                                  <div key={resource.id} className="rounded-md bg-background p-3">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <p className="text-sm font-medium leading-snug">{resource.title}</p>
-                                      <Badge variant="outline" className="text-[11px]">Being added</Badge>
-                                    </div>
-                                    <p className="mt-1 text-xs leading-snug text-muted-foreground">{recommendation.useWhen}</p>
-                                    {recommendation.afterWatching && (
-                                      <p className="mt-2 text-xs leading-snug">
-                                        <span className="font-semibold">After watching: </span>{recommendation.afterWatching}
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {stageResourcesForCurrentMilestone.length === 0 && plannedStageResourcesForCurrentMilestone.length === 0 && (
+                      {stageResourcesForCurrentMilestone.length === 0 && (
                         <div className="rounded-lg border bg-muted/35 p-4">
                           <p className="text-sm font-medium">No video is needed for this exact step yet.</p>
                           <p className="mt-1 text-sm text-muted-foreground">
@@ -1337,11 +1257,11 @@ export default function MastermindHub() {
                         : 'Pick the section that matches the job your plan is doing.'}
                     </CardTitle>
                     <CardDescription>
-                      Browse by section without changing the saved focus on your 90-day plan. Search only finds ready videos; planned lessons appear in section cards.
+                      Browse by section without changing the saved focus on your 90-day plan. Search only finds videos that are ready to watch.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-3 lg:grid-cols-2">
-                    {trainingSectionStatsToShow.map(({ stage, videos, watchedVideos, nextVideo, plannedResources }) => (
+                    {trainingSectionStatsToShow.map(({ stage, videos, watchedVideos, nextVideo }) => (
                       <div key={stage.id} className="rounded-lg border bg-background p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
@@ -1358,11 +1278,6 @@ export default function MastermindHub() {
                             <Badge variant={watchedVideos.length > 0 ? 'success' : 'outline'} className="w-fit text-[11px]">
                               {watchedVideos.length} watched
                             </Badge>
-                            {plannedResources.length > 0 && (
-                              <Badge variant="outline" className="w-fit text-[11px]">
-                                {plannedResources.length} being added
-                              </Badge>
-                            )}
                           </div>
                         </div>
 
@@ -1412,29 +1327,13 @@ export default function MastermindHub() {
 
                           {videos.length === 0 && (
                             <div className="rounded-md border bg-muted/35 p-3">
-                              <p className="text-sm font-medium">Ready videos are still being added here.</p>
+                              <p className="text-sm font-medium">Start with the action step here.</p>
                               <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                                The section is mapped, but watch buttons appear after the video is ready and tested.
+                                This section does not need a video before you move. Use the quick win, collect evidence, and ask Faith if you get stuck.
                               </p>
                             </div>
                           )}
 
-                          {plannedResources.length > 0 && (
-                            <div className="rounded-md border border-dashed bg-muted/25 p-3">
-                              <p className="text-xs font-semibold text-muted-foreground">Being added next</p>
-                              <div className="mt-2 space-y-2">
-                                {plannedResources.slice(0, 3).map((resource) => (
-                                  <div key={resource.id} className="flex items-start justify-between gap-3 rounded-md bg-background p-3">
-                                    <span className="min-w-0">
-                                      <span className="block text-sm font-medium leading-snug">{resource.title}</span>
-                                      <span className="mt-1 block text-xs leading-snug text-muted-foreground">{resource.description}</span>
-                                    </span>
-                                    <Badge variant="outline" className="shrink-0 text-[11px]">Being added</Badge>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
 
                         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -1445,7 +1344,7 @@ export default function MastermindHub() {
                             disabled={!nextVideo}
                             onClick={() => nextVideo && handleOpen(nextVideo)}
                           >
-                            {nextVideo ? 'Watch next' : plannedResources.length > 0 ? 'Ready soon' : 'Section complete'}
+                            {nextVideo ? 'Watch next' : 'Section complete'}
                           </Button>
                           <Button
                             type="button"
