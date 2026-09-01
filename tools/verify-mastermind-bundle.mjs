@@ -106,6 +106,8 @@ const requiredMastermindHubStrings = [
   'Record this',
   'Standard',
   'Low capacity',
+  'Ask Faith coaching brief',
+  'Copy Ask Faith brief',
   'AI workspace',
   'Only ready, playable curriculum videos appear here.',
   'Ask Faith',

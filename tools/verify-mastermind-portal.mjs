@@ -591,6 +591,9 @@ try {
   assert.ok(mastermindHubSource.includes('nextMoveMode'), 'Next-step panel should support a quick-win mode instead of one fixed action');
   assert.ok(mastermindHubSource.includes('Low capacity'), 'Next-step panel should expose the smaller next move for low-capacity weeks');
   assert.ok(mastermindHubSource.includes('currentNextMove'), 'Next-step panel should render the selected standard or low-capacity action');
+  assert.ok(mastermindHubSource.includes('Ask Faith coaching brief'), '90-day hub should generate a plan-aware Ask Faith handoff brief');
+  assert.ok(mastermindHubSource.includes('Copy Ask Faith brief'), '90-day hub should let members copy their coaching context before opening support');
+  assert.ok(mastermindHubSource.includes('copyAskFaithBrief'), '90-day hub should provide a working clipboard handler for the Ask Faith brief');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);

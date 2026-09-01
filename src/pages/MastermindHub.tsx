@@ -38,6 +38,7 @@ import {
   CheckCircle2,
   Clock,
   ClipboardCheck,
+  Copy,
   ExternalLink,
   ListTodo,
   Pin,
@@ -50,6 +51,7 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const STORAGE_KEY = 'mastermind-pinned-resources';
 const TRAINING_TIME_STORAGE_KEY = 'mastermind-weekly-training-minutes';
@@ -401,6 +403,41 @@ export default function MastermindHub() {
   const lowCapacityNextMove = successPathData?.cycle?.low_energy_version?.trim()
     || selectedStage.quickWin.lowEnergy;
   const currentNextMove = nextMoveMode === 'low' ? lowCapacityNextMove : selectedStage.doThis;
+  const askFaithBrief = useMemo(() => {
+    const cycle = successPathData?.cycle;
+    const recommendedTraining = nextReadyPortalResource?.title
+      ?? nextPlannedPlanResource?.resource.title
+      ?? 'No extra video needed for this exact step yet.';
+
+    return [
+      'Ask Faith coaching brief',
+      '',
+      `90-day goal: ${cycle?.goal || 'Not saved yet'}`,
+      `Current focus: ${selectedStage.label}`,
+      `Current checkpoint: ${currentMilestone.label}`,
+      `Checkpoint output: ${currentMilestone.output}`,
+      `Next move: ${currentNextMove}`,
+      `Low-capacity version: ${lowCapacityNextMove}`,
+      `Evidence to bring back: ${selectedStage.quickWin.evidence}`,
+      `Recommended training: ${recommendedTraining}`,
+      '',
+      'What I tried:',
+      '',
+      'What happened:',
+      '',
+      'Where I need coaching:',
+    ].join('\n');
+  }, [
+    currentMilestone.label,
+    currentMilestone.output,
+    currentNextMove,
+    lowCapacityNextMove,
+    nextPlannedPlanResource?.resource.title,
+    nextReadyPortalResource?.title,
+    selectedStage.label,
+    selectedStage.quickWin.evidence,
+    successPathData?.cycle,
+  ]);
 
   const workspaceStatus = phaseOneStateQuery.data?.workspace_status ?? 'not_started';
   const planDashboardItems = [
@@ -458,6 +495,15 @@ export default function MastermindHub() {
       return;
     }
     handleOpen(resource);
+  };
+
+  const copyAskFaithBrief = async () => {
+    try {
+      await navigator.clipboard.writeText(askFaithBrief);
+      toast.success('Ask Faith brief copied.');
+    } catch {
+      toast.error('Copy failed. Select the brief and copy it manually.');
+    }
   };
 
   return (
@@ -630,6 +676,10 @@ export default function MastermindHub() {
                       )}
                       <Button type="button" variant="outline" className="w-full" onClick={() => navigate('/evidence')}>
                         Record evidence
+                      </Button>
+                      <Button type="button" variant="ghost" className="w-full" onClick={() => void copyAskFaithBrief()}>
+                        <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Copy Ask Faith brief
                       </Button>
                     </div>
                   </div>
@@ -942,6 +992,10 @@ export default function MastermindHub() {
                     <Button className="w-full" onClick={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}>
                       Ask Faith
                       <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" className="w-full" onClick={() => void copyAskFaithBrief()}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy Ask Faith brief
                     </Button>
                   </CardContent>
                 </Card>
