@@ -520,8 +520,11 @@ try {
   assert.ok(appSource.includes('path="/admin/mastermind-current-replays-preview"'), 'App should include the hidden admin current replay QA route');
   assert.ok(mastermindCurrentReplaysSource.includes("const CURRENT_REPLAY_SURFACE = 'recent_replay'"), 'Current replay page should use the recent_replay protected media surface');
   assert.ok(mastermindCurrentReplaysSource.includes("const CURRENT_REPLAY_ACCESS_SCOPE = 'current_replay_30_day'"), 'Current replay page should define the only safe monthly replay access scope');
+  assert.ok(mastermindCurrentReplaysSource.includes("const CURRENT_REPLAY_LABEL = 'current call replays'"), 'Current replay page should require current-replay source metadata');
   assert.ok(mastermindCurrentReplaysSource.includes('currentReplayOnlySearchPayload'), 'Current replay page should fail closed if search returns non-current replay rows');
+  assert.ok(mastermindCurrentReplaysSource.includes('isCurrentReplayGroup'), 'Current replay page should verify grouped search payloads before rendering');
   assert.ok(mastermindCurrentReplaysSource.includes('isCurrentReplaySearchRow'), 'Current replay page should verify each search result scope before rendering');
+  assert.ok(mastermindCurrentReplaysSource.includes('category.includes(CURRENT_REPLAY_LABEL) || productTitle.includes(CURRENT_REPLAY_LABEL)'), 'Current replay page must reject stale rows mislabeled with the current access scope');
   assert.ok(mastermindCurrentReplaysSource.includes('normalizeCurrentReplayAccessResponse'), 'Current replay page should normalize current-replay access separately from full Vault access');
   assert.ok(mastermindCurrentReplaysSource.includes('surface: CURRENT_REPLAY_SURFACE'), 'Current replay page should pass its surface to access, search, and playback calls');
   assert.ok(mastermindCurrentReplaysSource.includes('groupSearchResults(currentReplayOnlySearchPayload(data))'), 'Current replay page must not render stale full-Vault search results');

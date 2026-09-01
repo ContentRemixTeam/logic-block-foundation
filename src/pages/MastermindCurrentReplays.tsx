@@ -22,6 +22,7 @@ import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekC
 
 const CURRENT_REPLAY_SURFACE = 'recent_replay' as const;
 const CURRENT_REPLAY_ACCESS_SCOPE = 'current_replay_30_day';
+const CURRENT_REPLAY_LABEL = 'current call replays';
 const CURRENT_REPLAY_QUICK_SEARCH_LIMIT = 10;
 const CURRENT_REPLAY_QUICK_SEARCH_MOMENTS_PER_REPLAY = 3;
 const CURRENT_REPLAY_DEEP_SEARCH_LIMIT = 16;
@@ -39,10 +40,29 @@ function targetKey(target: { resourceId: string; momentId?: string | null; quest
   return `${target.resourceId}:${target.momentId ?? target.questionId ?? 'replay'}`;
 }
 
+function currentReplayField(row: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'string' && value.trim()) return value.trim().toLowerCase();
+  }
+  return '';
+}
+
 function isCurrentReplaySearchRow(row: unknown) {
   if (!row || typeof row !== 'object') return false;
-  const accessScope = 'accessScope' in row ? row.accessScope : 'access_scope' in row ? row.access_scope : 'approved_access_scope' in row ? row.approved_access_scope : null;
-  return String(accessScope ?? '').trim() === CURRENT_REPLAY_ACCESS_SCOPE;
+  const record = row as Record<string, unknown>;
+  const accessScope = currentReplayField(record, ['accessScope', 'access_scope', 'approved_access_scope']);
+  const category = currentReplayField(record, ['category', 'categoryTitle', 'category_title']);
+  const productTitle = currentReplayField(record, ['productTitle', 'product_title']);
+  const isCurrentReplaySource = category.includes(CURRENT_REPLAY_LABEL) || productTitle.includes(CURRENT_REPLAY_LABEL);
+  return accessScope === CURRENT_REPLAY_ACCESS_SCOPE && isCurrentReplaySource;
+}
+
+function isCurrentReplayGroup(group: unknown) {
+  if (!group || typeof group !== 'object') return false;
+  const moments = (group as Record<string, unknown>).moments;
+  if (Array.isArray(moments)) return moments.length > 0 && moments.every(isCurrentReplaySearchRow);
+  return isCurrentReplaySearchRow(group);
 }
 
 function currentReplayOnlySearchPayload(payload: unknown) {
@@ -50,14 +70,7 @@ function currentReplayOnlySearchPayload(payload: unknown) {
   if (!payload || typeof payload !== 'object') return { results: [] };
   const record = payload as Record<string, unknown>;
   const rows = Array.isArray(record.results) ? record.results.filter(isCurrentReplaySearchRow) : [];
-  const groups = Array.isArray(record.groups)
-    ? record.groups.filter((group) => {
-        if (!group || typeof group !== 'object') return false;
-        if (isCurrentReplaySearchRow(group)) return true;
-        const moments = (group as Record<string, unknown>).moments;
-        return Array.isArray(moments) && moments.every(isCurrentReplaySearchRow);
-      })
-    : undefined;
+  const groups = Array.isArray(record.groups) ? record.groups.filter(isCurrentReplayGroup) : undefined;
   return groups ? { ...record, groups } : { ...record, results: rows };
 }
 

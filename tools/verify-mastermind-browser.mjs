@@ -434,7 +434,7 @@ function buildMockScript(cycle, email = mockEmail) {
         title: 'Old Annual Vault Replay',
         category: 'Full Vault',
         sourceType: 'video',
-        accessScope: 'replay_vault',
+        accessScope: 'current_replay_30_day',
         durationSeconds: 4800,
         momentId: 'old-vault-moment-001',
         questionId: null,
@@ -443,6 +443,22 @@ function buildMockScript(cycle, email = mockEmail) {
         endSeconds: 180,
         snippet: 'This stale full Vault result must not appear on the Current Replays page.',
         reason: 'stale full Vault result',
+        answerer: 'Faith',
+      },
+      {
+        resourceId: 'old-vault-scope-result-that-must-not-render',
+        title: 'Old Replay With Vault Scope',
+        category: 'Current Call Replays',
+        sourceType: 'video',
+        accessScope: 'replay_vault',
+        durationSeconds: 4800,
+        momentId: 'old-vault-moment-002',
+        questionId: null,
+        matchType: 'transcript',
+        startSeconds: 120,
+        endSeconds: 180,
+        snippet: 'This replay_vault scoped result must not appear on the Current Replays page.',
+        reason: 'wrong access scope',
         answerer: 'Faith',
       },
     ],
@@ -813,6 +829,8 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'A focused answer about tightening the offer promise');
     await assertNoText(client, 'Old Annual Vault Replay');
     await assertNoText(client, 'This stale full Vault result must not appear');
+    await assertNoText(client, 'Old Replay With Vault Scope');
+    await assertNoText(client, 'This replay_vault scoped result must not appear');
     await assertText(client, 'Watch answer');
     await assertNoHorizontalOverflow(client, `${label} current replay results`);
 
