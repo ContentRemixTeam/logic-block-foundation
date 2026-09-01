@@ -19,6 +19,9 @@ requireText(vault, "invoke('search-mastermind-resources'", "protected transcript
 requireText(vault, "invoke('get-mastermind-playback-link'", "protected playback lookup");
 requireText(vault, "onLoadedMetadata={handleLoadedMetadata}", "metadata-gated exact seek");
 requireText(vault, "if (!options.recovery) recoverySnapshotRef.current = { time: 0, shouldResume: false };", "fresh resources clear stale recovery time");
+requireText(vault, "const hasVaultAccess = canUseVault(access);", "Vault header requires authorized access decision");
+requireText(vault, "This page is not available for this account", "denied Vault route stays generic before launch");
+forbidText(vault, "Replay access not included", "denied Vault route must not expose Vault metadata");
 requireText("src/components/replay-vault/VaultPlayer.tsx", 'key={`${playback.resourceId}:${sourceGeneration}`}', "video remounts for every protected resource");
 requireText("src/components/replay-vault/VaultPlayer.tsx", "src={playback.playbackUrl}", "video receives the protected source directly");
 requireText("src/components/replay-vault/useVaultSeekCoordinator.ts", "applySeekTarget(media, targetSeconds)", "exact timestamp seek coordinator");

@@ -81,23 +81,25 @@ async function malformedAccessIsUnavailable() {
   __vaultMock.enqueue('get-mastermind-portal-access', { data: {}, error: null });
   await mount();
   assert(document.body.textContent?.includes('Access check unavailable'), 'malformed 2xx access must be unavailable');
-  assert(!document.body.textContent?.includes('Replay access not included'), 'malformed 2xx must not claim denial');
+  assert(!document.body.textContent?.includes('This page is not available for this account'), 'malformed 2xx must not claim denial');
 }
 
 async function producerAccessStatesStayDistinct() {
   for (const [fixture, expected, forbidden] of [
-    [allowed, 'Full Replay Vault', 'Access check unavailable'],
-    [monthlyDenied, 'Replay access not included', 'Access check unavailable'],
-    [denied, 'Replay access not included', 'Access check unavailable'],
-    [launchDisabled, 'Replay Vault is not open yet', 'Replay access not included'],
-    [pilotExcluded, 'Replay Vault is not open yet', 'Replay access not included'],
+    [allowed, 'Full Replay Vault', ['Access check unavailable']],
+    [monthlyDenied, 'This page is not available for this account', ['Access check unavailable', 'Replay Vault']],
+    [denied, 'This page is not available for this account', ['Access check unavailable', 'Replay Vault']],
+    [launchDisabled, 'This page is not open yet', ['This page is not available for this account', 'Replay Vault']],
+    [pilotExcluded, 'This page is not open yet', ['This page is not available for this account', 'Replay Vault']],
   ] as const) {
     __vaultMock.reset();
     __vaultMock.enqueue('get-mastermind-portal-access', fixture);
     await mount();
     assert(__vaultMock.lastBody('get-mastermind-portal-access').preview === true, 'access request must ask the server to evaluate admin preview');
     assert(document.body.textContent?.includes(expected), `producer access fixture must render ${expected}`);
-    assert(!document.body.textContent?.includes(forbidden), `producer access fixture must not render ${forbidden}`);
+    for (const forbiddenText of forbidden) {
+      assert(!document.body.textContent?.includes(forbiddenText), `producer access fixture must not render ${forbiddenText}`);
+    }
   }
   __vaultMock.reset();
   __vaultMock.enqueue('get-mastermind-portal-access', { data: null, error: { message: 'offline' } });
