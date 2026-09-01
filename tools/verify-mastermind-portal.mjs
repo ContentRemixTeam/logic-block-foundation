@@ -373,6 +373,10 @@ for (const pack of AI_PROJECT_PACKS) {
   assert.ok(pack.knowledgeDocs.length >= 3, pack.title + ' should define knowledge docs for installation');
   assert.ok(pack.operatingRules.length >= 3, pack.title + ' should define operating rules for better output');
   assert.ok(pack.outputChecks.length >= 3, pack.title + ' should define quality checks for member review');
+  assert.ok(pack.outputSchema.length >= 5, pack.title + ' should define an exact output schema');
+  assert.ok(pack.weeklyUsePrompt.toLowerCase().includes('90-day'), pack.title + ' should include a 90-day-plan weekly use prompt');
+  assert.ok(pack.failureModes.length >= 3, pack.title + ' should define failure modes to prevent generic AI output');
+  assert.notEqual(pack.status, 'planned', pack.title + ' should not be a planned-only pack in the working AI Studio');
 }
 
 console.log('mastermind portal verifier passed');
@@ -623,6 +627,13 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('Source Labels And Contradictions'), 'AI Studio should include source-label and contradiction handling instructions');
   assert.ok(aiStudioPlanCardSource.includes('plan evidence, buyer/customer evidence, member preference, or AI assumption'), 'AI Studio should require evidence labels in project instructions');
   assert.ok(aiStudioPlanCardSource.includes('one recommendation, why it fits the 90-day plan, one lower-capacity version, one evidence target, assumptions to test'), 'AI Studio should define an exact answer format for higher quality outputs');
+  assert.ok(aiStudioPlanCardSource.includes('Use this output schema'), 'AI Studio starter packet should include an exact output schema');
+  assert.ok(aiStudioPlanCardSource.includes('Expected Output Schema'), 'AI Studio advanced docs should include the exact output schema');
+  assert.ok(aiStudioPlanCardSource.includes('Failure Mode Guards'), 'AI Studio should include failure-mode guards for generic AI output');
+  assert.ok(aiStudioPlanCardSource.includes('Prompts To Save'), 'AI Studio should give members reusable prompts after install');
+  assert.ok(aiStudioPlanCardSource.includes('Output standard'), 'AI Studio selected pack card should show the member-facing output standard');
+  assert.ok(aiStudioPlanCardSource.includes('visiblePacks.map((pack) =>'), 'AI Studio project pack selector should render every project pack');
+  assert.equal(aiStudioPlanCardSource.includes('visiblePacks.slice(0, 6)'), false, 'AI Studio project pack selector must not hide the seventh stage pack');
   assert.ok(aiStudioSource.includes('What has someone paid for, asked for, clicked, replied to, or said they want?'), 'Offer Lab should ask evidence-first setup questions');
   assert.ok(aiStudioSource.includes('What is the revenue target, offer price, and number of sales needed this cycle?'), 'Sales Room should ask sales-math setup questions');
   assert.ok(aiStudioSource.includes('Which repeated workflow is connected to revenue, delivery, retention, or owner capacity?'), 'Workflow Systems Lab should ask workflow-specific setup questions');

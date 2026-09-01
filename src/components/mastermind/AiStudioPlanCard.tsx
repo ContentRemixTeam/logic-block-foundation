@@ -132,7 +132,13 @@ function buildStarterPacket({
     },
     {
       title: 'Project Instructions',
-      body: `Use Faith Mariah's planning style: choose the smallest useful move, test it with real people, separate facts from interpretation, and do not suggest a full rebuild unless the evidence requires it. When I ask for help, give me one primary recommendation, one lower-capacity version, and one thing to record as evidence.`,
+      body: [
+        "Use Faith Mariah's planning style: choose the smallest useful move, test it with real people, separate facts from interpretation, and do not suggest a full rebuild unless the evidence requires it.",
+        'When I ask for help, give me one primary recommendation, one lower-capacity version, and one thing to record as evidence.',
+        '',
+        'Use this output schema:',
+        ...recommendedPack.outputSchema.map((item, index) => `${index + 1}. ${item}`),
+      ].join('\n'),
     },
     {
       title: 'First Test',
@@ -140,7 +146,17 @@ function buildStarterPacket({
     },
     {
       title: 'Review Checklist',
-      body: 'Before I use the output, check: Is it tied to my 90-day goal? Does it create buyer/customer evidence? Is it small enough to do this week? Does it protect what is already working? Did it avoid generic AI advice?',
+      body: [
+        'Before I use the output, check:',
+        '- Is it tied to my 90-day goal?',
+        '- Does it create buyer/customer evidence?',
+        '- Is it small enough to do this week?',
+        '- Does it protect what is already working?',
+        '- Did it avoid generic AI advice?',
+        '',
+        'Watch for these failure modes:',
+        ...recommendedPack.failureModes.map((item) => `- ${item}`),
+      ].join('\n'),
     },
   ];
 }
@@ -181,6 +197,8 @@ function buildCustomInstallPacket({
         `Primary job: ${recommendedPack.job}`,
         ...recommendedPack.operatingRules,
         `Your guardrail: ${guardrails}`,
+        `Default weekly-use prompt: ${recommendedPack.weeklyUsePrompt}`,
+        `Use this exact output schema unless I ask for a different format: ${recommendedPack.outputSchema.join(' | ')}`,
         'Start by restating the decision or asset I am asking for in plain language.',
         'Ask for missing context only when it would materially change the recommendation.',
         'Use this answer format: one recommendation, why it fits the 90-day plan, one lower-capacity version, one evidence target, assumptions to test, and any contradiction to bring to coaching.',
@@ -201,6 +219,7 @@ function buildCustomInstallPacket({
         'The output is specific to my business instead of generic best practices.',
         'The next action is small enough to complete before the next check-in.',
         'The evidence target tells me what to watch for after I use it.',
+        ...recommendedPack.failureModes.map((item) => `It avoids this failure mode: ${item}`),
       ].map((check) => `- ${check}`).join('\n'),
     },
   ];
@@ -249,7 +268,23 @@ function buildAdvancedInstallDocs({
     },
     {
       title: 'Weekly Use Prompt',
-      body: `Use my current 90-day plan and this week's check-in. Give me one useful next move for ${stage.label}, one lower-capacity version, and one evidence target. Do not give me a full strategy rebuild unless the evidence says the plan is wrong.`,
+      body: recommendedPack.weeklyUsePrompt,
+    },
+    {
+      title: 'Expected Output Schema',
+      body: recommendedPack.outputSchema.map((item, index) => `${index + 1}. ${item}`).join('\n'),
+    },
+    {
+      title: 'Failure Mode Guards',
+      body: formatList(recommendedPack.failureModes),
+    },
+    {
+      title: 'Prompts To Save',
+      body: formatList([
+        recommendedPack.weeklyUsePrompt,
+        `Use the ${recommendedPack.title} to review the last thing I made. Tell me what to keep, what to simplify, and what evidence to collect next.`,
+        `Before I change direction, compare my request against the saved 90-day goal, the current evidence, and these guardrails: ${guardrails}`,
+      ]),
     },
     {
       title: 'Troubleshooting',
@@ -574,7 +609,7 @@ export function AiStudioPlanCard({
                 Selected from library. The plan-matched recommendation is {recommendedPack.title}.
               </p>
             )}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 lg:grid-cols-3">
               <div className="rounded-md bg-background p-3">
                 <p className="text-xs font-semibold text-muted-foreground">Interview focuses on</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -586,6 +621,10 @@ export function AiStudioPlanCard({
               <div className="rounded-md bg-background p-3">
                 <p className="text-xs font-semibold text-muted-foreground">First supervised test</p>
                 <p className="mt-2 text-sm leading-snug">{selectedPack.firstTest}</p>
+              </div>
+              <div className="rounded-md bg-background p-3">
+                <p className="text-xs font-semibold text-muted-foreground">Output standard</p>
+                <p className="mt-2 text-sm leading-snug">{selectedPack.outputSchema.slice(0, 3).join(' -> ')}</p>
               </div>
             </div>
           </div>
@@ -885,7 +924,7 @@ export function AiStudioPlanCard({
             </div>
           </div>
           <div className="grid gap-2 md:grid-cols-2">
-            {visiblePacks.slice(0, 6).map((pack) => {
+            {visiblePacks.map((pack) => {
               const canSelectPack = pack.visibility !== 'locked';
               const isSelected = selectedPack.id === pack.id;
               const isConfirmedUnlock =

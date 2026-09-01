@@ -24,6 +24,9 @@ export interface AiProjectPack {
   knowledgeDocs: string[];
   operatingRules: string[];
   outputChecks: string[];
+  outputSchema: string[];
+  weeklyUsePrompt: string;
+  failureModes: string[];
   firstTest: string;
   access: AiPackAccess;
   status: AiPackStatus;
@@ -65,6 +68,20 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
       'Separate observed evidence from interpretation before recommending a pivot.',
     ],
     outputChecks: ['The next step is small enough for this week', 'The recommendation uses buyer/customer evidence', 'The output does not rebuild the whole business by default'],
+    outputSchema: [
+      '90-day result being protected',
+      'Current decision or bottleneck',
+      'One recommended weekly move',
+      'Lower-capacity version',
+      'Evidence to collect before changing strategy',
+      'Coaching question if the evidence is unclear',
+    ],
+    weeklyUsePrompt: "Use my saved 90-day plan and this week's check-in. Pick the one move that protects the plan, name the lower-capacity version, and tell me what evidence to bring back.",
+    failureModes: [
+      'Suggesting a new strategy before reviewing the current plan and evidence.',
+      'Giving a long list of tasks instead of one useful weekly move.',
+      'Treating feelings, guesses, or AI assumptions like market evidence.',
+    ],
     firstTest: "Ask it to turn this week's check-in into one next move and one evidence target.",
     access: 'planner_safe',
     status: 'template_ready',
@@ -90,6 +107,20 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
       'Keep price, promise, scope, and boundary visible in every critique.',
     ],
     outputChecks: ['The offer can be sent to a real person', 'The validation ask creates evidence', 'The suggestion protects the simplest sellable version'],
+    outputSchema: [
+      'Specific buyer',
+      'Paid problem or desired result',
+      'Current offer promise',
+      'Price, format, scope, and boundary',
+      'Smallest validation ask to send this week',
+      'Evidence to record from replies, objections, or sales',
+    ],
+    weeklyUsePrompt: 'Use my current offer evidence and 90-day revenue goal. Tighten one buyer/problem/promise decision, then give me the smallest validation ask to send this week.',
+    failureModes: [
+      'Polishing positioning before naming the buyer and paid problem.',
+      'Recommending a full product rebuild when one offer variable needs testing.',
+      'Making the offer sound impressive but harder to send to a real person.',
+    ],
     firstTest: 'Give it the current offer and ask for the smallest validation ask to send this week.',
     access: 'monthly_unlockable',
     status: 'quality_gate_required',
@@ -115,9 +146,23 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
       'End every output with the signal to track after publishing.',
     ],
     outputChecks: ['The asset names the buyer problem', 'The channel matches current capacity', 'The next step can be measured by replies, clicks, saves, or conversations'],
+    outputSchema: [
+      'Chosen discovery lane',
+      'Buyer problem this asset should make obvious',
+      'One content, outreach, or collaboration rep',
+      'Bridge to reply, opt in, inquire, or buy',
+      'Qualified signal to track',
+      'Next adjustment only after enough reps',
+    ],
+    weeklyUsePrompt: 'Use my 90-day plan and current offer. Choose one discovery rep for this week that reaches the right buyer, gives them a clear next step, and creates qualified signal.',
+    failureModes: [
+      'Creating content for general attention instead of qualified buyer signal.',
+      'Opening five channels before one lane has enough evidence.',
+      'Confusing follower growth or views with buyer movement.',
+    ],
     firstTest: 'Ask it to create one discovery asset for the exact buyer problem in the current plan.',
     access: 'monthly_unlockable',
-    status: 'planned',
+    status: 'quality_gate_required',
   },
   {
     id: 'nurture-desk',
@@ -140,6 +185,20 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
       'Ask for replies or buying signals when the member needs evidence.',
     ],
     outputChecks: ['The piece has one clear belief job', 'The copy sounds like the business owner', 'The output creates a reply, click, or buying-signal opportunity'],
+    outputSchema: [
+      'Buyer belief or objection being moved',
+      'Proof, story, or teaching point',
+      'One nurture asset draft',
+      'Plain-language invitation or response path',
+      'Signal to track after sending',
+      'Follow-up question or next message',
+    ],
+    weeklyUsePrompt: 'Use my current offer, audience language, and 90-day plan. Create one nurture asset that moves one buyer belief and gives me a clear signal to watch.',
+    failureModes: [
+      'Writing general content that could support any offer.',
+      'Over-teaching instead of moving one belief or objection.',
+      'Making the voice sound more polished than specific and human.',
+    ],
     firstTest: "Ask it to write one belief-shifting email using the member's actual offer and audience language.",
     access: 'monthly_unlockable',
     status: 'quality_gate_required',
@@ -165,6 +224,20 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
       'Debrief invitations, follow-up, objections, and sales evidence neutrally.',
     ],
     outputChecks: ['The invitation is clear and direct', 'Follow-up is scheduled', 'The debrief separates facts from interpretation'],
+    outputSchema: [
+      'Sales goal and sales math',
+      'Warmest buyer segment',
+      'Invitation or sales asset to use next',
+      'Follow-up plan',
+      'Objections or no-response data to track',
+      'Debrief decision after the response window',
+    ],
+    weeklyUsePrompt: 'Use my 90-day revenue goal, current offer, and warmest audience. Give me the next invitation, follow-up, and debrief evidence before changing the offer.',
+    failureModes: [
+      'Editing sales assets to avoid making invitations.',
+      'Changing the offer before the response and follow-up window is complete.',
+      'Judging the whole business from a tiny or unqualified test.',
+    ],
     firstTest: 'Ask it to write the next invitation and follow-up based on the current 90-day revenue goal.',
     access: 'monthly_unlockable',
     status: 'quality_gate_required',
@@ -190,9 +263,23 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
       'Use feedback and proof to choose the next delivery improvement.',
     ],
     outputChecks: ['The customer first win is specific', 'The onboarding step reduces friction', 'The proof request is timely and natural'],
+    outputSchema: [
+      'Customer result being promised',
+      'First meaningful win',
+      'Current friction or stuck point',
+      'One onboarding, check-in, or support improvement',
+      'Proof or feedback to collect',
+      'Retention, referral, or testimonial opportunity',
+    ],
+    weeklyUsePrompt: 'Use my customer promise and 90-day plan. Improve one step that helps customers reach the first win faster and tells me what proof or feedback to collect.',
+    failureModes: [
+      'Adding more lessons instead of making the customer action clearer.',
+      'Collecting testimonials before there is a real progress point.',
+      'Solving every delivery issue instead of the first visible stuck point.',
+    ],
     firstTest: 'Ask it to improve one onboarding or check-in step for the current customer path.',
     access: 'monthly_unlockable',
-    status: 'planned',
+    status: 'quality_gate_required',
   },
   {
     id: 'workflow-systems-lab',
@@ -215,9 +302,23 @@ export const AI_PROJECT_PACKS: AiProjectPack[] = [
       'Use AI or automation only where the process is stable enough to supervise.',
     ],
     outputChecks: ['The SOP matches how the work really happens', 'The automation risk is named', 'The member can test one supervised rep before scaling'],
+    outputSchema: [
+      'Workflow connected to the 90-day result',
+      'Current trigger, owner, steps, and end state',
+      'Steps to remove, simplify, template, AI-assist, delegate, or automate',
+      'Approval and rollback rules',
+      'One supervised test run',
+      'Evidence for time saved, quality, cost, and exceptions',
+    ],
+    weeklyUsePrompt: 'Use my 90-day plan and current operating constraint. Turn one repeated workflow into a simpler supervised system before suggesting automation.',
+    failureModes: [
+      'Automating a process that is not stable or worth repeating yet.',
+      'Writing an SOP that ignores how the work actually happens.',
+      'Removing owner review before quality, exceptions, and rollback rules are clear.',
+    ],
     firstTest: 'Ask it to turn one messy repeated workflow into a first-draft SOP with a review checklist.',
     access: 'monthly_unlockable',
-    status: 'planned',
+    status: 'quality_gate_required',
   },
 ];
 
