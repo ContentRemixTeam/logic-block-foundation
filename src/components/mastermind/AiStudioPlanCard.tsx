@@ -1,4 +1,5 @@
-import { Bot, CheckCircle2, ClipboardCheck, KeyRound, Lock, Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Bot, CheckCircle2, ClipboardCheck, Copy, KeyRound, Lock, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,11 @@ import {
   getVisibleAiProjectPacks,
   type VisibleAiPackState,
 } from '@/lib/mastermindAiStudio';
-import type { MastermindPlanCycle, MastermindStageId } from '@/lib/mastermindSuccessPath';
+import {
+  MASTERMIND_SUCCESS_STAGES,
+  type MastermindPlanCycle,
+  type MastermindStageId,
+} from '@/lib/mastermindSuccessPath';
 import { cn } from '@/lib/utils';
 
 interface AiStudioPlanCardProps {
@@ -25,6 +30,52 @@ const visibilityLabel: Record<VisibleAiPackState, string> = {
   locked: 'Locked',
 };
 
+function clean(value: string | null | undefined, fallback: string) {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.toLowerCase() !== 'n' ? trimmed : fallback;
+}
+
+function buildStarterPacket({
+  cycle,
+  selectedStageId,
+  recommendedPack,
+}: {
+  cycle: MastermindPlanCycle | null | undefined;
+  selectedStageId: MastermindStageId;
+  recommendedPack: ReturnType<typeof getRecommendedAiProjectPack>;
+}) {
+  const stage = MASTERMIND_SUCCESS_STAGES.find((item) => item.id === selectedStageId) ?? MASTERMIND_SUCCESS_STAGES[0];
+  const goal = clean(cycle?.goal, 'Use my current 90-day plan and help me choose one clear result.');
+  const audience = clean(cycle?.audience_target, 'The buyer or audience from my current plan.');
+  const bottleneck = clean(cycle?.biggest_bottleneck, stage.memberQuestion);
+  const message = clean(cycle?.signature_message, 'Use my current offer, voice, and point of view.');
+  const capacity = clean(cycle?.low_energy_version || cycle?.medium_energy_version || cycle?.high_energy_version, 'Keep the next step small enough to finish this week.');
+  const why = clean(cycle?.why, 'Help me make progress without adding unnecessary complexity.');
+
+  return [
+    {
+      title: 'Start Here',
+      body: `You are my ${recommendedPack.title}. Help me make progress on this 90-day goal: ${goal}. Keep advice focused on one next business result, one next action, and one evidence target.`,
+    },
+    {
+      title: 'Business Profile',
+      body: `Audience: ${audience}\nCurrent focus: ${stage.label}\nLikely bottleneck: ${bottleneck}\nMessage or offer language: ${message}\nCapacity rule: ${capacity}\nWhy this matters: ${why}`,
+    },
+    {
+      title: 'Project Instructions',
+      body: `Use Faith Mariah's planning style: choose the smallest useful move, test it with real people, separate facts from interpretation, and do not suggest a full rebuild unless the evidence requires it. When I ask for help, give me one primary recommendation, one lower-capacity version, and one thing to record as evidence.`,
+    },
+    {
+      title: 'First Test',
+      body: recommendedPack.firstTest,
+    },
+    {
+      title: 'Review Checklist',
+      body: 'Before I use the output, check: Is it tied to my 90-day goal? Does it create buyer/customer evidence? Is it small enough to do this week? Does it protect what is already working? Did it avoid generic AI advice?',
+    },
+  ];
+}
+
 export function AiStudioPlanCard({
   cycle,
   selectedStageId,
@@ -32,9 +83,31 @@ export function AiStudioPlanCard({
   membershipTier,
   onOpenAiSettings,
 }: AiStudioPlanCardProps) {
+  const [copied, setCopied] = useState(false);
   const access = getAiStudioAccessSummary(membershipTier, isMastermind);
   const recommendedPack = getRecommendedAiProjectPack(selectedStageId, cycle);
   const visiblePacks = getVisibleAiProjectPacks(access, recommendedPack.id);
+  const starterPacket = useMemo(
+    () => buildStarterPacket({ cycle, selectedStageId, recommendedPack }),
+    [cycle, recommendedPack, selectedStageId]
+  );
+  const starterPacketText = useMemo(
+    () =>
+      starterPacket
+        .map((section) => `## ${section.title}\n${section.body}`)
+        .join('\n\n'),
+    [starterPacket]
+  );
+
+  const copyStarterPacket = async () => {
+    try {
+      await navigator.clipboard.writeText(starterPacketText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
     <Card className="border-primary/20">
@@ -103,6 +176,29 @@ export function AiStudioPlanCard({
             {recommendedPack.installOutputs.map((output) => (
               <div key={output} className="rounded-lg border bg-background p-3 text-sm leading-snug">
                 {output}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-background p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Starter packet</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Copy this into a Claude Project, ChatGPT Project, or custom GPT to create the first useful version without spending app credits.
+              </p>
+            </div>
+            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={copyStarterPacket}>
+              <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
+              {copied ? 'Copied' : 'Copy packet'}
+            </Button>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {starterPacket.map((section) => (
+              <div key={section.title} className="rounded-md bg-muted/35 p-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">{section.title}</p>
+                <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{section.body}</p>
               </div>
             ))}
           </div>

@@ -75,6 +75,7 @@ export default function MastermindHub() {
   const [trainingStageId, setTrainingStageId] = useState<MastermindStageId | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const isAdminPreview = location.pathname.startsWith('/admin/mastermind-90-day-plan-preview');
+  const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview;
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
   const catalogQuery = usePhaseOneCatalog();
   const completedResourceIds = useMemo(
@@ -314,7 +315,7 @@ export default function MastermindHub() {
                 onAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
                 onFindSupport={() => setActiveTab('training')}
                 onOpenAiStudio={() => setActiveTab('support')}
-                aiStudioEnabled={SHOW_AI_STUDIO}
+                aiStudioEnabled={aiStudioEnabled}
               />
 
               {successPathData?.hasConfirmedStage && (
@@ -571,7 +572,7 @@ export default function MastermindHub() {
             </TabsContent>
 
             <TabsContent value="support" className="space-y-4">
-              {SHOW_AI_STUDIO && (
+              {aiStudioEnabled && (
                 <AiStudioPlanCard
                   cycle={successPathData?.cycle}
                   selectedStageId={selectedStageId}

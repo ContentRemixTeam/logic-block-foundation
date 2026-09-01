@@ -14,6 +14,7 @@ const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.
 const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermindPortalResources.ts');
 const successPathPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/SuccessPathPlanCard.tsx');
 const aiStudioSourcePath = path.join(projectRoot, 'src/lib/mastermindAiStudio.ts');
+const aiStudioPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/AiStudioPlanCard.tsx');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -398,6 +399,7 @@ try {
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
   const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
+  const aiStudioPlanCardSource = readFileSync(aiStudioPlanCardSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
@@ -416,6 +418,7 @@ try {
   assert.ok(mastermindHubSource.includes('Change this if it is not the right focus.'), 'Members should be able to correct a recommendation without self-diagnosing from scratch');
   assert.ok(mastermindHubSource.includes('handleOpenRecommendedResource'), 'Success Plan resources should open mapped resources directly');
   assert.ok(mastermindHubSource.includes("location.pathname.startsWith('/admin/mastermind-90-day-plan-preview')"), 'Admin 90-day preview should detect its hidden route');
+  assert.ok(mastermindHubSource.includes('const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview'), 'Hidden admin QA route should show AI Studio without enabling the public feature flag');
   assert.ok(mastermindHubSource.includes('const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate'), 'Admin 90-day preview must rely on the route allowlist instead of the inner member gate');
   assert.ok(mastermindHubSource.includes("navigate(`/admin/mastermind-training-preview?${params.toString()}`)"), 'Admin 90-day preview must keep curriculum clicks on the hidden training route');
   assert.ok(mastermindHubSource.includes('completedResourceIds.has(resource.resourceId)'), '90-day guidance should label watched recommendation videos');
@@ -432,6 +435,12 @@ try {
   assert.ok(successPathPlanCardSource.includes('After setup: '), 'The 90-day guidance card should not use watch-language for AI setup recommendations');
   assert.ok(aiStudioSource.includes('Monthly members get the planner-safe workspace plus one recommended project pack unlock per active month'), 'AI Studio should encode monthly limited access copy');
   assert.ok(aiStudioSource.includes('90-Day CEO Workspace'), 'AI Studio should include a planner-safe foundation workspace');
+  assert.ok(aiStudioPlanCardSource.includes('Starter packet'), 'AI Studio should provide a usable starter packet, not just a theoretical feature card');
+  for (const packetSection of ['Start Here', 'Business Profile', 'Project Instructions', 'First Test', 'Review Checklist']) {
+    assert.ok(aiStudioPlanCardSource.includes(packetSection), 'AI Studio starter packet is missing section: ' + packetSection);
+  }
+  assert.ok(aiStudioPlanCardSource.includes('Copy packet'), 'AI Studio starter packet should be copyable for Claude/ChatGPT setup');
+  assert.ok(aiStudioPlanCardSource.includes('without spending app credits'), 'AI Studio should explain the cost-safe install path');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);
