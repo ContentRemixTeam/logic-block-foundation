@@ -1,0 +1,480 @@
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { CalendarClock, Clock, Lock, Search, Video, WifiOff } from 'lucide-react';
+import { Layout } from '@/components/Layout';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { VaultPlayer } from '@/components/replay-vault/VaultPlayer';
+import { VaultSearchResults } from '@/components/replay-vault/VaultSearchResults';
+import {
+  groupSearchResults,
+  makeAuthReturnTo,
+  normalizeCurrentReplayAccessResponse,
+  parseDetailTarget,
+  shouldAutoRefresh,
+  validatePlaybackResponse,
+} from '@/components/replay-vault/replayVaultCore.mjs';
+import type { PlaybackResult, PlaybackTarget, VaultAccessState, VaultReplayGroup } from '@/components/replay-vault/types';
+import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
+
+const CURRENT_REPLAY_SURFACE = 'recent_replay' as const;
+const CURRENT_REPLAY_QUICK_SEARCH_LIMIT = 10;
+const CURRENT_REPLAY_QUICK_SEARCH_MOMENTS_PER_REPLAY = 3;
+const CURRENT_REPLAY_DEEP_SEARCH_LIMIT = 16;
+const CURRENT_REPLAY_DEEP_SEARCH_MOMENTS_PER_REPLAY = 5;
+const QUICK_SEARCHES = ['offers', 'pricing', 'content', 'capacity'];
+
+type CurrentReplaySearchDepth = 'quick' | 'deep';
+type DeepLinkState = { key: string | null; status: 'idle' | 'loading' | 'success' | 'error' };
+
+function canUseCurrentReplays(access: VaultAccessState) {
+  return access.status === 'allowed';
+}
+
+function targetKey(target: { resourceId: string; momentId?: string | null; questionId?: string | null }) {
+  return `${target.resourceId}:${target.momentId ?? target.questionId ?? 'replay'}`;
+}
+
+export default function MastermindCurrentReplays() {
+  const location = useLocation();
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const accessRequest = useRef({ generation: 0, controller: null as AbortController | null });
+  const searchRequest = useRef({ generation: 0, controller: null as AbortController | null });
+  const playbackRequest = useRef({ generation: 0, controller: null as AbortController | null });
+  const recoverySnapshotRef = useRef({ time: 0, shouldResume: false });
+  const recoveryAttemptsRef = useRef(0);
+  const deepLinkAttemptedRef = useRef<string | null>(null);
+  const deepLinkBusyRef = useRef(false);
+  const isAdminPreview = location.pathname.startsWith('/admin/mastermind-current-replays-preview');
+  const detailBasePath = isAdminPreview ? '/admin/mastermind-current-replays-preview' : '/mastermind/current-replays';
+  const [access, setAccess] = useState<VaultAccessState>({ status: 'loading' });
+  const [query, setQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [searchDepth, setSearchDepth] = useState<CurrentReplaySearchDepth>('quick');
+  const [groups, setGroups] = useState<VaultReplayGroup[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  const [playback, setPlayback] = useState<PlaybackResult | null>(null);
+  const [target, setTarget] = useState<PlaybackTarget | null>(null);
+  const [activationNonce, setActivationNonce] = useState(0);
+  const [sourceGeneration, setSourceGeneration] = useState(0);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [deepLink, setDeepLink] = useState<DeepLinkState>({ key: null, status: 'idle' });
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [recoveryFailed, setRecoveryFailed] = useState(false);
+  const hasCurrentReplayAccess = canUseCurrentReplays(access);
+  const detailTarget = useMemo(() => parseDetailTarget(location.search), [location.search]);
+  const detailKey = detailTarget ? targetKey(detailTarget) : null;
+  const { announcement, onLoadedMetadata, resetForSource } = useVaultSeekCoordinator({
+    mediaRef: videoRef,
+    targetSeconds: target?.startSeconds ?? null,
+    targetKey: target ? targetKey(target) : null,
+    activationNonce,
+  });
+
+  useEffect(() => {
+    if (hasCurrentReplayAccess) headingRef.current?.focus({ preventScroll: true });
+  }, [hasCurrentReplayAccess]);
+
+  useEffect(() => () => {
+    accessRequest.current.controller?.abort();
+    searchRequest.current.controller?.abort();
+    playbackRequest.current.controller?.abort();
+  }, []);
+
+  const loadAccess = useCallback(async () => {
+    accessRequest.current.controller?.abort();
+    const controller = new AbortController();
+    const generation = accessRequest.current.generation + 1;
+    accessRequest.current = { generation, controller };
+    setAccess({ status: 'loading' });
+    setPlayback(null);
+    setTarget(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', {
+        body: { preview: isAdminPreview, surface: CURRENT_REPLAY_SURFACE },
+      });
+      if (controller.signal.aborted || accessRequest.current.generation !== generation) return;
+      setAccess(error ? { status: 'unavailable' } : normalizeCurrentReplayAccessResponse(data));
+    } catch {
+      if (!controller.signal.aborted && accessRequest.current.generation === generation) {
+        setAccess({ status: 'unavailable' });
+      }
+    }
+  }, [isAdminPreview]);
+
+  useEffect(() => {
+    void loadAccess();
+  }, [loadAccess]);
+
+  const resolvePlayback = useCallback(async (nextTarget: PlaybackTarget, options: { recovery?: boolean; deepLink?: boolean } = {}) => {
+    const key = targetKey(nextTarget);
+    if (
+      !options.recovery &&
+      playback?.resourceId === nextTarget.resourceId &&
+      ((nextTarget.momentId && playback.momentId === nextTarget.momentId) ||
+        (!nextTarget.momentId && nextTarget.questionId && playback.questionId === nextTarget.questionId)) &&
+      Number.isFinite(playback.startSeconds)
+    ) {
+      setTarget({ ...nextTarget, startSeconds: playback.startSeconds });
+      setActivationNonce((value) => value + 1);
+      setPlaybackError(null);
+      return true;
+    }
+
+    playbackRequest.current.controller?.abort();
+    const controller = new AbortController();
+    const generation = playbackRequest.current.generation + 1;
+    playbackRequest.current = { generation, controller };
+    if (options.recovery) setRecoveryBusy(true);
+    else {
+      setLoadingKey(key);
+      setPlayback(null);
+      setTarget(null);
+    }
+    setPlaybackError(null);
+    if (!options.recovery) setRecoveryFailed(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-mastermind-playback-link', {
+        body: {
+          resourceId: nextTarget.resourceId,
+          questionId: nextTarget.questionId,
+          momentId: nextTarget.momentId,
+          responseShape: 'verified_cue_v1',
+          preview: isAdminPreview,
+          surface: CURRENT_REPLAY_SURFACE,
+        },
+      });
+      if (controller.signal.aborted || playbackRequest.current.generation !== generation) return false;
+      const result = error ? null : validatePlaybackResponse(data, nextTarget);
+      if (!result) {
+        if (options.recovery) setRecoveryFailed(true);
+        else setPlaybackError('This replay is temporarily unavailable. Your access has not changed.');
+        return false;
+      }
+      if (!options.recovery) recoverySnapshotRef.current = { time: 0, shouldResume: false };
+      resetForSource();
+      setSourceGeneration((value) => value + 1);
+      setPlayback(result);
+      setTarget({ ...nextTarget, startSeconds: options.recovery ? recoverySnapshotRef.current.time : result.startSeconds });
+      setActivationNonce((value) => value + 1);
+      setRecoveryFailed(false);
+      return true;
+    } catch {
+      if (!controller.signal.aborted && playbackRequest.current.generation === generation) {
+        if (options.recovery) setRecoveryFailed(true);
+        else setPlaybackError('This replay is temporarily unavailable. Your access has not changed.');
+      }
+      return false;
+    } finally {
+      if (!controller.signal.aborted && playbackRequest.current.generation === generation) {
+        setLoadingKey(null);
+        setRecoveryBusy(false);
+      }
+    }
+  }, [isAdminPreview, playback, resetForSource]);
+
+  useEffect(() => {
+    if (!detailKey) {
+      deepLinkAttemptedRef.current = null;
+      setDeepLink({ key: null, status: 'idle' });
+    }
+  }, [detailKey]);
+
+  useEffect(() => {
+    if (!hasCurrentReplayAccess || !detailTarget || !detailKey || deepLinkAttemptedRef.current === detailKey || deepLinkBusyRef.current) return;
+    deepLinkAttemptedRef.current = detailKey;
+    deepLinkBusyRef.current = true;
+    setDeepLink({ key: detailKey, status: 'loading' });
+    void resolvePlayback({ ...detailTarget, title: 'Current replay', startSeconds: null }, { deepLink: true }).then((ok) => {
+      deepLinkBusyRef.current = false;
+      setDeepLink((current) => current.key === detailKey ? { key: detailKey, status: ok ? 'success' : 'error' } : current);
+    });
+  }, [detailKey, detailTarget, hasCurrentReplayAccess, resolvePlayback]);
+
+  const retryDeepLink = () => {
+    if (!detailTarget || !detailKey || deepLinkBusyRef.current) return;
+    deepLinkAttemptedRef.current = detailKey;
+    deepLinkBusyRef.current = true;
+    setDeepLink({ key: detailKey, status: 'loading' });
+    void resolvePlayback({ ...detailTarget, title: 'Current replay', startSeconds: null }, { deepLink: true }).then((ok) => {
+      deepLinkBusyRef.current = false;
+      setDeepLink((current) => current.key === detailKey ? { key: detailKey, status: ok ? 'success' : 'error' } : current);
+    });
+  };
+
+  const runCurrentReplaySearch = useCallback(async (rawQuery: string, depth: CurrentReplaySearchDepth) => {
+    const cleanQuery = rawQuery.trim().slice(0, 160);
+    if (cleanQuery.length < 2 || !canUseCurrentReplays(access)) return;
+    searchRequest.current.controller?.abort();
+    const controller = new AbortController();
+    const generation = searchRequest.current.generation + 1;
+    searchRequest.current = { generation, controller };
+    const isDeepSearch = depth === 'deep';
+    const limit = isDeepSearch ? CURRENT_REPLAY_DEEP_SEARCH_LIMIT : CURRENT_REPLAY_QUICK_SEARCH_LIMIT;
+    const momentsPerReplay = isDeepSearch ? CURRENT_REPLAY_DEEP_SEARCH_MOMENTS_PER_REPLAY : CURRENT_REPLAY_QUICK_SEARCH_MOMENTS_PER_REPLAY;
+    setSearching(true);
+    setSubmittedQuery(cleanQuery);
+    setSearchError(null);
+    setSearchDepth(depth);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', {
+        body: {
+          query: cleanQuery,
+          limit,
+          momentsPerReplay,
+          filters: { includeMetadataFallback: true },
+          responseShape: 'grouped_moments_v1',
+          preview: isAdminPreview,
+          surface: CURRENT_REPLAY_SURFACE,
+        },
+      });
+      if (controller.signal.aborted || searchRequest.current.generation !== generation) return;
+      setGroups(error ? [] : groupSearchResults(data));
+      if (error) setSearchError('Current replay search is temporarily unavailable. Your access has not changed.');
+    } catch {
+      if (!controller.signal.aborted && searchRequest.current.generation === generation) {
+        setGroups([]);
+        setSearchError('Current replay search is temporarily unavailable. Your access has not changed.');
+      }
+    } finally {
+      if (!controller.signal.aborted && searchRequest.current.generation === generation) setSearching(false);
+    }
+  }, [access, isAdminPreview]);
+
+  const handleSearch = async (event: FormEvent) => {
+    event.preventDefault();
+    await runCurrentReplaySearch(query, 'quick');
+  };
+
+  const handleOpen = (nextTarget: PlaybackTarget) => {
+    recoveryAttemptsRef.current = 0;
+    void resolvePlayback(nextTarget);
+  };
+
+  const refreshPlayback = useCallback(async (manual = false) => {
+    if (!target || !playback || playback.provider === 'youtube' || recoveryBusy) return;
+    const media = videoRef.current;
+    recoverySnapshotRef.current = { time: media?.currentTime ?? target.startSeconds ?? 0, shouldResume: Boolean(media && !media.paused) };
+    media?.pause();
+    if (!manual) recoveryAttemptsRef.current += 1;
+    await resolvePlayback(target, { recovery: true });
+  }, [playback, recoveryBusy, resolvePlayback, target]);
+
+  const handleLoadedMetadata = () => {
+    onLoadedMetadata();
+    const media = videoRef.current;
+    if (media) {
+      media.currentTime = Math.min(
+        recoverySnapshotRef.current.time || target?.startSeconds || 0,
+        Number.isFinite(media.duration) ? Math.max(0, media.duration - 0.25) : Infinity,
+      );
+    }
+    if (media && recoverySnapshotRef.current.shouldResume) {
+      recoverySnapshotRef.current.shouldResume = false;
+      void media.play().catch(() => undefined);
+    }
+  };
+
+  const handleMediaError = () => {
+    if (!recoveryBusy && shouldAutoRefresh(recoveryAttemptsRef.current)) void refreshPlayback(false);
+    else setRecoveryFailed(true);
+  };
+
+  useEffect(() => {
+    if (!playback?.expiresAt || playback.provider === 'youtube') return;
+    const refreshIn = new Date(playback.expiresAt).getTime() - Date.now() - 30_000;
+    if (!Number.isFinite(refreshIn) || refreshIn <= 0) return;
+    const timer = window.setTimeout(() => {
+      if (shouldAutoRefresh(recoveryAttemptsRef.current)) void refreshPlayback(false);
+    }, Math.min(refreshIn, 2_147_000_000));
+    return () => window.clearTimeout(timer);
+  }, [playback?.expiresAt, playback?.provider, refreshPlayback]);
+
+  return (
+    <Layout>
+      <section data-auth-return-to={makeAuthReturnTo(location)} data-motion-safe className="mx-auto w-full min-w-0 max-w-6xl space-y-6 overflow-x-clip px-0.5 motion-reduce:scroll-auto">
+        {hasCurrentReplayAccess && (
+          <header className="space-y-3">
+            <Badge variant="secondary" className="w-fit">Becoming Boss Mastermind</Badge>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-2">
+                <h1 ref={headingRef} className="text-3xl font-bold tracking-tight" tabIndex={-1}>Current Call Replays</h1>
+                <p className="max-w-2xl text-muted-foreground">
+                  Search recent Mastermind calls by topic, then open the moment that helps with this week's plan.
+                </p>
+              </div>
+              <Badge variant="outline" className="w-fit">
+                <CalendarClock className="mr-2 h-4 w-4" aria-hidden="true" />Last 30 days
+              </Badge>
+            </div>
+          </header>
+        )}
+
+        {access.status === 'loading' && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">Checking access...</p>}
+        {access.status === 'unavailable' && (
+          <Card role="alert">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><WifiOff className="h-5 w-5" aria-hidden="true" />Access check unavailable</CardTitle>
+              <CardDescription>We could not verify access right now. This does not mean your membership changed.</CardDescription>
+            </CardHeader>
+            <CardContent><Button type="button" onClick={() => void loadAccess()}>Try again</Button></CardContent>
+          </Card>
+        )}
+        {access.status === 'not_launched' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" aria-hidden="true" />This page is not open yet</CardTitle>
+              <CardDescription>Your account is recognized, but this private page is currently disabled or limited to the pilot group.</CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+        {access.status === 'denied' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5" aria-hidden="true" />This page is not available for this account</CardTitle>
+              <CardDescription>Use the main Planner dashboard, or sign in with an approved Mastermind account.</CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+
+        {hasCurrentReplayAccess && (
+          <>
+            <Card id="vault-search-area" className="scroll-mt-4">
+              <CardHeader>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge>Current Replays</Badge>
+                  <CardTitle>What do you need help with this week?</CardTitle>
+                </div>
+                <CardDescription id="current-replay-search-help">
+                  Search the current replay window for a specific question, bottleneck, or topic.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form role="search" onSubmit={handleSearch} className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <label htmlFor="current-replay-search" className="text-sm font-medium">Search current replays</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                      <Input
+                        ref={searchInputRef}
+                        id="current-replay-search"
+                        value={query}
+                        maxLength={160}
+                        aria-describedby="current-replay-search-help"
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="Try offers, pricing, content, or capacity"
+                        className="min-h-11 min-w-0 pl-10"
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" className="min-h-11 w-full sm:w-auto" disabled={query.trim().length < 2}>
+                    {searching ? 'Searching...' : 'Search current replays'}
+                  </Button>
+                </form>
+                <div className="flex flex-wrap gap-2" aria-label="Quick searches">
+                  {QUICK_SEARCHES.map((term) => (
+                    <Button
+                      key={term}
+                      type="button"
+                      variant="outline"
+                      className="min-h-9"
+                      onClick={() => {
+                        setQuery(term);
+                        void runCurrentReplaySearch(term, 'quick');
+                      }}
+                    >
+                      {term}
+                    </Button>
+                  ))}
+                </div>
+                <p className="sr-only" role="status" aria-live="polite">
+                  {searching ? 'Searching current replays.' : submittedQuery ? `${groups.length} matching replays.` : ''}
+                </p>
+              </CardContent>
+            </Card>
+
+            {searchError && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{searchError}</p>}
+            {deepLink.status === 'error' && (
+              <div role="alert" className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-sm">That replay moment could not be opened. Your access has not changed.</p>
+                <Button type="button" variant="outline" className="w-fit" onClick={retryDeepLink}>Try again</Button>
+              </div>
+            )}
+            {playbackError && deepLink.status !== 'error' && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{playbackError}</p>}
+            {playback && target && (
+              <VaultPlayer
+                playback={playback}
+                target={target}
+                videoRef={videoRef}
+                announcement={announcement}
+                sourceGeneration={sourceGeneration}
+                recoveryBusy={recoveryBusy}
+                recoveryFailed={recoveryFailed}
+                onLoadedMetadata={handleLoadedMetadata}
+                onMediaError={handleMediaError}
+                onManualRefresh={() => void refreshPlayback(true)}
+                onOpen={handleOpen}
+                showVaultTools={false}
+                footer={
+                  <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+                    Watch the useful part, then go back to your 90-day plan and turn the insight into one action or one piece of evidence.
+                  </div>
+                }
+              />
+            )}
+            {groups.length > 0 && (
+              <div className="flex flex-col gap-2 rounded-md border bg-muted/35 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {searchDepth === 'deep' ? 'Showing a deeper set of current replay moments.' : 'Showing the fastest high-signal matches first.'}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  disabled={searching || searchDepth === 'deep'}
+                  onClick={() => void runCurrentReplaySearch(submittedQuery || query, 'deep')}
+                >
+                  {searchDepth === 'deep' ? 'Deep search shown' : 'Search deeper'}
+                </Button>
+              </div>
+            )}
+            {groups.length > 0 && <VaultSearchResults groups={groups} loadingKey={loadingKey} detailBasePath={detailBasePath} onOpen={handleOpen} />}
+            {!searching && submittedQuery && groups.length === 0 && !searchError && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Video className="h-5 w-5" aria-hidden="true" />No current replay moments found</CardTitle>
+                  <CardDescription>Try fewer words or a broader topic. Your search is still in the box.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" onClick={() => searchInputRef.current?.focus()}>Edit search</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setQuery('');
+                      setSubmittedQuery('');
+                      setGroups([]);
+                      searchInputRef.current?.focus();
+                    }}
+                  >
+                    Clear search
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+      </section>
+    </Layout>
+  );
+}

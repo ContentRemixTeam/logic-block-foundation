@@ -8,7 +8,9 @@ import {
   groupSearchResults,
   isStableVaultId,
   makeDetailHref,
+  makeSurfaceDetailHref,
   normalizeAccessResponse,
+  normalizeCurrentReplayAccessResponse,
   parseDetailTarget,
   validatePlaybackResponse,
 } from "../src/components/replay-vault/replayVaultCore.mjs";
@@ -55,6 +57,16 @@ const accessCases = [
 for (const [name, payload, expected] of accessCases) {
   assert.equal(normalizeAccessResponse(payload).status, expected, `UX rejected exact access producer case: ${name}`);
 }
+const currentReplayAccessCases = [
+  ["monthly current access", accessPayload({ memberTier: "monthly", memberScopes: ["core_curriculum", "current_replay_30_day"] }), "allowed"],
+  ["annual current access", accessPayload(), "allowed"],
+  ["monthly missing current scope", accessPayload({ allowed: false, memberTier: "monthly", memberScopes: ["core_curriculum"] }), "denied"],
+  ["current preview", accessPayload({ memberEntitled: false, memberTier: null, memberScopes: [], previewCapabilities: ["preview_recent_replay"], previewActive: true }), "allowed"],
+  ["preview missing current capability", accessPayload({ allowed: false, memberEntitled: false, memberTier: null, memberScopes: [], previewCapabilities: [], previewActive: true }), "unavailable"],
+];
+for (const [name, payload, expected] of currentReplayAccessCases) {
+  assert.equal(normalizeCurrentReplayAccessResponse(payload).status, expected, `UX rejected current replay access producer case: ${name}`);
+}
 assert.equal(normalizeAccessResponse({}).status, "unavailable", "malformed success must not invent entitlement loss");
 assert.equal(normalizeAccessResponse({ error: "Could not verify access" }).status, "unavailable", "transport/server failure must remain unavailable");
 for (const field of ["allowed", "memberEntitled", "memberTier", "memberScopes", "previewCapabilities", "previewActive", "launchState"]) {
@@ -88,10 +100,11 @@ const momentId = "11111111-1111-4111-8111-111111111111";
 const secondMomentId = "22222222-2222-4222-8222-222222222222";
 const questionId = "33333333-3333-4333-8333-333333333333";
 const searchRows = [
-  { portal_resource_id: canonicalResourceId, moment_id: momentId, question_id: null, title: "Pricing replay", product_title: "Vault", category_title: "Selling", resource_type: "video", snippet: "pricing strategy", reason: "matches transcript", starts_at_seconds: 120, ends_at_seconds: 165, duration_seconds: 3600 },
-  { portal_resource_id: canonicalResourceId, moment_id: secondMomentId, question_id: questionId, title: "Pricing replay", product_title: "Vault", category_title: "Selling", resource_type: "video", snippet: "pricing answer", reason: "best answer", starts_at_seconds: 240, ends_at_seconds: 285, duration_seconds: 3600 },
+  { portal_resource_id: canonicalResourceId, moment_id: momentId, question_id: null, title: "Pricing replay", product_title: "Vault", category_title: "Selling", resource_type: "video", snippet: "pricing strategy", reason: "matches transcript", starts_at_seconds: 120, ends_at_seconds: 165, duration_seconds: 3600, access_scope: "current_replay_30_day" },
+  { portal_resource_id: canonicalResourceId, moment_id: secondMomentId, question_id: questionId, title: "Pricing replay", product_title: "Vault", category_title: "Selling", resource_type: "video", snippet: "pricing answer", reason: "best answer", starts_at_seconds: 240, ends_at_seconds: 285, duration_seconds: 3600, access_scope: "current_replay_30_day" },
 ];
 const mappedSearch = searchRows.map(mapSearchRow);
+assert.equal(mappedSearch[0].accessScope, "current_replay_30_day", "search mapper must preserve safe access scope for live gates");
 const groups = groupSearchResults({ results: mappedSearch });
 assert.equal(groups.length, 1);
 assert.equal(groups[0].resourceId, canonicalResourceId);
@@ -100,6 +113,9 @@ const detailHref = makeDetailHref({ resourceId: canonicalResourceId, questionId,
 assert.ok(detailHref.includes("resource=membershipio%3A"), "URLSearchParams must encode canonical namespace punctuation");
 assert.deepEqual(parseDetailTarget(new URL(detailHref, "https://app.example").search), { resourceId: canonicalResourceId, questionId: null, momentId: secondMomentId });
 assert.equal(groups[0].moments[1].questionId, null, 'search answer must resolve by its durable moment ID, not send a playback-invalid dual target');
+const currentDetailHref = makeSurfaceDetailHref({ resourceId: canonicalResourceId, momentId: secondMomentId }, "/admin/mastermind-current-replays-preview");
+assert.ok(currentDetailHref.startsWith("/admin/mastermind-current-replays-preview?"), "surface detail links should preserve the current replay route");
+assert.deepEqual(parseDetailTarget(new URL(currentDetailHref, "https://app.example").search), { resourceId: canonicalResourceId, questionId: null, momentId: secondMomentId });
 
 for (const [name, mutate] of [
   ["remove resourceId", (value) => { delete value.resourceId; }],

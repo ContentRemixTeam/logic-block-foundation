@@ -122,6 +122,7 @@ export function getProtectedTrainingHref(resource: MastermindPortalResource, sta
   const params = new URLSearchParams({ resource: playback.resourceId });
   if (stageId && resource.stages.includes(stageId)) params.set('stage', stageId);
   if (playback.surface === 'vault') return `/mastermind/replay-vault?${params.toString()}`;
+  if (playback.surface === 'recent_replay') return `/mastermind/current-replays?${params.toString()}`;
   return `/mastermind/training?${params.toString()}`;
 }
 

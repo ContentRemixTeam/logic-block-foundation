@@ -31,6 +31,7 @@ export function mapSearchRow(row) {
     productTitle: memberSafeText(row.product_title, 120),
     category: memberSafeText(row.category_title, 120, "Replay"),
     sourceType: memberSafeText(row.resource_type, 64, "video"),
+    accessScope: memberSafeText(row.access_scope ?? row.approved_access_scope, 64),
     publishedAt: null,
     durationSeconds: finiteSeconds(row.duration_seconds),
     thumbnailUrl: null,

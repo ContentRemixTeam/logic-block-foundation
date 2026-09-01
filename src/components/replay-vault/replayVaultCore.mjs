@@ -1,6 +1,7 @@
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~:-]{0,219}$/;
 const MEMBER_TIERS = new Set(['monthly', 'annual', 'lifetime']);
 const LAUNCH_STATES = new Set(['disabled', 'pilot', 'launched']);
+const PREVIEW_CURRENT_REPLAY_CAPABILITIES = new Set(['preview_recent_replay', 'preview_vault', 'preview_unpublished']);
 const TITLE_ACRONYMS = new Set(['AI', 'CEO', 'CFO', 'COO', 'CRM', 'DIY', 'DM', 'DMS', 'EFT', 'FAQ', 'FB', 'GHL', 'LLC', 'PDF', 'SEO', 'URL', 'VIP']);
 
 export function formatVaultTitle(value) {
@@ -81,6 +82,31 @@ export function normalizeAccessResponse(data) {
   return { status: 'denied', reasonCode: null, checkedAt };
 }
 
+export function normalizeCurrentReplayAccessResponse(data) {
+  if (!producerAccessShape(data)) return { status: 'unavailable' };
+
+  const checkedAt = null;
+  if (data.previewActive) {
+    const hasPreview = data.previewCapabilities.some((capability) =>
+      PREVIEW_CURRENT_REPLAY_CAPABILITIES.has(String(capability).toLowerCase())
+    );
+    return hasPreview
+      ? { status: 'allowed', capabilities: ['core', 'current_replay'], checkedAt }
+      : { status: 'unavailable' };
+  }
+
+  if (data.allowed === true && data.memberEntitled === true && data.memberScopes.includes('current_replay_30_day')) {
+    return { status: 'allowed', capabilities: memberCapabilities(data.memberScopes), checkedAt };
+  }
+
+  if (data.memberEntitled === true) {
+    return { status: 'denied', reasonCode: null, checkedAt };
+  }
+
+  if (data.memberTier !== null || data.memberScopes.length > 0) return { status: 'unavailable' };
+  return { status: 'denied', reasonCode: null, checkedAt };
+}
+
 function normalizedMoment(result) {
   if (!isStableVaultId(result?.momentId)) return null;
   const startSeconds = Number.isFinite(result?.startSeconds)
@@ -147,6 +173,17 @@ export function makeDetailHref({ resourceId, questionId = null, momentId = null 
   if (isStableVaultId(momentId)) params.set('moment', momentId);
   else if (isStableVaultId(questionId)) params.set('question', questionId);
   return `/mastermind/replay-vault?${params.toString()}`;
+}
+
+export function makeSurfaceDetailHref({ resourceId, questionId = null, momentId = null }, basePath = '/mastermind/replay-vault') {
+  if (!isStableVaultId(resourceId)) throw new Error('A stable resource ID is required');
+  const safeBasePath = String(basePath || '/mastermind/replay-vault').startsWith('/')
+    ? String(basePath || '/mastermind/replay-vault')
+    : '/mastermind/replay-vault';
+  const params = new URLSearchParams({ resource: resourceId });
+  if (isStableVaultId(momentId)) params.set('moment', momentId);
+  else if (isStableVaultId(questionId)) params.set('question', questionId);
+  return `${safeBasePath}?${params.toString()}`;
 }
 
 export function parseDetailTarget(search) {

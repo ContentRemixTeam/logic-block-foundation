@@ -3,6 +3,7 @@ import path from "node:path";
 
 const SEARCH_FUNCTION = "search-mastermind-resources";
 const PLAYBACK_FUNCTION = "get-mastermind-playback-link";
+const DEFAULT_PLAYBACK_SURFACE = "recent_replay";
 const MONTHLY_ALLOWED_ACCESS = new Set(["core_curriculum", "current_replay_30_day"]);
 const RESTRICTED_ACCESS = new Set(["replay_vault", "vault", "bonus_or_access_review"]);
 const SEARCH_SOURCE_LEAK_PATTERNS = [
@@ -166,7 +167,7 @@ async function assertFirstWorkingPlayback(candidateIds, token) {
 
   const attempts = [];
   for (const resourceId of candidateIds) {
-    const result = await postJson(PLAYBACK_FUNCTION, { resourceId }, token);
+    const result = await postJson(PLAYBACK_FUNCTION, { resourceId, surface: DEFAULT_PLAYBACK_SURFACE }, token);
     attempts.push(`${resourceId}:${result.status}`);
     assertNoPlaybackRawFields(result.payload);
 
@@ -238,6 +239,7 @@ function requiredConfig() {
     MASTERMIND_MONTHLY_JWT: env("MASTERMIND_MONTHLY_JWT"),
     MASTERMIND_NONMEMBER_JWT: env("MASTERMIND_NONMEMBER_JWT"),
     MASTERMIND_PLAYBACK_RESOURCE_ID: env("MASTERMIND_PLAYBACK_RESOURCE_ID"),
+    MASTERMIND_PLAYBACK_SURFACE: env("MASTERMIND_PLAYBACK_SURFACE"),
     MASTERMIND_LIVE_QA_ARTIFACT: env("MASTERMIND_LIVE_QA_ARTIFACT"),
   };
 }
@@ -262,6 +264,7 @@ Real run:
   MASTERMIND_MONTHLY_JWT="<token>" \\
   MASTERMIND_NONMEMBER_JWT="<token>" \\
   MASTERMIND_PLAYBACK_RESOURCE_ID="<optional portal_resource_id>" \\
+  MASTERMIND_PLAYBACK_SURFACE="<optional curriculum|recent_replay|vault>" \\
   npm run qa:mastermind-live-gates
 `);
 }
@@ -297,20 +300,20 @@ async function main() {
   const playbackCandidateIds = [];
 
   await runCase(results, "signed_out_search_returns_401", SEARCH_FUNCTION, async () => {
-    const result = await postJson(SEARCH_FUNCTION, { query: "sales page", path: "sell", limit: 3 });
+    const result = await postJson(SEARCH_FUNCTION, { query: "sales page", path: "sell", limit: 3, surface: DEFAULT_PLAYBACK_SURFACE });
     assertStatus(result, 401);
     return { status: result.status };
   });
 
   await runCase(results, "signed_out_playback_returns_401", PLAYBACK_FUNCTION, async () => {
-    const result = await postJson(PLAYBACK_FUNCTION, { resourceId: config.MASTERMIND_PLAYBACK_RESOURCE_ID || "missing" });
+    const result = await postJson(PLAYBACK_FUNCTION, { resourceId: config.MASTERMIND_PLAYBACK_RESOURCE_ID || "missing", surface: config.MASTERMIND_PLAYBACK_SURFACE || DEFAULT_PLAYBACK_SURFACE });
     assertStatus(result, 401);
     return { status: result.status };
   });
 
   if (config.MASTERMIND_NONMEMBER_JWT) {
     await runCase(results, "non_member_search_returns_403", SEARCH_FUNCTION, async () => {
-      const result = await postJson(SEARCH_FUNCTION, { query: "sales page", path: "sell", limit: 3 }, config.MASTERMIND_NONMEMBER_JWT);
+      const result = await postJson(SEARCH_FUNCTION, { query: "sales page", path: "sell", limit: 3, surface: DEFAULT_PLAYBACK_SURFACE }, config.MASTERMIND_NONMEMBER_JWT);
       assertStatus(result, 403);
       return { status: result.status };
     });
@@ -324,6 +327,7 @@ async function main() {
         path: "sell",
         filters: { includeMetadataFallback: false },
         limit: 6,
+        surface: DEFAULT_PLAYBACK_SURFACE,
       },
     },
     {
@@ -333,6 +337,7 @@ async function main() {
         path: "find",
         filters: { includeMetadataFallback: false },
         limit: 6,
+        surface: "curriculum",
       },
     },
     {
@@ -342,6 +347,7 @@ async function main() {
         path: "leverage",
         filters: { includeMetadataFallback: true },
         limit: 6,
+        surface: "curriculum",
       },
     },
   ];
@@ -363,6 +369,7 @@ async function main() {
         query: "weekly planning july 6",
         filters: { includeMetadataFallback: false },
         limit: 8,
+        surface: DEFAULT_PLAYBACK_SURFACE,
       },
       config.MASTERMIND_MONTHLY_JWT,
     );
@@ -375,7 +382,7 @@ async function main() {
     await runCase(results, "monthly_playback_link_allowed_resource", PLAYBACK_FUNCTION, async () => {
       const result = await postJson(
         PLAYBACK_FUNCTION,
-        { resourceId: config.MASTERMIND_PLAYBACK_RESOURCE_ID },
+        { resourceId: config.MASTERMIND_PLAYBACK_RESOURCE_ID, surface: config.MASTERMIND_PLAYBACK_SURFACE || DEFAULT_PLAYBACK_SURFACE },
         config.MASTERMIND_MONTHLY_JWT,
       );
       assertStatus(result, 200);
@@ -393,7 +400,7 @@ async function main() {
     await runCase(results, "non_member_playback_returns_403", PLAYBACK_FUNCTION, async () => {
       const result = await postJson(
         PLAYBACK_FUNCTION,
-        { resourceId: verifiedPlaybackResourceId },
+        { resourceId: verifiedPlaybackResourceId, surface: config.MASTERMIND_PLAYBACK_SURFACE || DEFAULT_PLAYBACK_SURFACE },
         config.MASTERMIND_NONMEMBER_JWT,
       );
       assertStatus(result, 403);

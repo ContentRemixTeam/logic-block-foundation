@@ -10,7 +10,9 @@ import {
   secureJson,
 } from "../_shared/replayVaultAccess.ts";
 
-interface AccessRequest { preview?: boolean }
+type AccessSurface = "curriculum" | "recent_replay" | "vault";
+interface AccessRequest { preview?: boolean; surface?: AccessSurface }
+const VALID_SURFACES = new Set<AccessSurface>(["curriculum", "recent_replay", "vault"]);
 
 serve(async (req: Request) => {
   if (!isAllowedOrigin(req)) return inaccessible(req);
@@ -33,14 +35,26 @@ serve(async (req: Request) => {
     const { data, error: authError } = await authClient.auth.getUser(token);
     if (authError || !data.user?.email) return secureJson(req, { error: "Unauthorized" }, 401);
 
+    const surface = VALID_SURFACES.has(body.surface as AccessSurface) ? body.surface as AccessSurface : "vault";
     const service = createClient(supabaseUrl, serviceKey);
-    const { data: decision, error } = await service.rpc("replay_vault_access_decision", {
+    let accessDecision = await service.rpc("mastermind_media_access_decision", {
       p_user_id: data.user.id,
       p_email: data.user.email,
       p_resource_id: null,
       p_action: "access",
+      p_surface: surface,
       p_preview: body.preview === true,
     });
+    if (surface === "vault" && accessDecision.error) {
+      accessDecision = await service.rpc("replay_vault_access_decision", {
+        p_user_id: data.user.id,
+        p_email: data.user.email,
+        p_resource_id: null,
+        p_action: "access",
+        p_preview: body.preview === true,
+      });
+    }
+    const { data: decision, error } = accessDecision;
     if (error) throw error;
 
     return secureJson(req, {
@@ -51,6 +65,7 @@ serve(async (req: Request) => {
       previewCapabilities: Array.isArray(decision?.previewCapabilities) ? decision.previewCapabilities : [],
       previewActive: decision?.previewActive === true,
       launchState: decision?.launchState ?? "disabled",
+      surface: decision?.surface ?? surface,
     });
   } catch (error) {
     console.error("[replay-vault-access]", requestId, error instanceof Error ? error.message : "internal_error");

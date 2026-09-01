@@ -24,6 +24,7 @@ const VAULT_QUICK_SEARCH_MOMENTS_PER_REPLAY = 4;
 const VAULT_DEEP_SEARCH_LIMIT = 20;
 const VAULT_DEEP_SEARCH_MOMENTS_PER_REPLAY = 8;
 type VaultSearchDepth = 'quick' | 'deep';
+const VAULT_SURFACE = 'vault' as const;
 
 function ProtectedReplayVault() {
   const location = useLocation();
@@ -70,7 +71,7 @@ function ProtectedReplayVault() {
     setAccess({ status: 'loading' });
     setPlayback(null); setTarget(null);
     try {
-      const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', { body: { preview: true } });
+      const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', { body: { preview: true, surface: VAULT_SURFACE } });
       if (controller.signal.aborted || accessRequest.current.generation !== generation) return;
       setAccess(error ? { status: 'unavailable' } : normalizeAccessResponse(data));
     } catch {
@@ -95,7 +96,16 @@ function ProtectedReplayVault() {
     setPlaybackError(null);
     if (!options.recovery) setRecoveryFailed(false);
     try {
-      const { data, error } = await supabase.functions.invoke('get-mastermind-playback-link', { body: { resourceId: nextTarget.resourceId, questionId: nextTarget.questionId, momentId: nextTarget.momentId, responseShape: 'verified_cue_v1', preview: true } });
+      const { data, error } = await supabase.functions.invoke('get-mastermind-playback-link', {
+        body: {
+          resourceId: nextTarget.resourceId,
+          questionId: nextTarget.questionId,
+          momentId: nextTarget.momentId,
+          responseShape: 'verified_cue_v1',
+          preview: true,
+          surface: VAULT_SURFACE,
+        },
+      });
       if (controller.signal.aborted || playbackRequest.current.generation !== generation) return false;
       const result = error ? null : validatePlaybackResponse(data, nextTarget);
       if (!result) {
@@ -156,7 +166,17 @@ function ProtectedReplayVault() {
     setSearching(true); setSubmittedQuery(cleanQuery); setSearchError(null);
     setSearchDepth(depth);
     try {
-      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit, momentsPerReplay, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1', preview: true } });
+      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', {
+        body: {
+          query: cleanQuery,
+          limit,
+          momentsPerReplay,
+          filters: { includeMetadataFallback: true },
+          responseShape: 'grouped_moments_v1',
+          preview: true,
+          surface: VAULT_SURFACE,
+        },
+      });
       if (controller.signal.aborted || searchRequest.current.generation !== generation) return;
       setGroups(error ? [] : groupSearchResults(data));
       if (error) setSearchError('Search is temporarily unavailable. Your access has not changed.');
@@ -178,7 +198,17 @@ function ProtectedReplayVault() {
   const handleCuratedPlaylistSearch = useCallback(async (playlistQuery: string) => {
     const cleanQuery = playlistQuery.trim().slice(0, 160);
     if (cleanQuery.length < 2 || !canUseVault(access)) return [];
-    const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit: 8, momentsPerReplay: 1, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1', preview: true } });
+    const { data, error } = await supabase.functions.invoke('search-mastermind-resources', {
+      body: {
+        query: cleanQuery,
+        limit: 8,
+        momentsPerReplay: 1,
+        filters: { includeMetadataFallback: true },
+        responseShape: 'grouped_moments_v1',
+        preview: true,
+        surface: VAULT_SURFACE,
+      },
+    });
     if (error) throw new Error('Playlist search unavailable');
     return groupSearchResults(data).slice(0, 8);
   }, [access]);
@@ -228,7 +258,7 @@ function ProtectedReplayVault() {
           <VaultCuratedPlaylists onOpen={handleOpen} onSearchPlaylist={handleCuratedPlaylistSearch} />
           <VaultLibrarySurfaces onOpen={handleOpen} />
           {groups.length > 0 && <div className="flex flex-col gap-2 rounded-md border bg-muted/35 p-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-muted-foreground">{searchDepth === 'deep' ? 'Showing the deeper search set for this topic.' : 'Showing the fastest high-signal matches first.'}</p><Button type="button" variant="outline" className="w-full sm:w-auto" disabled={searching || searchDepth === 'deep'} onClick={handleDeepSearch}>{searchDepth === 'deep' ? 'Deep search shown' : 'Search deeper'}</Button></div>}
-          {groups.length > 0 && <VaultSearchResults groups={groups} loadingKey={loadingKey} onOpen={handleOpen} />}
+          {groups.length > 0 && <VaultSearchResults groups={groups} loadingKey={loadingKey} detailBasePath="/mastermind/replay-vault" onOpen={handleOpen} />}
           {!searching && submittedQuery && groups.length === 0 && !searchError && <Card><CardHeader><CardTitle>No approved moments found</CardTitle><CardDescription>Try fewer words or a broader topic. Your search is still in the box.</CardDescription></CardHeader><CardContent className="flex flex-col gap-2 sm:flex-row"><Button type="button" onClick={() => searchInputRef.current?.focus()}>Edit search</Button><Button type="button" variant="outline" onClick={() => { setQuery(''); setSubmittedQuery(''); setGroups([]); searchInputRef.current?.focus(); }}>Clear search</Button></CardContent></Card>}
         </>}
       </section>

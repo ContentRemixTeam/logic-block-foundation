@@ -26,8 +26,9 @@ async function readBody(request) {
 
 function searchResults(body) {
   const query = String(body.query ?? "").toLowerCase();
+  const surface = String(body.surface ?? "");
 
-  if (query.includes("weekly planning july 6")) {
+  if (query.includes("weekly planning july 6") && surface === "recent_replay") {
     return {
       results: [
         {
@@ -47,7 +48,7 @@ function searchResults(body) {
     };
   }
 
-  if (query.includes("sales page")) {
+  if (query.includes("sales page") && surface === "recent_replay") {
     return {
       results: [
         {
@@ -80,7 +81,7 @@ function searchResults(body) {
     };
   }
 
-  if (query.includes("email list")) {
+  if (query.includes("email list") && surface === "curriculum") {
     return {
       results: [
         {
@@ -100,7 +101,7 @@ function searchResults(body) {
     };
   }
 
-  if (query.includes("ai")) {
+  if (query.includes("ai") && surface === "curriculum") {
     return {
       results: [
         {
@@ -140,6 +141,9 @@ async function handlePlayback(request, response) {
   if (token !== MONTHLY_TOKEN) return sendJson(response, 401, { error: "Unauthorized" });
 
   const body = await readBody(request);
+  if (body.surface !== "recent_replay") {
+    return sendJson(response, 404, { error: "Resource not found" });
+  }
   if (body.resourceId === "portal_sales_source_review") {
     return sendJson(response, 409, { error: "Playback source needs review" });
   }

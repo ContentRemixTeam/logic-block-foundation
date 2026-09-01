@@ -4,11 +4,22 @@ import { bearerHeader, inaccessible, isAllowedOrigin, readBoundedJson, responseH
 import { mapSearchRow } from "../_shared/replayVaultProducer.mjs";
 
 const VALID_PATHS = new Set(["offer","find","nurture","sell","deliver","leverage"]);
-interface SearchRequest { query?: string; path?: string; limit?: number; preview?: boolean; filters?: { includeMetadataFallback?: boolean } }
+type SearchSurface = "curriculum" | "recent_replay" | "vault";
+const VALID_SURFACES = new Set<SearchSurface>(["curriculum", "recent_replay", "vault"]);
+interface SearchRequest {
+  query?: string;
+  path?: string;
+  limit?: number;
+  momentsPerReplay?: number;
+  surface?: SearchSurface;
+  preview?: boolean;
+  filters?: { includeMetadataFallback?: boolean };
+}
 interface SearchRow {
   portal_resource_id: string; moment_id: string; question_id: string | null; title: string; product_title: string;
   category_title: string | null; resource_type: string; snippet: string | null;
   starts_at_seconds: number; ends_at_seconds: number; reason: string; duration_seconds: number | null;
+  access_scope?: string | null; approved_access_scope?: string | null;
 }
 
 serve(async (req: Request) => {
@@ -28,9 +39,16 @@ serve(async (req: Request) => {
     if (authError || !authData.user?.email) return secureJson(req,{ error:"Unauthorized" },401);
 
     const service=createClient(supabaseUrl,serviceKey), preview=body.preview===true;
-    const { data:access,error:accessError }=await service.rpc("replay_vault_access_decision",{
-      p_user_id:authData.user.id,p_email:authData.user.email,p_resource_id:null,p_action:"access",p_preview:preview,
+    const surface = VALID_SURFACES.has(body.surface as SearchSurface) ? body.surface as SearchSurface : "vault";
+    let accessDecision = await service.rpc("mastermind_media_access_decision",{
+      p_user_id:authData.user.id,p_email:authData.user.email,p_resource_id:null,p_action:"access",p_surface:surface,p_preview:preview,
     });
+    if (surface === "vault" && accessDecision.error) {
+      accessDecision = await service.rpc("replay_vault_access_decision",{
+        p_user_id:authData.user.id,p_email:authData.user.email,p_resource_id:null,p_action:"access",p_preview:preview,
+      });
+    }
+    const { data:access,error:accessError }=accessDecision;
     if (accessError) throw accessError;
     if (access?.allowed !== true) return inaccessible(req);
     const query=typeof body.query === "string" ? body.query.trim() : "";
@@ -38,10 +56,19 @@ serve(async (req: Request) => {
     const path=typeof body.path === "string" && body.path.trim() ? body.path.trim().toLowerCase() : null;
     if (path && !VALID_PATHS.has(path)) return secureJson(req,{ error:"Invalid path filter" },400);
     const limit=Math.min(Math.max(Number.isFinite(body.limit) ? Math.trunc(body.limit as number) : 12,1),25);
-    const { data,error }=await service.rpc("search_replay_vault_resources",{
+    const momentsPerReplay=Math.min(Math.max(Number.isFinite(body.momentsPerReplay) ? Math.trunc(body.momentsPerReplay as number) : 3,1),8);
+    let searchResult=await service.rpc("search_mastermind_media_resources",{
       p_user_id:authData.user.id,p_email:authData.user.email,p_query:query,p_stage:path,p_limit:limit,
-      p_include_metadata_fallback:body.filters?.includeMetadataFallback===true,p_preview:preview,
+      p_moments_per_replay:momentsPerReplay,p_include_metadata_fallback:body.filters?.includeMetadataFallback===true,
+      p_surface:surface,p_preview:preview,
     });
+    if (surface === "vault" && searchResult.error) {
+      searchResult=await service.rpc("search_replay_vault_resources",{
+        p_user_id:authData.user.id,p_email:authData.user.email,p_query:query,p_stage:path,p_limit:limit,
+        p_include_metadata_fallback:body.filters?.includeMetadataFallback===true,p_preview:preview,
+      });
+    }
+    const { data,error }=searchResult;
     if (error) throw error;
     return secureJson(req,{ results:((data??[]) as SearchRow[]).map(mapSearchRow) });
   } catch (error) {

@@ -114,6 +114,7 @@ const Projects = lazyWithRetry(() => import('./pages/Projects'));
 const ProjectDetail = lazyWithRetry(() => import('./pages/ProjectDetail'));
 const MastermindHub = lazyWithRetry(() => import('./pages/MastermindHub'));
 const MastermindTraining = lazyWithRetry(() => import('./pages/MastermindTraining'));
+const MastermindCurrentReplays = lazyWithRetry(() => import('./pages/MastermindCurrentReplays'));
 const ReplayVault = lazyWithRetry(() => import('./pages/ReplayVault'));
 const MastermindGate = lazyWithRetry(() => import('./components/mastermind/MastermindGate').then(m => ({ default: m.MastermindGate })));
 const MastermindRosterImport = lazyWithRetry(() => import('./pages/MastermindRosterImport'));
@@ -286,6 +287,7 @@ const App = () => (
                       <Route path="/mastermind" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
                       <Route path="/mastermind/success-path/:cycleId" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindHub /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
                       <Route path="/mastermind/training" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindTraining /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
+                      <Route path="/mastermind/current-replays" element={<ProtectedRoute><MastermindLaunchGate><MastermindGate><PageSuspense><MastermindCurrentReplays /></PageSuspense></MastermindGate></MastermindLaunchGate></ProtectedRoute>} />
                       <Route path="/mastermind/replay-vault" element={<ProtectedRoute><PageSuspense><ReplayVault /></PageSuspense></ProtectedRoute>} />
                       <Route path="/admin/mastermind-roster" element={<ProtectedRoute><PageSuspense><MastermindRosterImport /></PageSuspense></ProtectedRoute>} />
                       <Route path="/support" element={<ProtectedRoute><PageSuspense><Support /></PageSuspense></ProtectedRoute>} />
@@ -295,6 +297,7 @@ const App = () => (
                       <Route path="/admin/mastermind-90-day-plan-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindHub /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
                       <Route path="/admin/mastermind-phase-one-preview" element={<ProtectedRoute><AdminPreviewGate><Navigate to="/admin/mastermind-90-day-plan-preview" replace /></AdminPreviewGate></ProtectedRoute>} />
                       <Route path="/admin/mastermind-training-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindTraining /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
+                      <Route path="/admin/mastermind-current-replays-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindCurrentReplays /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
 
                       <Route path="/admin/mastermind-replacement-preview" element={<ProtectedRoute><AdminPreviewGate><PageSuspense><MastermindReplacementPreview /></PageSuspense></AdminPreviewGate></ProtectedRoute>} />
                       <Route path="/admin/low-battery-workshop" element={<ProtectedRoute><PageSuspense><LowBatteryWorkshopAdmin /></PageSuspense></ProtectedRoute>} />

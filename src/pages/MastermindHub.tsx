@@ -187,7 +187,7 @@ export default function MastermindHub() {
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
   const catalogQuery = usePhaseOneCatalog();
   const phaseOneStateQuery = usePhaseOneState(Boolean(dashboardCycle?.cycle_id));
-  const portalAccessQuery = useMastermindPortalAccess(aiStudioEnabled, isAdminPreview);
+  const portalAccessQuery = useMastermindPortalAccess(aiStudioEnabled, isAdminPreview, 'curriculum');
   const catalogRows = catalogQuery.data;
   const playableResourceIds = useMemo(
     () => new Set((catalogRows ?? []).map((row) => row.portal_resource_id)),
@@ -592,6 +592,11 @@ export default function MastermindHub() {
   ];
 
   const handleOpen = (resource: MastermindPortalResource) => {
+    if (resource.protectedPlayback?.surface === 'recent_replay') {
+      navigate(isAdminPreview ? '/admin/mastermind-current-replays-preview' : '/mastermind/current-replays');
+      return;
+    }
+
     const protectedHref = getProtectedTrainingHref(resource, activeTrainingStageId);
     if (protectedHref) {
       if (isAdminPreview && resource.protectedPlayback?.surface === 'curriculum') {

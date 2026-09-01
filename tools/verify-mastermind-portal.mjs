@@ -12,7 +12,9 @@ const entryPath = path.join(tempDir, 'entry.ts');
 const outputPath = path.join(tempDir, 'entry.mjs');
 const mastermindHubSourcePath = path.join(projectRoot, 'src/pages/MastermindHub.tsx');
 const mastermindTrainingSourcePath = path.join(projectRoot, 'src/pages/MastermindTraining.tsx');
+const mastermindCurrentReplaysSourcePath = path.join(projectRoot, 'src/pages/MastermindCurrentReplays.tsx');
 const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermindPortalResources.ts');
+const appSourcePath = path.join(projectRoot, 'src/App.tsx');
 const successPathPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/SuccessPathPlanCard.tsx');
 const mastermindSupportBotSourcePath = path.join(projectRoot, 'src/components/mastermind/MastermindSupportBot.tsx');
 const aiStudioSourcePath = path.join(projectRoot, 'src/lib/mastermindAiStudio.ts');
@@ -291,6 +293,17 @@ const readyVaultHref = getProtectedTrainingHref({
 });
 assert.equal(readyVaultHref, '/mastermind/replay-vault?resource=membershipio%3AP5qnk1Q02r', 'ready Vault video should keep opening the Vault surface');
 
+const readyCurrentReplayHref = getProtectedTrainingHref({
+  ...MASTERMIND_PORTAL_RESOURCES.find((item) => item.id === 'current-replays')!,
+  protectedPlayback: {
+    resourceId: 'current-replays',
+    accessScope: 'current_replay_30_day',
+    surface: 'recent_replay',
+    status: 'ready',
+  },
+});
+assert.equal(readyCurrentReplayHref, '/mastermind/current-replays?resource=current-replays', 'current replay resources should open the current-replay surface, not the annual Vault');
+
 for (const stage of MASTERMIND_SUCCESS_STAGES) {
   assert.ok(stageIdSet.has(stage.id), 'unknown stage id: ' + stage.id);
   assert.equal(stage.resources.length, 4, stage.label + ' should map each milestone to a starting resource');
@@ -421,7 +434,9 @@ try {
 
   const mastermindHubSource = readFileSync(mastermindHubSourcePath, 'utf8');
   const mastermindTrainingSource = readFileSync(mastermindTrainingSourcePath, 'utf8');
+  const mastermindCurrentReplaysSource = readFileSync(mastermindCurrentReplaysSourcePath, 'utf8');
   const mastermindResourcesSource = readFileSync(mastermindResourcesSourcePath, 'utf8');
+  const appSource = readFileSync(appSourcePath, 'utf8');
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
   const mastermindSupportBotSource = readFileSync(mastermindSupportBotSourcePath, 'utf8');
   const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
@@ -497,6 +512,17 @@ try {
   assert.ok(mastermindHubSource.includes("navigate(`/admin/mastermind-training-preview?${params.toString()}`)"), 'Admin 90-day preview must keep curriculum clicks on the hidden training route');
   assert.ok(mastermindHubSource.includes('params.set(\'stage\', activeTrainingStageId)'), 'Training links should carry the current plan section into the hidden player');
   assert.ok(mastermindResourcesSource.includes("params.set('stage', stageId)"), 'Protected training URLs should preserve section context when it is available');
+  assert.ok(mastermindResourcesSource.includes("playback.surface === 'recent_replay'"), 'Current replays should route through their own protected surface');
+  assert.ok(mastermindHubSource.includes("resource.protectedPlayback?.surface === 'recent_replay'"), '90-day hub should open current replays through the protected current-replay page');
+  assert.ok(mastermindHubSource.includes("navigate(isAdminPreview ? '/admin/mastermind-current-replays-preview' : '/mastermind/current-replays')"), 'Current replay clicks should keep hidden QA on the admin preview route');
+  assert.ok(appSource.includes("const MastermindCurrentReplays"), 'App should lazy-load the current replay surface');
+  assert.ok(appSource.includes('path="/mastermind/current-replays"'), 'App should include the future member current replay route behind gates');
+  assert.ok(appSource.includes('path="/admin/mastermind-current-replays-preview"'), 'App should include the hidden admin current replay QA route');
+  assert.ok(mastermindCurrentReplaysSource.includes("const CURRENT_REPLAY_SURFACE = 'recent_replay'"), 'Current replay page should use the recent_replay protected media surface');
+  assert.ok(mastermindCurrentReplaysSource.includes('normalizeCurrentReplayAccessResponse'), 'Current replay page should normalize current-replay access separately from full Vault access');
+  assert.ok(mastermindCurrentReplaysSource.includes('surface: CURRENT_REPLAY_SURFACE'), 'Current replay page should pass its surface to access, search, and playback calls');
+  assert.ok(mastermindCurrentReplaysSource.includes('detailBasePath={detailBasePath}'), 'Current replay search results should preserve the current-replay route in detail links');
+  assert.ok(mastermindCurrentReplaysSource.includes('showVaultTools={false}'), 'Current replay playback should not expose full Vault tools to monthly members');
   assert.ok(mastermindTrainingSource.includes('Lesson context'), 'Training player should explain why the member is watching the lesson');
   assert.ok(mastermindTrainingSource.includes('Connected outcome'), 'Training player should connect lessons to the 90-day outcome');
   assert.ok(mastermindTrainingSource.includes('After watching'), 'Training player should name the specific output after the lesson');
@@ -664,12 +690,12 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('aria-pressed={isSelected}'), 'AI Studio project pack selector should expose selected state accessibly');
   assert.ok(aiStudioPlanCardSource.includes("pack.visibility !== 'locked'"), 'AI Studio should prevent locked project packs from being selected');
   assert.ok(aiStudioPlanCardSource.includes('Selected from library'), 'AI Studio should explain when the member selected a non-recommended annual/library pack');
-  assert.ok(mastermindHubSource.includes('useMastermindPortalAccess(aiStudioEnabled, isAdminPreview)'), 'MastermindHub should read the server-owned portal access receipt with explicit preview/member mode');
+  assert.ok(mastermindHubSource.includes("useMastermindPortalAccess(aiStudioEnabled, isAdminPreview, 'curriculum')"), 'MastermindHub should read the server-owned curriculum access receipt with explicit preview/member mode');
   assert.ok(mastermindHubSource.includes('memberScopes={portalAccessQuery.data?.memberScopes ?? []}'), 'MastermindHub should pass server member scopes into AI Studio');
   assert.ok(mastermindHubSource.includes('previewCapabilities={portalAccessQuery.data?.previewCapabilities ?? []}'), 'MastermindHub should pass server preview capabilities into AI Studio');
   assert.ok(mastermindPortalAccessSource.includes("supabase.functions.invoke('get-mastermind-portal-access'"), 'AI Studio access hook should reuse the existing portal access function');
-  assert.ok(mastermindPortalAccessSource.includes("queryKey: ['mastermind-portal-access', preview ? 'preview' : 'member']"), 'AI Studio access hook should cache preview and member access separately');
-  assert.ok(mastermindPortalAccessSource.includes('body: { preview }'), 'AI Studio access hook should ask for preview capability only when the hidden preview route is active');
+  assert.ok(mastermindPortalAccessSource.includes("queryKey: ['mastermind-portal-access', surface, preview ? 'preview' : 'member']"), 'AI Studio access hook should cache preview/member access separately for each media surface');
+  assert.ok(mastermindPortalAccessSource.includes('body: { preview, surface }'), 'AI Studio access hook should ask for preview capability only when the hidden preview route is active and pass the intended surface');
   assert.ok(mastermindTrainingSource.includes('preview: isAdminTrainingPreview'), 'Training playback should request preview access only from the hidden admin training route');
   assert.ok(phaseOneCatalogSource.includes('save_my_mastermind_phase_one_state'), 'Phase One state hook should use the existing server save contract');
   assert.ok(phaseOneCatalogSource.includes("queryKey: ['phase-one-state']"), 'Phase One state hook should expose a stable query key');
