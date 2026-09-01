@@ -720,9 +720,11 @@ export default function MastermindHub() {
                       </CardDescription>
                     </div>
                     <Badge variant="secondary" className="w-fit">
-                      {weeklyWatchPlan.resources.length > 0
-                        ? `${formatWatchDuration(weeklyWatchPlan.selectedSeconds)} of ${formatWatchDuration(weeklyWatchPlan.targetSeconds)}`
-                        : `0 of ${formatWatchDuration(weeklyWatchPlan.targetSeconds)}`}
+                      {formatWeeklyWatchPlanSummary(
+                        weeklyWatchPlan.resources.length,
+                        weeklyWatchPlan.selectedSeconds,
+                        weeklyWatchPlan.targetSeconds
+                      )}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -1016,6 +1018,16 @@ function formatWatchDuration(seconds: number | null) {
   if (hours === 0) return `${minutes} min`;
   if (remainingMinutes === 0) return `${hours} hr`;
   return `${hours} hr ${remainingMinutes} min`;
+}
+
+function formatWeeklyWatchPlanSummary(videoCount: number, selectedSeconds: number, targetSeconds: number) {
+  if (videoCount <= 0) return `0 selected - ${formatWatchDuration(targetSeconds)} budget`;
+  const videoLabel = videoCount === 1 ? '1 video selected' : `${videoCount} videos selected`;
+  const selectedLabel = formatWatchDuration(selectedSeconds);
+  if (selectedSeconds <= targetSeconds) {
+    return `${videoLabel} - ${selectedLabel} within ${formatWatchDuration(targetSeconds)} budget`;
+  }
+  return `${videoLabel} - ${selectedLabel} best next watch`;
 }
 
 interface SupportCardProps extends StatusCardProps {
