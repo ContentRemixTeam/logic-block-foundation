@@ -28,7 +28,7 @@
    context_tags?: string[] | null;
    project_id?: string | null;
    section_id?: string | null;
-   status?: 'backlog' | 'focus' | 'scheduled' | 'someday' | 'waiting';
+   status?: 'backlog' | 'scheduled' | 'someday' | 'waiting';
    task_description?: string | null;
    // Optional metadata for system-generated tasks (Phase 2 wizard integration)
    system_source?: string | null;

@@ -170,7 +170,7 @@ export function SuccessPathPlanCard({
           `Suggested training: ${round.primaryResourceTitle}`,
         ].join('\n\n'),
         cycle_id: cycle.cycle_id,
-        status: 'focus',
+        status: 'backlog',
         priority: 'high',
         energy_level: 'medium',
         estimated_minutes: 60,

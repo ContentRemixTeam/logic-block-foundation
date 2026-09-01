@@ -557,7 +557,7 @@ export default function MastermindHub() {
           `Suggested training: ${recommendedTraining}`,
         ].join('\n\n'),
         cycle_id: cycle.cycle_id,
-        status: 'focus',
+        status: 'backlog',
         priority: 'high',
         energy_level: nextMoveMode === 'low' ? 'low_energy' : 'medium',
         estimated_minutes: nextMoveMode === 'low' ? 20 : 60,

@@ -515,6 +515,8 @@ try {
   assert.ok(successPathPlanCardSource.includes('successPath?.stageId === selectedStageId'), 'The guidance reason should be optional so saved plans still render a task-ready move');
   assert.ok(successPathPlanCardSource.includes('Review 90-Day Plan'), 'The 90-day guidance card needs an honest direct plan-editing fallback');
   assert.ok(successPathPlanCardSource.includes('cycle_id: cycle.cycle_id'), 'Weekly move tasks should stay tied to the current 90-day cycle');
+  assert.ok(successPathPlanCardSource.includes("status: 'backlog'"), 'Weekly move tasks should use a database-safe Planner task status');
+  assert.ok(!successPathPlanCardSource.includes("status: 'focus'"), 'Weekly move tasks must not use the rejected focus status');
   assert.ok(successPathPlanCardSource.includes('done_enough_definition: round.doneEnough'), 'Weekly move tasks should carry the result/evidence completion standard');
   assert.ok(successPathPlanCardSource.includes("const WEEKLY_MOVE_TASK_STORAGE_KEY = 'mastermind-weekly-move-task-keys'"), 'Weekly move task handoff should remember the exact cycle/stage/move key');
   assert.ok(successPathPlanCardSource.includes('rememberWeeklyMoveTaskKey(weeklyMoveTaskKey)'), 'Weekly move task handoff should mark successful or queued Planner creation as already handled');
@@ -601,6 +603,8 @@ try {
   assert.ok(mastermindHubSource.includes('data-testid="mastermind-dashboard-weekly-move"'), '90-day hub should expose a dashboard-level weekly Planner handoff');
   assert.ok(mastermindHubSource.includes('addDashboardWeeklyMoveToPlanner'), '90-day hub should create the weekly move from the dashboard next-step panel');
   assert.ok(mastermindHubSource.includes('useResilientTaskMutation'), '90-day hub should reuse the resilient Planner task save path for dashboard weekly moves');
+  assert.ok(mastermindHubSource.includes("status: 'backlog'"), 'Dashboard weekly move tasks should use a database-safe Planner task status');
+  assert.ok(!mastermindHubSource.includes("status: 'focus'"), 'Dashboard weekly move tasks must not use the rejected focus status');
   assert.ok(mastermindHubSource.includes("system_source: 'mastermind-90-day-plan'"), 'Dashboard weekly move tasks should be labeled as Mastermind 90-day plan work');
   assert.ok(mastermindHubSource.includes('rememberWeeklyMoveTaskKey(dashboardWeeklyMoveTaskKey)'), 'Dashboard weekly move handoff should prevent repeat task creation after save or queued sync');
   assert.ok(mastermindHubSource.includes('useActiveCycle'), '90-day hub should use the Planner active cycle as a dashboard fallback');
