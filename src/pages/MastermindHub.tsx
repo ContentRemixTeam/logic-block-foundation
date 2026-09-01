@@ -472,19 +472,17 @@ export default function MastermindHub() {
     return visibleResources.filter((resource) => completedResourceIds.has(resource.id)).length;
   }, [completedResourceIds, resourceFilter, searchQuery, showWatchedResources, visibleResources]);
 
-  const nextReadyPlanResource = useMemo(() => {
+  const nextUnwatchedPlanResource = useMemo(() => {
     return stageResourcesForCurrentMilestone.find((resource) => !completedResourceIds.has(resource.resourceId))
-      ?? stageResourcesForCurrentMilestone[0]
       ?? null;
   }, [completedResourceIds, stageResourcesForCurrentMilestone]);
 
-  const nextReadyPortalResource = nextReadyPlanResource
-    ? portalResourceById.get(nextReadyPlanResource.resourceId) ?? null
+  const nextReadyPortalResource = nextUnwatchedPlanResource
+    ? portalResourceById.get(nextUnwatchedPlanResource.resourceId) ?? null
     : null;
   const nextPlannedPlanResource = plannedStageResourcesForCurrentMilestone[0] ?? null;
-  const hasCompletedNextReadyResource = Boolean(
-    nextReadyPlanResource && completedResourceIds.has(nextReadyPlanResource.resourceId)
-  );
+  const hasCompletedCurrentMilestoneResources =
+    stageResourcesForCurrentMilestone.length > 0 && !nextUnwatchedPlanResource;
   const lowCapacityNextMove = dashboardCycle?.low_energy_version?.trim()
     || selectedStage.quickWin.lowEnergy;
   const currentNextMove = nextMoveMode === 'low' ? lowCapacityNextMove : selectedStage.doThis;
@@ -763,11 +761,11 @@ export default function MastermindHub() {
                         <Video className="h-4 w-4 text-primary" aria-hidden="true" />
                         <p className="text-sm font-semibold">Use next</p>
                       </div>
-                      {nextReadyPlanResource ? (
+                      {nextUnwatchedPlanResource ? (
                         <>
-                          <p className="text-sm font-medium leading-snug">{nextReadyPlanResource.title}</p>
+                          <p className="text-sm font-medium leading-snug">{nextUnwatchedPlanResource.title}</p>
                           <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                            {hasCompletedNextReadyResource ? 'Already watched. Rewatch only if it helps this round.' : nextReadyPlanResource.useWhen}
+                            {nextUnwatchedPlanResource.useWhen}
                           </p>
                         </>
                       ) : nextPlannedPlanResource ? (
@@ -777,6 +775,10 @@ export default function MastermindHub() {
                             This lesson is being added. Use the action step while it is being finished.
                           </p>
                         </>
+                      ) : hasCompletedCurrentMilestoneResources ? (
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          Training for this checkpoint is complete. Do the move, record evidence, and use Show watched in the Training Library if you need to rewatch.
+                        </p>
                       ) : (
                         <p className="text-sm leading-relaxed text-muted-foreground">
                           No extra video is needed for this exact step yet.
@@ -839,13 +841,11 @@ export default function MastermindHub() {
                           </p>
                         </>
                       )}
-                      {nextReadyPlanResource ? (
-                        <Button type="button" className="w-full" onClick={() => handleOpenRecommendedResource(nextReadyPlanResource)}>
+                      {nextUnwatchedPlanResource ? (
+                        <Button type="button" className="w-full" onClick={() => handleOpenRecommendedResource(nextUnwatchedPlanResource)}>
                           {nextReadyPortalResource?.id === 'faith-ai'
                             ? 'Open AI support'
-                            : hasCompletedNextReadyResource
-                              ? 'Watch again'
-                              : 'Open training'}
+                            : 'Open training'}
                         </Button>
                       ) : (
                         <Button type="button" className="w-full" variant="outline" onClick={() => setActiveTab('training')}>
