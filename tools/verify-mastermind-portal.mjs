@@ -15,6 +15,7 @@ const mastermindResourcesSourcePath = path.join(projectRoot, 'src/data/mastermin
 const successPathPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/SuccessPathPlanCard.tsx');
 const aiStudioSourcePath = path.join(projectRoot, 'src/lib/mastermindAiStudio.ts');
 const aiStudioPlanCardSourcePath = path.join(projectRoot, 'src/components/mastermind/AiStudioPlanCard.tsx');
+const phaseOneCatalogSourcePath = path.join(projectRoot, 'src/hooks/usePhaseOneCatalog.ts');
 
 const entry = String.raw`
 import assert from 'node:assert/strict';
@@ -405,6 +406,7 @@ try {
   const successPathPlanCardSource = readFileSync(successPathPlanCardSourcePath, 'utf8');
   const aiStudioSource = readFileSync(aiStudioSourcePath, 'utf8');
   const aiStudioPlanCardSource = readFileSync(aiStudioPlanCardSourcePath, 'utf8');
+  const phaseOneCatalogSource = readFileSync(phaseOneCatalogSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
   assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
   assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
@@ -468,6 +470,11 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('Mark workspace installed'), 'AI Studio tracker should let members mark the workspace installed');
   assert.ok(aiStudioPlanCardSource.includes('Mark first test complete'), 'AI Studio tracker should let members mark the first test complete');
   assert.ok(aiStudioPlanCardSource.includes("`${cycle?.cycle_id || 'active-cycle'}:${recommendedPack.id}`"), 'AI Studio workspace tracker should be scoped to the current 90-day plan and recommended pack');
+  assert.ok(aiStudioPlanCardSource.includes('savePhaseOneState'), 'AI Studio workspace tracker should sync workspace setup to the app account');
+  assert.ok(aiStudioPlanCardSource.includes('usePhaseOneState'), 'AI Studio workspace tracker should hydrate from saved Phase One state');
+  assert.ok(aiStudioPlanCardSource.includes('Workspace ready is saved to this app account.'), 'AI Studio should tell members when workspace setup is durably saved');
+  assert.ok(phaseOneCatalogSource.includes('save_my_mastermind_phase_one_state'), 'Phase One state hook should use the existing server save contract');
+  assert.ok(phaseOneCatalogSource.includes("queryKey: ['phase-one-state']"), 'Phase One state hook should expose a stable query key');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);

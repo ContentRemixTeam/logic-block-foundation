@@ -21,6 +21,23 @@ export interface PhaseOneCatalogRow {
   last_position_seconds: number | null;
 }
 
+export type PhaseOneStep = 'plan' | 'workspace' | 'connector' | 'complete';
+export type PhaseOneWorkspaceStatus = 'not_started' | 'in_progress' | 'ready';
+export type PhaseOneConnectorStatus = 'not_started' | 'connected' | 'verified';
+
+export interface PhaseOneStateRow {
+  cycle_id: string | null;
+  current_step: PhaseOneStep;
+  plan_ready_at: string | null;
+  workspace_provider: string | null;
+  workspace_status: PhaseOneWorkspaceStatus;
+  workspace_ready_at: string | null;
+  connector_status: PhaseOneConnectorStatus;
+  connector_verified_at: string | null;
+  completed_at: string | null;
+  updated_at: string;
+}
+
 export function usePhaseOneCatalog(enabled = true) {
   return useQuery({
     queryKey: ['phase-one-catalog'],
@@ -39,6 +56,44 @@ export function usePhaseOneCatalog(enabled = true) {
       return (Array.isArray(data) ? data : []) as PhaseOneCatalogRow[];
     },
   });
+}
+
+export function usePhaseOneState(enabled = true) {
+  return useQuery({
+    queryKey: ['phase-one-state'],
+    enabled,
+    staleTime: 60_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<PhaseOneStateRow | null> => {
+      const { data, error } = await supabase
+        .from('mastermind_phase_one_state')
+        .select('cycle_id,current_step,plan_ready_at,workspace_provider,workspace_status,workspace_ready_at,connector_status,connector_verified_at,completed_at,updated_at')
+        .maybeSingle();
+      if (error) throw error;
+      return data as PhaseOneStateRow | null;
+    },
+  });
+}
+
+export async function savePhaseOneState(input: {
+  cycleId?: string | null;
+  currentStep?: PhaseOneStep;
+  planReady?: boolean;
+  workspaceStatus?: PhaseOneWorkspaceStatus;
+  connectorStatus?: PhaseOneConnectorStatus;
+}): Promise<PhaseOneStateRow> {
+  const { data, error } = await (supabase as unknown as {
+    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  }).rpc('save_my_mastermind_phase_one_state', {
+    p_cycle_id: input.cycleId ?? null,
+    p_current_step: input.currentStep ?? null,
+    p_plan_ready: input.planReady ?? null,
+    p_workspace_status: input.workspaceStatus ?? null,
+    p_connector_status: input.connectorStatus ?? null,
+  });
+  if (error) throw error;
+  return data as PhaseOneStateRow;
 }
 
 /** Persist member-owned Phase One video progress through the validated RPC. */

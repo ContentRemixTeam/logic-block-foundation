@@ -416,6 +416,20 @@ function buildMockScript(cycle) {
     if (url.includes('/rest/v1/rpc/save_my_mastermind_phase_one_video_progress')) {
       return json(true);
     }
+    if (url.includes('/rest/v1/mastermind_phase_one_state')) {
+      return json({
+        cycle_id: cycle?.cycle_id ?? null,
+        current_step: 'workspace',
+        plan_ready_at: cycle ? '2026-08-08T00:00:00.000Z' : null,
+        workspace_provider: null,
+        workspace_status: cycle ? 'ready' : 'not_started',
+        workspace_ready_at: cycle ? '2026-08-08T00:05:00.000Z' : null,
+        connector_status: 'not_started',
+        connector_verified_at: null,
+        completed_at: null,
+        updated_at: '2026-08-08T00:05:00.000Z',
+      });
+    }
     if (url.includes('/functions/v1/get-projects')) {
       return json({ data: [] });
     }

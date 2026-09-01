@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Bot, CheckCircle2, ClipboardCheck, Copy, KeyRound, Lock, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { savePhaseOneState, usePhaseOneState, type PhaseOneWorkspaceStatus } from '@/hooks/usePhaseOneCatalog';
 import {
   getAiStudioAccessSummary,
   getRecommendedAiProjectPack,
@@ -162,11 +164,14 @@ export function AiStudioPlanCard({
   membershipTier,
   onOpenAiSettings,
 }: AiStudioPlanCardProps) {
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [customCopied, setCustomCopied] = useState(false);
   const [answersSaved, setAnswersSaved] = useState(false);
+  const [serverSyncStatus, setServerSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const [customization, setCustomization] = useState<AiStudioCustomization>(DEFAULT_CUSTOMIZATION);
   const [workspaceTracker, setWorkspaceTracker] = useState<AiStudioWorkspaceTracker>({});
+  const phaseOneStateQuery = usePhaseOneState(Boolean(cycle?.cycle_id));
   const access = getAiStudioAccessSummary(membershipTier, isMastermind);
   const recommendedPack = getRecommendedAiProjectPack(selectedStageId, cycle);
   const visiblePacks = getVisibleAiProjectPacks(access, recommendedPack.id);
@@ -234,6 +239,25 @@ export function AiStudioPlanCard({
     });
   };
 
+  const syncPhaseOneWorkspace = async (workspaceStatus: PhaseOneWorkspaceStatus) => {
+    if (!cycle?.cycle_id) return;
+    setServerSyncStatus('saving');
+    try {
+      await savePhaseOneState({
+        cycleId: cycle.cycle_id,
+        currentStep: 'workspace',
+        planReady: true,
+        workspaceStatus,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['phase-one-state'] });
+      setServerSyncStatus('saved');
+      window.setTimeout(() => setServerSyncStatus('idle'), 2200);
+    } catch (error) {
+      console.error('Unable to sync AI Studio workspace state:', error);
+      setServerSyncStatus('failed');
+    }
+  };
+
   const updateCustomization = (field: keyof AiStudioCustomization, value: string) => {
     setAnswersSaved(false);
     setCustomization((current) => ({ ...current, [field]: value }));
@@ -242,6 +266,7 @@ export function AiStudioPlanCard({
   const saveCustomization = () => {
     setStorageItem(AI_STUDIO_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(customization));
     updateWorkspaceProgress({ setupSavedAt: new Date().toISOString() });
+    void syncPhaseOneWorkspace('in_progress');
     setAnswersSaved(true);
     window.setTimeout(() => setAnswersSaved(false), 1800);
   };
@@ -260,6 +285,7 @@ export function AiStudioPlanCard({
     try {
       await navigator.clipboard.writeText(customInstallPacketText);
       updateWorkspaceProgress({ customDocsCopiedAt: new Date().toISOString() });
+      void syncPhaseOneWorkspace('in_progress');
       setCustomCopied(true);
       window.setTimeout(() => setCustomCopied(false), 1800);
     } catch {
@@ -267,7 +293,32 @@ export function AiStudioPlanCard({
     }
   };
 
-  const currentProgress = workspaceTracker[workspaceTrackerKey] ?? {};
+  const markWorkspaceInstalled = () => {
+    updateWorkspaceProgress({ workspaceInstalledAt: new Date().toISOString() });
+    void syncPhaseOneWorkspace('ready');
+  };
+
+  const markFirstTestComplete = () => {
+    updateWorkspaceProgress({ firstAssetTestedAt: new Date().toISOString() });
+  };
+
+  const localProgress = workspaceTracker[workspaceTrackerKey] ?? {};
+  const serverStateApplies = Boolean(
+    phaseOneStateQuery.data
+      && (!cycle?.cycle_id || !phaseOneStateQuery.data.cycle_id || phaseOneStateQuery.data.cycle_id === cycle.cycle_id)
+  );
+  const serverSetupSavedAt = serverStateApplies
+    && (phaseOneStateQuery.data?.plan_ready_at || ['in_progress', 'ready'].includes(phaseOneStateQuery.data?.workspace_status ?? ''))
+    ? phaseOneStateQuery.data.plan_ready_at || phaseOneStateQuery.data.updated_at
+    : undefined;
+  const serverWorkspaceReadyAt = serverStateApplies && phaseOneStateQuery.data?.workspace_status === 'ready'
+    ? phaseOneStateQuery.data.workspace_ready_at || phaseOneStateQuery.data.updated_at
+    : undefined;
+  const currentProgress = {
+    ...localProgress,
+    setupSavedAt: localProgress.setupSavedAt ?? serverSetupSavedAt,
+    workspaceInstalledAt: localProgress.workspaceInstalledAt ?? serverWorkspaceReadyAt,
+  };
   const workspaceChecklist = [
     { label: 'Setup answers saved', complete: Boolean(currentProgress.setupSavedAt) },
     { label: 'Install docs copied', complete: Boolean(currentProgress.customDocsCopiedAt) },
@@ -488,18 +539,35 @@ export function AiStudioPlanCard({
             <Button
               type="button"
               variant={currentProgress.workspaceInstalledAt ? 'secondary' : 'outline'}
-              onClick={() => updateWorkspaceProgress({ workspaceInstalledAt: new Date().toISOString() })}
+              onClick={markWorkspaceInstalled}
             >
               {currentProgress.workspaceInstalledAt ? 'Workspace installed' : 'Mark workspace installed'}
             </Button>
             <Button
               type="button"
               variant={currentProgress.firstAssetTestedAt ? 'secondary' : 'outline'}
-              onClick={() => updateWorkspaceProgress({ firstAssetTestedAt: new Date().toISOString() })}
+              onClick={markFirstTestComplete}
             >
               {currentProgress.firstAssetTestedAt ? 'First test complete' : 'Mark first test complete'}
             </Button>
           </div>
+
+          <p role="status" className={cn(
+            'mt-3 text-xs',
+            serverSyncStatus === 'failed' ? 'text-destructive' : 'text-muted-foreground'
+          )}>
+            {phaseOneStateQuery.isLoading
+              ? 'Checking saved workspace setup...'
+              : serverSyncStatus === 'saving'
+                ? 'Saving to this app account...'
+                : serverSyncStatus === 'failed'
+                  ? 'Saved on this device. App account sync could not finish.'
+                  : serverWorkspaceReadyAt
+                    ? 'Workspace ready is saved to this app account.'
+                    : serverSyncStatus === 'saved'
+                      ? 'Saved to this app account.'
+                      : 'Setup progress is saved on this device until the workspace is marked installed.'}
+          </p>
         </div>
 
         <div className="rounded-lg border bg-muted/25 p-4">
