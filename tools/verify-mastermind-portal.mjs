@@ -509,6 +509,12 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('Workspace ready is saved to this app account.'), 'AI Studio should tell members when workspace setup is durably saved');
   assert.ok(phaseOneCatalogSource.includes('save_my_mastermind_phase_one_state'), 'Phase One state hook should use the existing server save contract');
   assert.ok(phaseOneCatalogSource.includes("queryKey: ['phase-one-state']"), 'Phase One state hook should expose a stable query key');
+  assert.ok(mastermindHubSource.includes('Built from this plan'), '90-day hub should summarize what has been created from the current plan');
+  assert.ok(mastermindHubSource.includes('Your plan, tasks, training, and AI setup in one place.'), '90-day hub dashboard should connect planning, tasks, training, and AI setup');
+  assert.ok(mastermindHubSource.includes('PlanDashboardItem'), '90-day hub should render compact dashboard status items');
+  assert.ok(mastermindHubSource.includes('getWorkspaceStatusLabel'), '90-day hub should hydrate AI workspace status from saved app state');
+  assert.ok(mastermindHubSource.includes('Task-ready'), '90-day hub should make the weekly Planner task handoff visible');
+  assert.ok(mastermindHubSource.includes('Watched videos leave next-up lists.'), '90-day hub should tell members where completed videos went');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);

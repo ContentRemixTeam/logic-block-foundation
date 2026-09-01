@@ -10,7 +10,7 @@ import { MastermindGate } from '@/components/membership/MastermindGate';
 import { AiStudioPlanCard } from '@/components/mastermind/AiStudioPlanCard';
 import { MastermindSupportBot } from '@/components/mastermind/MastermindSupportBot';
 import { SuccessPathPlanCard } from '@/components/mastermind/SuccessPathPlanCard';
-import { usePhaseOneCatalog } from '@/hooks/usePhaseOneCatalog';
+import { usePhaseOneCatalog, usePhaseOneState, type PhaseOneWorkspaceStatus } from '@/hooks/usePhaseOneCatalog';
 import {
   MASTERMIND_PORTAL_RESOURCES,
   getProtectedTrainingHref,
@@ -38,12 +38,14 @@ import {
   Clock,
   ClipboardCheck,
   ExternalLink,
+  ListTodo,
   Pin,
   Search,
   Sparkles,
   Star,
   Target,
   Users,
+  Video,
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -89,6 +91,7 @@ export default function MastermindHub() {
   const aiStudioEnabled = SHOW_AI_STUDIO || isAdminPreview;
   const AccessBoundary = isAdminPreview ? PreviewAccessBoundary : MastermindGate;
   const catalogQuery = usePhaseOneCatalog();
+  const phaseOneStateQuery = usePhaseOneState(Boolean(successPathData?.cycle?.cycle_id));
   const catalogRows = catalogQuery.data;
   const playableResourceIds = useMemo(
     () => new Set((catalogRows ?? []).map((row) => row.portal_resource_id)),
@@ -329,6 +332,34 @@ export default function MastermindHub() {
     return visibleResources.filter((resource) => completedResourceIds.has(resource.id)).length;
   }, [completedResourceIds, resourceFilter, searchQuery, showWatchedResources, visibleResources]);
 
+  const workspaceStatus = phaseOneStateQuery.data?.workspace_status ?? 'not_started';
+  const planDashboardItems = [
+    {
+      icon: Target,
+      title: '90-day plan',
+      value: `${selectedStage.label} focus`,
+      description: 'Powers the weekly move and playlist.',
+    },
+    {
+      icon: ListTodo,
+      title: 'Weekly move',
+      value: 'Task-ready',
+      description: 'Creates one Planner task from this week.',
+    },
+    {
+      icon: Video,
+      title: 'Training progress',
+      value: `${watchedVisibleResourceCount}/${visibleResources.length} watched`,
+      description: 'Watched videos leave next-up lists.',
+    },
+    {
+      icon: Bot,
+      title: 'AI workspace',
+      value: getWorkspaceStatusLabel(workspaceStatus, phaseOneStateQuery.isLoading),
+      description: getWorkspaceStatusDescription(workspaceStatus, phaseOneStateQuery.isLoading),
+    },
+  ];
+
   const handleOpen = (resource: MastermindPortalResource) => {
     const protectedHref = getProtectedTrainingHref(resource);
     if (protectedHref) {
@@ -405,6 +436,28 @@ export default function MastermindHub() {
                 onOpenAiStudio={() => setActiveTab('support')}
                 aiStudioEnabled={aiStudioEnabled}
               />
+
+              {successPathData?.cycle && (
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <Badge variant="outline" className="mb-2 w-fit">Built from this plan</Badge>
+                        <CardTitle className="text-base">Your plan, tasks, training, and AI setup in one place.</CardTitle>
+                        <CardDescription>
+                          A quick check for what is active and what has moved forward.
+                        </CardDescription>
+                      </div>
+                      <Badge variant="secondary" className="w-fit">Active 90-day cycle</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {planDashboardItems.map((item) => (
+                      <PlanDashboardItem key={item.title} {...item} />
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
               {successPathData?.hasConfirmedStage && (
                 <p className="text-sm text-muted-foreground">
@@ -1056,6 +1109,44 @@ function AuditMetric({ title, value }: AuditMetricProps) {
       <p className="mt-1 text-lg font-semibold leading-none">{value}</p>
     </div>
   );
+}
+
+interface PlanDashboardItemProps {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  value: string;
+  description: string;
+}
+
+function PlanDashboardItem({ icon: Icon, title, value, description }: PlanDashboardItemProps) {
+  return (
+    <div className="rounded-lg border bg-background p-3">
+      <div className="flex items-start gap-2">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-muted-foreground">{title}</p>
+          <p className="mt-1 break-words text-sm font-semibold leading-snug">{value}</p>
+        </div>
+      </div>
+      <p className="mt-2 text-xs leading-snug text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function getWorkspaceStatusLabel(status: PhaseOneWorkspaceStatus, isLoading: boolean) {
+  if (isLoading) return 'Checking';
+  if (status === 'ready') return 'Ready';
+  if (status === 'in_progress') return 'In progress';
+  return 'Not started';
+}
+
+function getWorkspaceStatusDescription(status: PhaseOneWorkspaceStatus, isLoading: boolean) {
+  if (isLoading) return 'Reading saved setup status.';
+  if (status === 'ready') return 'Install docs and setup are saved.';
+  if (status === 'in_progress') return 'Setup docs started, not fully installed.';
+  return 'Start in AI Studio when useful.';
 }
 
 function formatWatchDuration(seconds: number | null) {

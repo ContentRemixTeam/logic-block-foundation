@@ -624,6 +624,12 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Save target, baseline, offer, value, assumed conversion, invitation target, and review date.');
     await assertText(client, 'Send one direct invitation');
     await assertText(client, 'Bring back this evidence');
+    await assertText(client, 'Built from this plan');
+    await assertText(client, 'Your plan, tasks, training, and AI setup in one place.');
+    await assertText(client, 'Task-ready');
+    await assertText(client, 'Training progress');
+    await assertText(client, 'AI workspace');
+    await assertText(client, 'Ready');
     await assertText(client, 'Ask Faith');
     await clickText(client, 'Get Support');
     await waitFor(client, 'document.body.innerText.includes("Support Bot")', `${label} support tab`);
