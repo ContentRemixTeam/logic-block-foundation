@@ -40,7 +40,7 @@ export function AiStudioPlanCard({
     <Card className="border-primary/20">
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="w-fit">Hidden pilot</Badge>
+          <Badge variant="secondary" className="w-fit">Plan-matched setup</Badge>
           <Badge variant="outline" className="w-fit">{access.tierLabel}</Badge>
         </div>
         <div className="space-y-1">
