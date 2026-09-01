@@ -432,6 +432,12 @@ try {
   assert.ok(mastermindHubSource.includes('videos ready now'), 'Curriculum section map should count only videos that are ready now');
   assert.ok(mastermindHubSource.includes('Next useful video'), 'Curriculum section map should point to the next useful video');
   assert.ok(mastermindHubSource.includes('Section complete'), 'Curriculum section map should not reassign watched videos after a section is complete');
+  assert.ok(mastermindHubSource.includes('Evidence to bring back'), 'Curriculum sections should name the evidence members need to collect');
+  assert.ok(mastermindHubSource.includes('Done when'), 'Curriculum sections should define a concrete completion standard');
+  assert.ok(mastermindHubSource.includes('stage.definitionOfDone[0]'), 'Curriculum sections should use the approved stage definition of done');
+  assert.ok(mastermindHubSource.includes('stage.quickWin.evidence'), 'Curriculum sections should use the approved stage evidence target');
+  assert.ok(mastermindHubSource.includes('Action step'), 'Training by focus area should show the action step before the video list');
+  assert.ok(mastermindHubSource.includes('stage.doThis'), 'Training by focus area should reuse the approved stage action');
   assert.ok(mastermindHubSource.includes('setTrainingStageId(stage.id)'), 'Curriculum section browsing should keep a separate training filter from saved focus');
   assert.ok(mastermindHubSource.includes("setResourceFilter('focus')"), 'Curriculum section map should jump directly to the selected section videos');
   assert.ok(!mastermindHubSource.includes("label: '30-day'"), 'Training finder should not show a 30-day replay filter until recent replays are integrated');

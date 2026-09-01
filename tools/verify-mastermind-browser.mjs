@@ -630,6 +630,8 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'Training progress');
     await assertText(client, 'AI workspace');
     await assertText(client, 'Ready');
+    await assertText(client, 'Evidence to bring back');
+    await assertText(client, 'Done when');
     await assertText(client, 'Ask Faith');
     await clickText(client, 'Get Support');
     await waitFor(client, 'document.body.innerText.includes("Support Bot")', `${label} support tab`);
@@ -647,6 +649,8 @@ async function runChecks(client, checks, label) {
     await waitFor(client, 'document.body.innerText.includes("Find a training")', `${label} training tab`);
     await assertText(client, 'Bosses Make Sales: Day One');
     await assertText(client, 'Sell focus');
+    await assertText(client, 'Action step');
+    await assertText(client, 'Evidence to bring back');
     await assertNoText(client, 'Sales & Marketing');
     await assertNoText(client, 'Current Call Replays');
     await assertNoText(client, 'Money Moves Sprint');

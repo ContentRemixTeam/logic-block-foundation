@@ -520,6 +520,16 @@ export default function MastermindHub() {
                               <p className="text-xs font-semibold text-muted-foreground">Quick win</p>
                               <p className="mt-1 text-sm leading-snug">{stage.quickWin.action}</p>
                             </div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div className="rounded-md bg-muted/45 p-3">
+                                <p className="text-xs font-semibold text-muted-foreground">Evidence to bring back</p>
+                                <p className="mt-1 text-sm leading-snug">{stage.quickWin.evidence}</p>
+                              </div>
+                              <div className="rounded-md bg-muted/45 p-3">
+                                <p className="text-xs font-semibold text-muted-foreground">Done when</p>
+                                <p className="mt-1 text-sm leading-snug">{stage.definitionOfDone[0]}</p>
+                              </div>
+                            </div>
                             <div className="flex flex-wrap gap-2">
                               <Badge variant="outline" className="text-[11px]">{readyCount} ready</Badge>
                               <Badge variant={watchedCount > 0 ? 'success' : 'outline'} className="text-[11px]">{watchedCount} watched</Badge>
@@ -884,6 +894,17 @@ export default function MastermindHub() {
                         <div className="mt-3 rounded-md bg-muted/45 p-3">
                           <p className="text-xs font-semibold text-muted-foreground">Outcome</p>
                           <p className="mt-1 text-sm leading-snug">{stage.milestone}</p>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <div className="rounded-md bg-muted/45 p-3">
+                            <p className="text-xs font-semibold text-muted-foreground">Action step</p>
+                            <p className="mt-1 text-sm leading-snug">{stage.doThis}</p>
+                          </div>
+                          <div className="rounded-md bg-muted/45 p-3">
+                            <p className="text-xs font-semibold text-muted-foreground">Evidence to bring back</p>
+                            <p className="mt-1 text-sm leading-snug">{stage.quickWin.evidence}</p>
+                          </div>
                         </div>
 
                         <div className="mt-3 space-y-2">
