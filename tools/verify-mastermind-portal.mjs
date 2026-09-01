@@ -458,6 +458,16 @@ try {
   assert.ok(aiStudioPlanCardSource.includes('What it should not change without asking'), 'AI Studio should collect member authority guardrails');
   assert.ok(aiStudioPlanCardSource.includes('Custom install docs'), 'AI Studio should generate custom install docs');
   assert.ok(aiStudioPlanCardSource.includes('Copy custom install docs'), 'AI Studio should let members copy customized install docs');
+  assert.ok(aiStudioPlanCardSource.includes('AI_STUDIO_WORKSPACE_TRACKER_STORAGE_KEY'), 'AI Studio should persist member workspace setup progress locally');
+  assert.ok(aiStudioPlanCardSource.includes('mastermind-ai-studio-workspace-tracker-v1'), 'AI Studio workspace tracker should use a stable storage key');
+  assert.ok(aiStudioPlanCardSource.includes('Created from this plan'), 'AI Studio should show what the member has created from the current 90-day plan');
+  assert.ok(aiStudioPlanCardSource.includes('Setup answers saved'), 'AI Studio tracker should show whether setup answers were saved');
+  assert.ok(aiStudioPlanCardSource.includes('Install docs copied'), 'AI Studio tracker should show whether install docs were copied');
+  assert.ok(aiStudioPlanCardSource.includes('Workspace installed'), 'AI Studio tracker should show whether the workspace was installed');
+  assert.ok(aiStudioPlanCardSource.includes('First test run'), 'AI Studio tracker should show whether the first supervised test was run');
+  assert.ok(aiStudioPlanCardSource.includes('Mark workspace installed'), 'AI Studio tracker should let members mark the workspace installed');
+  assert.ok(aiStudioPlanCardSource.includes('Mark first test complete'), 'AI Studio tracker should let members mark the first test complete');
+  assert.ok(aiStudioPlanCardSource.includes("`${cycle?.cycle_id || 'active-cycle'}:${recommendedPack.id}`"), 'AI Studio workspace tracker should be scoped to the current 90-day plan and recommended pack');
   assert.ok(!mastermindHubSource.includes('Find the first broken link'), 'The member UI should not lead with internal diagnostic language');
   for (const hiddenAuditLabel of ['Transcript-ready', 'Dropbox rows', 'Content Repurpose DB audit', "label: 'Vault'", 'Mapped resources', 'private QA finder']) {
     assert.ok(!mastermindHubSource.includes(hiddenAuditLabel), 'Member UI should not expose audit label: ' + hiddenAuditLabel);

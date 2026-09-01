@@ -33,6 +33,7 @@ const visibilityLabel: Record<VisibleAiPackState, string> = {
 };
 
 const AI_STUDIO_CUSTOMIZATION_STORAGE_KEY = 'mastermind-ai-studio-customization-v1';
+const AI_STUDIO_WORKSPACE_TRACKER_STORAGE_KEY = 'mastermind-ai-studio-workspace-tracker-v1';
 
 interface AiStudioCustomization {
   installHome: string;
@@ -40,6 +41,15 @@ interface AiStudioCustomization {
   guardrails: string;
   firstAsset: string;
 }
+
+interface AiStudioWorkspaceProgress {
+  setupSavedAt?: string;
+  customDocsCopiedAt?: string;
+  workspaceInstalledAt?: string;
+  firstAssetTestedAt?: string;
+}
+
+type AiStudioWorkspaceTracker = Record<string, AiStudioWorkspaceProgress>;
 
 const DEFAULT_CUSTOMIZATION: AiStudioCustomization = {
   installHome: 'Claude Project, ChatGPT Project, custom GPT, or Codex workspace',
@@ -156,9 +166,11 @@ export function AiStudioPlanCard({
   const [customCopied, setCustomCopied] = useState(false);
   const [answersSaved, setAnswersSaved] = useState(false);
   const [customization, setCustomization] = useState<AiStudioCustomization>(DEFAULT_CUSTOMIZATION);
+  const [workspaceTracker, setWorkspaceTracker] = useState<AiStudioWorkspaceTracker>({});
   const access = getAiStudioAccessSummary(membershipTier, isMastermind);
   const recommendedPack = getRecommendedAiProjectPack(selectedStageId, cycle);
   const visiblePacks = getVisibleAiProjectPacks(access, recommendedPack.id);
+  const workspaceTrackerKey = `${cycle?.cycle_id || 'active-cycle'}:${recommendedPack.id}`;
   const starterPacket = useMemo(
     () => buildStarterPacket({ cycle, selectedStageId, recommendedPack }),
     [cycle, recommendedPack, selectedStageId]
@@ -184,20 +196,43 @@ export function AiStudioPlanCard({
 
   useEffect(() => {
     const stored = getStorageItem(AI_STUDIO_CUSTOMIZATION_STORAGE_KEY);
-    if (!stored) return;
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as Partial<AiStudioCustomization>;
+        setCustomization({
+          installHome: parsed.installHome || DEFAULT_CUSTOMIZATION.installHome,
+          businessContext: parsed.businessContext || '',
+          guardrails: parsed.guardrails || '',
+          firstAsset: parsed.firstAsset || '',
+        });
+      } catch {
+        setCustomization(DEFAULT_CUSTOMIZATION);
+      }
+    }
 
-    try {
-      const parsed = JSON.parse(stored) as Partial<AiStudioCustomization>;
-      setCustomization({
-        installHome: parsed.installHome || DEFAULT_CUSTOMIZATION.installHome,
-        businessContext: parsed.businessContext || '',
-        guardrails: parsed.guardrails || '',
-        firstAsset: parsed.firstAsset || '',
-      });
-    } catch {
-      setCustomization(DEFAULT_CUSTOMIZATION);
+    const storedTracker = getStorageItem(AI_STUDIO_WORKSPACE_TRACKER_STORAGE_KEY);
+    if (storedTracker) {
+      try {
+        setWorkspaceTracker(JSON.parse(storedTracker) as AiStudioWorkspaceTracker);
+      } catch {
+        setWorkspaceTracker({});
+      }
     }
   }, []);
+
+  const updateWorkspaceProgress = (progress: AiStudioWorkspaceProgress) => {
+    setWorkspaceTracker((current) => {
+      const next = {
+        ...current,
+        [workspaceTrackerKey]: {
+          ...current[workspaceTrackerKey],
+          ...progress,
+        },
+      };
+      setStorageItem(AI_STUDIO_WORKSPACE_TRACKER_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const updateCustomization = (field: keyof AiStudioCustomization, value: string) => {
     setAnswersSaved(false);
@@ -206,6 +241,7 @@ export function AiStudioPlanCard({
 
   const saveCustomization = () => {
     setStorageItem(AI_STUDIO_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(customization));
+    updateWorkspaceProgress({ setupSavedAt: new Date().toISOString() });
     setAnswersSaved(true);
     window.setTimeout(() => setAnswersSaved(false), 1800);
   };
@@ -223,12 +259,22 @@ export function AiStudioPlanCard({
   const copyCustomInstallPacket = async () => {
     try {
       await navigator.clipboard.writeText(customInstallPacketText);
+      updateWorkspaceProgress({ customDocsCopiedAt: new Date().toISOString() });
       setCustomCopied(true);
       window.setTimeout(() => setCustomCopied(false), 1800);
     } catch {
       setCustomCopied(false);
     }
   };
+
+  const currentProgress = workspaceTracker[workspaceTrackerKey] ?? {};
+  const workspaceChecklist = [
+    { label: 'Setup answers saved', complete: Boolean(currentProgress.setupSavedAt) },
+    { label: 'Install docs copied', complete: Boolean(currentProgress.customDocsCopiedAt) },
+    { label: 'Workspace installed', complete: Boolean(currentProgress.workspaceInstalledAt) },
+    { label: 'First test run', complete: Boolean(currentProgress.firstAssetTestedAt) },
+  ];
+  const completedWorkspaceSteps = workspaceChecklist.filter((item) => item.complete).length;
 
   return (
     <Card className="border-primary/20">
@@ -401,6 +447,58 @@ export function AiStudioPlanCard({
                 <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{section.body}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-background p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Created from this plan</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Track the AI setup pieces that came from this 90-day plan so the member can see what is actually installed and tested.
+              </p>
+            </div>
+            <Badge variant="secondary" className="w-fit text-[11px]">
+              {completedWorkspaceSteps}/4 ready
+            </Badge>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {workspaceChecklist.map((item) => (
+              <div key={item.label} className={cn(
+                'rounded-md border p-3 text-sm leading-snug',
+                item.complete ? 'bg-primary/5 text-foreground' : 'bg-muted/35 text-muted-foreground'
+              )}>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className={cn('mt-0.5 h-4 w-4 shrink-0', item.complete ? 'text-primary' : 'text-muted-foreground')} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 rounded-md bg-muted/35 p-3">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">First asset to test</p>
+            <p className="mt-1 text-sm leading-relaxed">
+              {customization.firstAsset.trim() || recommendedPack.firstTest}
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant={currentProgress.workspaceInstalledAt ? 'secondary' : 'outline'}
+              onClick={() => updateWorkspaceProgress({ workspaceInstalledAt: new Date().toISOString() })}
+            >
+              {currentProgress.workspaceInstalledAt ? 'Workspace installed' : 'Mark workspace installed'}
+            </Button>
+            <Button
+              type="button"
+              variant={currentProgress.firstAssetTestedAt ? 'secondary' : 'outline'}
+              onClick={() => updateWorkspaceProgress({ firstAssetTestedAt: new Date().toISOString() })}
+            >
+              {currentProgress.firstAssetTestedAt ? 'First test complete' : 'Mark first test complete'}
+            </Button>
           </div>
         </div>
 
