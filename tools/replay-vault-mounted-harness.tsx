@@ -161,8 +161,9 @@ async function searchRaceKeepsNewestIntent() {
   assert(document.body.textContent?.includes('Newest replay'), 'newest search must render');
   assert(!document.body.textContent?.includes('Stale replay'), 'stale search must not overwrite newest intent');
   const body = __vaultMock.lastBody('search-mastermind-resources');
-  assert(body.responseShape === 'grouped_moments_v1' && body.momentsPerReplay === 8, 'search must request authoritative grouped multi-moment shape');
+  assert(body.responseShape === 'grouped_moments_v1' && body.limit === 12 && body.momentsPerReplay === 4, 'quick search must request a fast grouped multi-moment shape');
   assert(body.preview === true, 'search request must ask the server to evaluate admin preview');
+  assert(document.body.textContent?.includes('Search deeper'), 'quick search must offer an explicit deeper search path');
 }
 
 async function playbackRaceAndSameTargetSeek() {

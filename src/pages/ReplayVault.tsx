@@ -19,6 +19,11 @@ import { VaultCuratedPlaylists } from '@/components/replay-vault/VaultCuratedPla
 function canUseVault(access: VaultAccessState) { return access.status === 'allowed'; }
 type DeepLinkState = { key: string | null; status: 'idle' | 'loading' | 'success' | 'error' };
 const targetKey = (target: { resourceId: string; momentId?: string | null; questionId?: string | null }) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'replay'}`;
+const VAULT_QUICK_SEARCH_LIMIT = 12;
+const VAULT_QUICK_SEARCH_MOMENTS_PER_REPLAY = 4;
+const VAULT_DEEP_SEARCH_LIMIT = 20;
+const VAULT_DEEP_SEARCH_MOMENTS_PER_REPLAY = 8;
+type VaultSearchDepth = 'quick' | 'deep';
 
 function ProtectedReplayVault() {
   const location = useLocation();
@@ -35,6 +40,7 @@ function ProtectedReplayVault() {
   const [access, setAccess] = useState<VaultAccessState>({ status: 'loading' });
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
+  const [searchDepth, setSearchDepth] = useState<VaultSearchDepth>('quick');
   const [groups, setGroups] = useState<VaultReplayGroup[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -137,23 +143,36 @@ function ProtectedReplayVault() {
     void resolvePlayback({ ...detailTarget, title: 'Protected replay', startSeconds: null }, { deepLink: true }).then((ok) => { deepLinkBusyRef.current = false; setDeepLink((current) => current.key === detailKey ? { key: detailKey, status: ok ? 'success' : 'error' } : current); });
   };
 
-  const handleSearch = async (event: FormEvent) => {
-    event.preventDefault();
-    const cleanQuery = query.trim().slice(0, 160);
+  const runVaultSearch = useCallback(async (rawQuery: string, depth: VaultSearchDepth) => {
+    const cleanQuery = rawQuery.trim().slice(0, 160);
     if (cleanQuery.length < 2 || !canUseVault(access)) return;
     searchRequest.current.controller?.abort();
     const controller = new AbortController();
     const generation = searchRequest.current.generation + 1;
     searchRequest.current = { generation, controller };
+    const isDeepSearch = depth === 'deep';
+    const limit = isDeepSearch ? VAULT_DEEP_SEARCH_LIMIT : VAULT_QUICK_SEARCH_LIMIT;
+    const momentsPerReplay = isDeepSearch ? VAULT_DEEP_SEARCH_MOMENTS_PER_REPLAY : VAULT_QUICK_SEARCH_MOMENTS_PER_REPLAY;
     setSearching(true); setSubmittedQuery(cleanQuery); setSearchError(null);
+    setSearchDepth(depth);
     try {
-      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit: 20, momentsPerReplay: 8, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1', preview: true } });
+      const { data, error } = await supabase.functions.invoke('search-mastermind-resources', { body: { query: cleanQuery, limit, momentsPerReplay, filters: { includeMetadataFallback: true }, responseShape: 'grouped_moments_v1', preview: true } });
       if (controller.signal.aborted || searchRequest.current.generation !== generation) return;
       setGroups(error ? [] : groupSearchResults(data));
       if (error) setSearchError('Search is temporarily unavailable. Your access has not changed.');
     } catch {
       if (!controller.signal.aborted && searchRequest.current.generation === generation) { setGroups([]); setSearchError('Search is temporarily unavailable. Your access has not changed.'); }
     } finally { if (!controller.signal.aborted && searchRequest.current.generation === generation) setSearching(false); }
+  }, [access]);
+
+  const handleSearch = async (event: FormEvent) => {
+    event.preventDefault();
+    await runVaultSearch(query, 'quick');
+  };
+
+  const handleDeepSearch = () => {
+    const searchTerm = submittedQuery || query;
+    void runVaultSearch(searchTerm, 'deep');
   };
 
   const handleCuratedPlaylistSearch = useCallback(async (playlistQuery: string) => {
@@ -208,6 +227,7 @@ function ProtectedReplayVault() {
           {playback && target && <VaultPlayer playback={playback} target={target} videoRef={videoRef} announcement={announcement} sourceGeneration={sourceGeneration} recoveryBusy={recoveryBusy} recoveryFailed={recoveryFailed} onLoadedMetadata={handleLoadedMetadata} onMediaError={handleMediaError} onManualRefresh={() => void refreshPlayback(true)} onOpen={handleOpen} />}
           <VaultCuratedPlaylists onOpen={handleOpen} onSearchPlaylist={handleCuratedPlaylistSearch} />
           <VaultLibrarySurfaces onOpen={handleOpen} />
+          {groups.length > 0 && <div className="flex flex-col gap-2 rounded-md border bg-muted/35 p-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-muted-foreground">{searchDepth === 'deep' ? 'Showing the deeper search set for this topic.' : 'Showing the fastest high-signal matches first.'}</p><Button type="button" variant="outline" className="w-full sm:w-auto" disabled={searching || searchDepth === 'deep'} onClick={handleDeepSearch}>{searchDepth === 'deep' ? 'Deep search shown' : 'Search deeper'}</Button></div>}
           {groups.length > 0 && <VaultSearchResults groups={groups} loadingKey={loadingKey} onOpen={handleOpen} />}
           {!searching && submittedQuery && groups.length === 0 && !searchError && <Card><CardHeader><CardTitle>No approved moments found</CardTitle><CardDescription>Try fewer words or a broader topic. Your search is still in the box.</CardDescription></CardHeader><CardContent className="flex flex-col gap-2 sm:flex-row"><Button type="button" onClick={() => searchInputRef.current?.focus()}>Edit search</Button><Button type="button" variant="outline" onClick={() => { setQuery(''); setSubmittedQuery(''); setGroups([]); searchInputRef.current?.focus(); }}>Clear search</Button></CardContent></Card>}
         </>}
