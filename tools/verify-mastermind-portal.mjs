@@ -512,6 +512,9 @@ try {
   assert.ok(successPathPlanCardSource.includes('Review 90-Day Plan'), 'The 90-day guidance card needs an honest direct plan-editing fallback');
   assert.ok(successPathPlanCardSource.includes('cycle_id: cycle.cycle_id'), 'Weekly move tasks should stay tied to the current 90-day cycle');
   assert.ok(successPathPlanCardSource.includes('done_enough_definition: round.doneEnough'), 'Weekly move tasks should carry the result/evidence completion standard');
+  assert.ok(successPathPlanCardSource.includes("const WEEKLY_MOVE_TASK_STORAGE_KEY = 'mastermind-weekly-move-task-keys'"), 'Weekly move task handoff should remember the exact cycle/stage/move key');
+  assert.ok(successPathPlanCardSource.includes('rememberWeeklyMoveTaskKey(weeklyMoveTaskKey)'), 'Weekly move task handoff should mark successful or queued Planner creation as already handled');
+  assert.ok(successPathPlanCardSource.includes("weeklyMoveTaskState === 'saved' || weeklyMoveTaskState === 'queued'"), 'Weekly move task handoff should prevent duplicate task creation after save or queued sync');
   assert.ok(successPathPlanCardSource.includes('Open training'), 'The 90-day guidance card should include a direct supporting-training action');
   assert.ok(successPathPlanCardSource.includes("primaryResource.resourceId === 'faith-ai'"), 'The 90-day guidance card should treat Faith AI as setup, not a video lesson');
   assert.ok(successPathPlanCardSource.includes('Set up if needed'), 'The 90-day guidance card should label AI recommendations as setup');

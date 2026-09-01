@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, CheckCircle2, ListTodo, Loader2, MessageCircle, PlayCircle, Search, Sparkles, Target, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,12 +33,38 @@ interface SuccessPathPlanCardProps {
 }
 
 const PLACEHOLDER_GOALS = new Set(['my 90-day goal', 'my 90 day goal', 'n']);
+const WEEKLY_MOVE_TASK_STORAGE_KEY = 'mastermind-weekly-move-task-keys';
 type WeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'failed';
 
 function getRealGoal(goal: string | null | undefined) {
   const normalized = goal?.trim().toLowerCase();
   if (!normalized || PLACEHOLDER_GOALS.has(normalized)) return null;
   return goal?.trim() ?? null;
+}
+
+function getSavedWeeklyMoveTaskKeys() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(WEEKLY_MOVE_TASK_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((key): key is string => typeof key === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function hasSavedWeeklyMoveTaskKey(key: string) {
+  return getSavedWeeklyMoveTaskKeys().includes(key);
+}
+
+function rememberWeeklyMoveTaskKey(key: string) {
+  if (typeof window === 'undefined') return;
+  const nextKeys = [key, ...getSavedWeeklyMoveTaskKeys().filter((savedKey) => savedKey !== key)].slice(0, 80);
+  try {
+    window.localStorage.setItem(WEEKLY_MOVE_TASK_STORAGE_KEY, JSON.stringify(nextKeys));
+  } catch {
+    // The Planner task has already been saved or queued; this memory is only duplicate prevention.
+  }
 }
 
 export function SuccessPathPlanCard({
@@ -59,6 +85,16 @@ export function SuccessPathPlanCard({
   const [platformId, setPlatformId] = useState<string | null>(null);
   const [weeklyMoveTaskStates, setWeeklyMoveTaskStates] = useState<Record<string, WeeklyMoveTaskState>>({});
   const { resilientCreate } = useResilientTaskMutation();
+  const roundForTaskKey = getMastermindPhaseRound(selectedStageId, currentMilestoneId);
+  const weeklyMoveTaskKey = cycle
+    ? [cycle.cycle_id, selectedStageId, currentMilestoneId ?? 'stage', roundMode, roundForTaskKey.primaryResourceId].join(':')
+    : null;
+
+  useEffect(() => {
+    if (!weeklyMoveTaskKey || !hasSavedWeeklyMoveTaskKey(weeklyMoveTaskKey)) return;
+    setWeeklyMoveTaskStates((states) => ({ ...states, [weeklyMoveTaskKey]: 'saved' }));
+  }, [weeklyMoveTaskKey]);
+
   if (isLoading) {
     return (
       <Card>
@@ -92,7 +128,7 @@ export function SuccessPathPlanCard({
 
   const guidance = getMastermindWeeklyGuidance(selectedStageId, cycle, currentMilestoneId);
   const { stage, quickWin } = guidance;
-  const round = getMastermindPhaseRound(selectedStageId, currentMilestoneId);
+  const round = roundForTaskKey;
   const registeredResource = stage.resources.find((resource) => resource.resourceId === round.primaryResourceId);
   const primaryResource: MastermindResourceRecommendation = registeredResource ?? {
     resourceId: round.primaryResourceId,
@@ -109,12 +145,16 @@ export function SuccessPathPlanCard({
   const selectedPlatform = CREATOR_CAMP_PLATFORM_MATCHES.find((item) => item.id === platformId) ?? null;
   const realGoal = getRealGoal(cycle.goal);
   const currentAction = roundMode === 'build' ? round.buildAction : round.improveAction;
-  const weeklyMoveTaskKey = [cycle.cycle_id, selectedStageId, currentMilestoneId ?? 'stage', roundMode, round.primaryResourceId].join(':');
   const weeklyMoveTaskState = weeklyMoveTaskStates[weeklyMoveTaskKey] ?? 'idle';
   const setCurrentWeeklyMoveTaskState = (state: WeeklyMoveTaskState) => {
     setWeeklyMoveTaskStates((states) => ({ ...states, [weeklyMoveTaskKey]: state }));
   };
   const addWeeklyMoveToPlanner = async () => {
+    if (hasSavedWeeklyMoveTaskKey(weeklyMoveTaskKey)) {
+      setCurrentWeeklyMoveTaskState('saved');
+      return;
+    }
+
     setCurrentWeeklyMoveTaskState('saving');
 
     try {
@@ -143,14 +183,8 @@ export function SuccessPathPlanCard({
       });
 
       const nextState = result.queued ? 'queued' : 'saved';
+      rememberWeeklyMoveTaskKey(weeklyMoveTaskKey);
       setCurrentWeeklyMoveTaskState(nextState);
-      window.setTimeout(() => {
-        setWeeklyMoveTaskStates((states) => (
-          states[weeklyMoveTaskKey] === nextState
-            ? { ...states, [weeklyMoveTaskKey]: 'idle' }
-            : states
-        ));
-      }, 3200);
     } catch {
       setCurrentWeeklyMoveTaskState('failed');
     }
@@ -236,7 +270,7 @@ export function SuccessPathPlanCard({
                   variant="secondary"
                   className="w-full"
                   onClick={() => void addWeeklyMoveToPlanner()}
-                  disabled={weeklyMoveTaskState === 'saving'}
+                  disabled={weeklyMoveTaskState === 'saving' || weeklyMoveTaskState === 'saved' || weeklyMoveTaskState === 'queued'}
                 >
                   {weeklyMoveTaskState === 'saving' ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
