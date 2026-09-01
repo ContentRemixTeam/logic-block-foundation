@@ -11,8 +11,17 @@ const baseUrl = (process.env.MASTERMIND_LIVE_BASE_URL || 'https://plan.faithmari
 const artifactPath = process.env.MASTERMIND_LIVE_BROWSER_ARTIFACT || '';
 const protectedTerms = [
   '90-Day Goal Setting: Start Here',
+  '90-Day Goal Setting Workshop',
   'Find Your Next Money Move',
+  'Package Your Money Move',
+  'Create Your Sales Plan',
+  'Great Marketing Breakthrough',
+  'Get Social Media Done',
+  'Get Your Freebie Done',
   'Bosses Make Sales',
+  'Launch Aligned',
+  'Program Upgrade',
+  'Do Less Make More',
   'Mastermind Training Library',
   'Timestamps and transcript',
   'Search within this video',
@@ -24,11 +33,39 @@ const protectedTerms = [
   'playbackUrl',
 ];
 
+const readyCurriculumResourceIds = [
+  'ninety-day-goal-setting-introduction',
+  'ninety-day-goal-setting-workshop',
+  'money-move-day-one',
+  'money-move-day-two',
+  'money-move-day-three',
+  'great-marketing-breakthrough-day-two',
+  'great-marketing-breakthrough-day-three',
+  'get-social-media-done-workshop-one',
+  'get-social-media-done-workshop-two',
+  'get-social-media-done-workshop-three',
+  'get-your-freebie-non-boring-idea',
+  'get-your-freebie-welcome-email',
+  'bosses-make-sales-day-one',
+  'bosses-make-sales-day-two',
+  'bosses-make-sales-day-three',
+  'launch-aligned-half-ass-launch',
+  'launch-aligned-debrief',
+  'program-upgrade-strategic-improvement',
+  'program-upgrade-onboarding-upgrade',
+  'program-upgrade-surprise-and-delight',
+  'program-upgrade-offboard-like-a-boss',
+  'do-less-make-more-workshop',
+  'do-less-make-more-bonus-coaching',
+];
+
 const routes = [
   '/admin/mastermind-90-day-plan-preview',
-  '/admin/mastermind-training-preview?resource=ninety-day-goal-setting-introduction&from=phase-one',
   '/mastermind',
-  '/mastermind/training?resource=ninety-day-goal-setting-introduction',
+  ...readyCurriculumResourceIds.flatMap((resourceId) => [
+    `/admin/mastermind-training-preview?resource=${encodeURIComponent(resourceId)}&from=phase-one`,
+    `/mastermind/training?resource=${encodeURIComponent(resourceId)}`,
+  ]),
 ];
 
 function sleep(ms) {
