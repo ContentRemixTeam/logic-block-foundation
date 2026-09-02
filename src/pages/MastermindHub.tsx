@@ -99,6 +99,10 @@ function uniqueResourcesById<T>(items: T[], getId: (item: T) => string) {
   });
 }
 
+function normalizeCatalogTitle(value: string | null | undefined) {
+  return (value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 export default function MastermindHub() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -169,6 +173,16 @@ export default function MastermindHub() {
       ),
     [catalogRows]
   );
+  const completedResourceTitles = useMemo(
+    () =>
+      new Set(
+        (catalogRows ?? [])
+          .filter((row) => row.completed === true)
+          .map((row) => normalizeCatalogTitle(row.title))
+          .filter(Boolean)
+      ),
+    [catalogRows]
+  );
 
   useEffect(() => {
     const stored = getStorageItem(STORAGE_KEY);
@@ -225,6 +239,8 @@ export default function MastermindHub() {
   const currentMilestone = selectedStage.milestones.find((milestone) => milestone.id === currentMilestoneId)
     ?? selectedStage.milestones[0];
   const currentRound = getMastermindPhaseRound(selectedStageId, currentMilestone.id);
+  const isCurrentRoundResourceCompleted = completedResourceIds.has(currentRound.primaryResourceId)
+    || completedResourceTitles.has(normalizeCatalogTitle(currentRound.primaryResourceTitle));
   const portalResourceById = useMemo(
     () => new Map(MASTERMIND_PORTAL_RESOURCES.map((resource) => [resource.id, resource])),
     []
@@ -611,7 +627,7 @@ export default function MastermindHub() {
                 onAskFaith={() => window.open('https://airtable.com/appP01GhbZAtwT4nN/shrIRdOHFXijc8462', '_blank', 'noopener,noreferrer')}
                 onFindSupport={() => setActiveTab('training')}
                 onChangeFocus={scrollToFocusChooser}
-                isPrimaryResourceCompleted={completedResourceIds.has(currentRound.primaryResourceId)}
+                isPrimaryResourceCompleted={isCurrentRoundResourceCompleted}
               />
 
               {dashboardCycle && (

@@ -754,7 +754,8 @@ try {
   assert.ok(mastermindHubSource.includes('nextMoveMode'), 'Next-step panel should support a quick-win mode instead of one fixed action');
   assert.ok(mastermindHubSource.includes('Low capacity'), 'Next-step panel should expose the smaller next move for low-capacity weeks');
   assert.ok(mastermindHubSource.includes('currentNextMove'), 'Next-step panel should render the selected standard or low-capacity action');
-  assert.ok(mastermindHubSource.includes('isPrimaryResourceCompleted={completedResourceIds.has(currentRound.primaryResourceId)}'), 'Main guidance card should know when its assigned training has already been watched');
+  assert.ok(mastermindHubSource.includes('isCurrentRoundResourceCompleted'), 'Main guidance card should know when its assigned training has already been watched');
+  assert.ok(mastermindHubSource.includes('completedResourceTitles.has(normalizeCatalogTitle(currentRound.primaryResourceTitle))'), 'Main guidance card should tolerate production catalog id/title mismatches for completed training state');
   assert.equal(mastermindHubSource.includes('data-testid="mastermind-dashboard-weekly-move"'), false, '90-day hub should not render a second weekly Planner handoff');
   assert.equal(mastermindHubSource.includes('addDashboardWeeklyMoveToPlanner'), false, '90-day hub should keep task creation in the main weekly guidance card');
   assert.ok(successPathPlanCardSource.includes('useResilientTaskMutation'), 'The main weekly guidance card should reuse the resilient Planner task save path');
