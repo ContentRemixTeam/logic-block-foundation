@@ -740,6 +740,7 @@ html.theme-transitioning * {
   .mastermind-brand__hero {
     position: relative;
     overflow: hidden;
+    border-radius: 0 !important;
     box-shadow: none !important;
   }
 
@@ -852,7 +853,7 @@ html.theme-transitioning * {
   }
 
   .mastermind-brand__tab[data-state="active"] {
-    background-color: var(--mastermind-pink) !important;
+    background-color: var(--mastermind-ink) !important;
     color: #ffffff !important;
     box-shadow: none !important;
   }
@@ -863,8 +864,8 @@ html.theme-transitioning * {
 
   .mastermind-brand button[data-selected="true"],
   .mastermind-brand button[data-selected="true"] * {
-    border-color: var(--mastermind-ink) !important;
-    background-color: var(--mastermind-ink) !important;
+    border-color: var(--mastermind-pink) !important;
+    background-color: var(--mastermind-pink) !important;
     color: #ffffff !important;
   }
 

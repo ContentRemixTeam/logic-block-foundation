@@ -594,8 +594,8 @@ export default function MastermindHub() {
   return (
     <Layout>
       <AccessBoundary>
-        <div className="mastermind-brand mx-auto max-w-5xl space-y-4">
-          <div className="mastermind-brand__hero flex flex-col gap-3 border-2 border-[#111111] bg-[#F7F5F2] p-4 shadow-none sm:p-5 md:flex-row md:items-center md:justify-between">
+        <div className="mastermind-brand mx-auto max-w-5xl space-y-4 overflow-x-clip">
+          <div className="mastermind-brand__hero flex flex-col gap-4 border-l-[6px] border-l-[#C8145E] bg-[#F7F5F2] px-4 py-5 shadow-none sm:px-5 md:flex-row md:items-center md:justify-between md:py-6">
             <div className="space-y-2">
               <Badge variant="secondary" className="mastermind-brand__eyebrow w-fit">Becoming Boss Mastermind</Badge>
               <div>

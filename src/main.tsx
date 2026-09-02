@@ -4,7 +4,7 @@ import "./index.css";
 import { ErrorBoundary } from "./components/system/ErrorBoundary";
 import { initStorageDurability } from "./lib/storageDurability";
 
-const APP_CACHE_RELEASE = "mastermind-hidden-route-qa-2026-09-02-v3";
+const APP_CACHE_RELEASE = "mastermind-calm-ux-2026-09-02-v1";
 
 const isInIframe = () => {
   try {

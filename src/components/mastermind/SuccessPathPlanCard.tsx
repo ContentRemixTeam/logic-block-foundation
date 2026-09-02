@@ -39,7 +39,12 @@ const WEEKLY_MOVE_TASK_STORAGE_KEY = 'mastermind-weekly-move-task-keys';
 type WeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'failed';
 
 const roundModeButtonClass =
-  'border-[#C8145E] text-[#C8145E] hover:bg-[#FFF0F5] hover:text-[#C8145E] data-[selected=true]:border-[#111111] data-[selected=true]:bg-[#111111] data-[selected=true]:text-white data-[selected=true]:hover:bg-[#C8145E] data-[selected=true]:hover:text-white';
+  'min-h-11 whitespace-normal border-2 border-[#C8145E] bg-white font-bold text-[#C8145E] hover:bg-[#FFF0F5] hover:text-[#C8145E] data-[selected=true]:border-[#C8145E] data-[selected=true]:bg-[#C8145E] data-[selected=true]:text-white data-[selected=true]:hover:border-[#111111] data-[selected=true]:hover:bg-[#111111] data-[selected=true]:hover:text-white';
+
+const roundModeButtonStateClass = (selected: boolean) =>
+  selected
+    ? '!text-white'
+    : '!text-[#C8145E]';
 
 function getRealGoal(goal: string | null | undefined) {
   const normalized = goal?.trim().toLowerCase();
@@ -270,8 +275,9 @@ export function SuccessPathPlanCard({
               <Button
                 type="button"
                 variant="outline"
+                aria-pressed={roundMode === 'build'}
                 data-selected={roundMode === 'build'}
-                className={cn(roundModeButtonClass)}
+                className={cn(roundModeButtonClass, roundModeButtonStateClass(roundMode === 'build'))}
                 onClick={() => setRoundMode('build')}
               >
                 Build it for the first time
@@ -279,8 +285,9 @@ export function SuccessPathPlanCard({
               <Button
                 type="button"
                 variant="outline"
+                aria-pressed={roundMode === 'improve'}
                 data-selected={roundMode === 'improve'}
-                className={cn(roundModeButtonClass)}
+                className={cn(roundModeButtonClass, roundModeButtonStateClass(roundMode === 'improve'))}
                 onClick={() => setRoundMode('improve')}
               >
                 Improve what already works
