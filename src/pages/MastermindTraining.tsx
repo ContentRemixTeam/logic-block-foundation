@@ -11,6 +11,7 @@ import { VaultPlayer } from '@/components/replay-vault/VaultPlayer';
 import { MastermindCurriculumTranscript } from '@/components/mastermind/MastermindCurriculumTranscript';
 import {
   MASTERMIND_PORTAL_RESOURCES,
+  formatMemberFacingResourceJob,
   type MastermindPortalResource,
 } from '@/data/mastermindPortalResources';
 import {
@@ -95,6 +96,8 @@ export default function MastermindTraining() {
     () => findLessonRecommendation(resourceId, lessonStage?.id ?? null),
     [lessonStage?.id, resourceId],
   );
+  const lessonUseWhen = lessonRecommendation?.useWhen
+    ?? (resourceMetadata ? formatMemberFacingResourceJob(resourceMetadata.memberJob) : '');
   const lessonAfterWatching = lessonRecommendation?.afterWatching
     ?? resourceMetadata?.sourceStatus
     ?? 'Go back to your plan and record the action or evidence this lesson helps you create.';
@@ -298,14 +301,16 @@ export default function MastermindTraining() {
 
   return (
     <Layout>
-      <section className="mx-auto w-full max-w-5xl space-y-6 overflow-x-clip">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <section className="mastermind-brand mx-auto w-full max-w-5xl space-y-4 overflow-x-clip">
+        <div className="mastermind-brand__hero flex flex-col gap-3 border-2 border-[#111111] bg-[#F7F5F2] p-4 shadow-none sm:p-5 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <Badge variant="secondary" className="w-fit">Mastermind Training Library</Badge>
+            <Badge variant="secondary" className="mastermind-brand__eyebrow w-fit">Mastermind Training Library</Badge>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Training</h1>
-              <p className="max-w-2xl text-muted-foreground">
-                Watch the lesson connected to your current 90-day plan.
+              <h1 className="mastermind-brand__title text-3xl font-normal leading-none md:text-4xl" aria-label="Your Weekly Training">
+                Your Weekly <span>Training</span>
+              </h1>
+              <p className="mastermind-brand__subtitle mt-2 max-w-2xl text-sm">
+                Watch the lesson connected to your current 90-day plan, then return with evidence from the move.
               </p>
             </div>
           </div>
@@ -317,7 +322,7 @@ export default function MastermindTraining() {
         </div>
 
         {!initialTarget && (
-          <Card>
+          <Card className="border-[#111111] bg-white shadow-none">
             <CardHeader>
               <CardTitle>Choose a training from your plan.</CardTitle>
               <CardDescription>This page opens lessons from the recommendation card once a video is ready in the protected library.</CardDescription>
@@ -329,29 +334,37 @@ export default function MastermindTraining() {
         )}
 
         {initialTarget && resourceMetadata && (
-          <Card className="border-primary/20">
+          <Card className="border-[#111111] bg-white shadow-none">
             <CardHeader>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary" className="w-fit">Lesson context</Badge>
-                {lessonStage && <Badge variant="outline" className="w-fit">{lessonStage.label}</Badge>}
+                {lessonStage && <Badge variant="outline" className="w-fit">{lessonStage.label} focus</Badge>}
               </div>
               <CardTitle>{resourceMetadata.title}</CardTitle>
               <CardDescription>{resourceMetadata.description}</CardDescription>
+              <div className="mt-3 border-l-[3px] border-[#C8145E] bg-[#FFF0F5] px-4 py-3">
+                <p className="text-xs font-semibold text-[#111111]">From your saved 90-day plan</p>
+                <p className="mt-1 text-sm leading-relaxed text-[#555555]">
+                  {lessonStage
+                    ? `${lessonStage.label} is the current focus, so this lesson should help you take the weekly move and bring back useful evidence.`
+                    : 'This lesson should help you take the weekly move and bring back useful evidence.'}
+                </p>
+              </div>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-lg border bg-background p-3">
+              <div className="border bg-[#F7F5F2] p-3">
                 <p className="text-xs font-semibold text-muted-foreground">Use this when</p>
-                <p className="mt-1 text-sm leading-relaxed">{lessonRecommendation?.useWhen ?? resourceMetadata.memberJob}</p>
+                <p className="mt-1 text-sm leading-relaxed">{lessonUseWhen}</p>
               </div>
-              <div className="rounded-lg border bg-background p-3">
+              <div className="border bg-[#F7F5F2] p-3">
                 <p className="text-xs font-semibold text-muted-foreground">Connected outcome</p>
                 <p className="mt-1 text-sm leading-relaxed">{lessonStage?.milestone ?? 'Make the next 90-day move easier to complete.'}</p>
               </div>
-              <div className="rounded-lg border bg-background p-3">
+              <div className="border bg-[#F7F5F2] p-3">
                 <p className="text-xs font-semibold text-muted-foreground">After watching</p>
                 <p className="mt-1 text-sm leading-relaxed">{lessonAfterWatching}</p>
               </div>
-              <div className="rounded-lg border bg-background p-3">
+              <div className="border bg-[#F7F5F2] p-3">
                 <p className="text-xs font-semibold text-muted-foreground">Evidence to bring back</p>
                 <p className="mt-1 text-sm leading-relaxed">{lessonEvidence}</p>
                 <p className="mt-2 text-xs leading-snug text-muted-foreground">
@@ -363,7 +376,7 @@ export default function MastermindTraining() {
         )}
 
         {initialTarget && loading && (
-          <Card>
+          <Card className="border-[#111111] bg-white shadow-none">
             <CardContent className="flex items-center gap-3 p-6 text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
               Opening protected training...
@@ -372,7 +385,7 @@ export default function MastermindTraining() {
         )}
 
         {playbackError && (
-          <Card role="alert" className="border-primary/20">
+          <Card role="alert" className="border-[#111111] bg-white shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -409,7 +422,7 @@ export default function MastermindTraining() {
             onCurrentTimeChange={setCurrentTime}
             showVaultTools={false}
             footer={(
-              <div className="rounded-md border bg-primary/5 p-3">
+              <div className="border bg-[#FFF0F5] p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <PlayCircle className="h-4 w-4 text-primary" aria-hidden="true" />
                   <p className="text-sm font-semibold">After watching</p>
@@ -434,7 +447,7 @@ export default function MastermindTraining() {
                   </Button>
                 </div>
                 {progressSaved && (
-                  <div className="mt-3 rounded-md border bg-background p-3">
+                  <div className="mt-3 border bg-white p-3">
                     <div className="mb-2 flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
                       <p className="text-sm font-semibold">Next step in your planner</p>
