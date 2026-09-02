@@ -33,6 +33,7 @@ import { COMMUNITY_URLS } from '@/constants/community';
 const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'lesson'}`;
 const STAGE_IDS = new Set<MastermindStageId>(MASTERMIND_SUCCESS_STAGES.map((stage) => stage.id));
 const PLAYBACK_REQUEST_TIMEOUT_MS = 30_000;
+const ENABLE_MASTERMIND_90_DAY_PLAN = import.meta.env.VITE_ENABLE_MASTERMIND_90_DAY_PLAN === 'true';
 
 function isMastermindStageId(value: string | null): value is MastermindStageId {
   return Boolean(value && STAGE_IDS.has(value as MastermindStageId));
@@ -72,6 +73,8 @@ export default function MastermindTraining() {
   const questionId = searchParams.get('question');
   const fromPhaseOne = searchParams.get('from') === 'phase-one';
   const isAdminTrainingPreview = location.pathname.startsWith('/admin/mastermind-training-preview');
+  const isHiddenMemberQa = location.pathname.startsWith('/mastermind/training') && !ENABLE_MASTERMIND_90_DAY_PLAN;
+  const usePreviewPlayback = isAdminTrainingPreview || isHiddenMemberQa;
   const backHref = fromPhaseOne
     ? '/admin/mastermind-90-day-plan-preview'
     : isAdminTrainingPreview
@@ -169,7 +172,7 @@ export default function MastermindTraining() {
           momentId: nextTarget.momentId,
           responseShape: 'verified_cue_v1',
           surface: 'curriculum',
-          preview: isAdminTrainingPreview,
+          preview: usePreviewPlayback,
         },
       });
       const { data, error } = await Promise.race([playbackRequestPromise, timeout]).finally(() => {
@@ -207,7 +210,7 @@ export default function MastermindTraining() {
         setRecoveryBusy(false);
       }
     }
-  }, [resetForSource]);
+  }, [resetForSource, usePreviewPlayback]);
 
   useEffect(() => {
     if (!initialTarget) return;
