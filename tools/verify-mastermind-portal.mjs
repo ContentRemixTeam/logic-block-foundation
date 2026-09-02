@@ -754,6 +754,7 @@ try {
   assert.ok(mastermindHubSource.includes('nextMoveMode'), 'Next-step panel should support a quick-win mode instead of one fixed action');
   assert.ok(mastermindHubSource.includes('Low capacity'), 'Next-step panel should expose the smaller next move for low-capacity weeks');
   assert.ok(mastermindHubSource.includes('currentNextMove'), 'Next-step panel should render the selected standard or low-capacity action');
+  assert.ok(mastermindHubSource.includes('isPrimaryResourceCompleted={completedResourceIds.has(currentRound.primaryResourceId)}'), 'Main guidance card should know when its assigned training has already been watched');
   assert.equal(mastermindHubSource.includes('data-testid="mastermind-dashboard-weekly-move"'), false, '90-day hub should not render a second weekly Planner handoff');
   assert.equal(mastermindHubSource.includes('addDashboardWeeklyMoveToPlanner'), false, '90-day hub should keep task creation in the main weekly guidance card');
   assert.ok(successPathPlanCardSource.includes('useResilientTaskMutation'), 'The main weekly guidance card should reuse the resilient Planner task save path');
@@ -821,6 +822,10 @@ try {
     'Choose/change focus',
     'After the planning wizard',
     'Plan saved, focus chosen, one weekly move, one useful training, evidence for check-in.',
+    'isPrimaryResourceCompleted',
+    'Review if needed',
+    'Watch again',
+    "hasCompletedPrimaryResource ? 'watched' : 'ready to watch'",
     'ready to watch',
   ];
   for (const guard of requiredSuccessPathLayoutGuards) {

@@ -31,6 +31,7 @@ interface SuccessPathPlanCardProps {
   onAskFaith: () => void;
   onFindSupport: () => void;
   onChangeFocus?: () => void;
+  isPrimaryResourceCompleted?: boolean;
 }
 
 const PLACEHOLDER_GOALS = new Set(['my 90-day goal', 'my 90 day goal', 'n']);
@@ -83,6 +84,7 @@ export function SuccessPathPlanCard({
   onAskFaith,
   onFindSupport,
   onChangeFocus,
+  isPrimaryResourceCompleted = false,
 }: SuccessPathPlanCardProps) {
   const [roundMode, setRoundMode] = useState<MastermindRoundMode>('build');
   const [platformId, setPlatformId] = useState<string | null>(null);
@@ -141,9 +143,18 @@ export function SuccessPathPlanCard({
     afterWatching: roundMode === 'build' ? round.buildAction : round.improveAction,
   };
   const isAiSetupResource = primaryResource.resourceId === 'faith-ai';
+  const hasCompletedPrimaryResource = !isAiSetupResource && isPrimaryResourceCompleted;
   const PrimaryResourceIcon = isAiSetupResource ? Sparkles : PlayCircle;
-  const primaryResourceLabel = isAiSetupResource ? 'Set up if needed' : 'Watch if needed';
-  const primaryResourceActionLabel = isAiSetupResource ? 'Open AI settings' : 'Open training';
+  const primaryResourceLabel = isAiSetupResource
+    ? 'Set up if needed'
+    : hasCompletedPrimaryResource
+      ? 'Review if needed'
+      : 'Watch if needed';
+  const primaryResourceActionLabel = isAiSetupResource
+    ? 'Open AI settings'
+    : hasCompletedPrimaryResource
+      ? 'Watch again'
+      : 'Open training';
   const primaryResourceAfterLabel = isAiSetupResource ? 'After setup: ' : 'After watching: ';
   const selectedPlatform = CREATOR_CAMP_PLATFORM_MATCHES.find((item) => item.id === platformId) ?? null;
   const realGoal = getRealGoal(cycle.goal);
@@ -388,7 +399,11 @@ export function SuccessPathPlanCard({
                     <PrimaryResourceIcon className="h-4 w-4 text-primary" aria-hidden="true" />
                     <p className="text-sm font-semibold">{primaryResourceLabel}</p>
                     <Badge variant="outline" className="text-[11px]">{primaryResource.access}</Badge>
-                    {!isAiSetupResource && <Badge variant="outline" className="text-[11px]">ready to watch</Badge>}
+                    {!isAiSetupResource && (
+                      <Badge variant={hasCompletedPrimaryResource ? 'success' : 'outline'} className="text-[11px]">
+                        {hasCompletedPrimaryResource ? 'watched' : 'ready to watch'}
+                      </Badge>
+                    )}
                   </div>
                   <h3 className="break-words text-base font-semibold leading-snug">{round.primaryResourceTitle}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{primaryResource.useWhen}</p>
