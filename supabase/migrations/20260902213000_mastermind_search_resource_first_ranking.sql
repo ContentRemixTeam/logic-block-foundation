@@ -19,6 +19,15 @@
 --   4. The function carries a 6s statement_timeout so a pathological query
 --      returns an error the edge function can map to "narrow your search".
 
+-- Composite GIN (btree_gin) so cue ranking inside a chosen set of transcript
+-- versions is a single index probe per version: both the version equality and
+-- the tsquery match are index conditions. Without it the planner either scans
+-- every cue of the top resources (about 90k rows) or every cue matching the
+-- query corpus-wide, and both cost seconds for everyday words.
+CREATE EXTENSION IF NOT EXISTS btree_gin WITH SCHEMA extensions;
+CREATE INDEX IF NOT EXISTS replay_transcript_segments_version_search_idx
+  ON public.replay_transcript_segments USING gin (transcript_version_id, search_vector);
+
 CREATE TABLE IF NOT EXISTS public.replay_resource_search_index (
   transcript_version_id uuid PRIMARY KEY REFERENCES public.replay_transcript_versions(id) ON DELETE CASCADE,
   resource_id uuid NOT NULL,
