@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, PlayCircle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ExternalLink, PlayCircle, RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ import {
 import type { PlaybackResult, PlaybackTarget } from '@/components/replay-vault/types';
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
 import { savePhaseOneVideoProgress, usePhaseOneCatalog } from '@/hooks/usePhaseOneCatalog';
+import { COMMUNITY_URLS } from '@/constants/community';
 
 const targetKey = (target: PlaybackTarget) => `${target.resourceId}:${target.momentId ?? target.questionId ?? 'lesson'}`;
 const STAGE_IDS = new Set<MastermindStageId>(MASTERMIND_SUCCESS_STAGES.map((stage) => stage.id));
@@ -291,6 +292,10 @@ export default function MastermindTraining() {
     void resolvePlayback(nextTarget);
   };
 
+  const openCommunity = () => {
+    window.open(COMMUNITY_URLS.COMMUNITY_HOME, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <Layout>
       <section className="mx-auto w-full max-w-5xl space-y-6 overflow-x-clip">
@@ -349,6 +354,9 @@ export default function MastermindTraining() {
               <div className="rounded-lg border bg-background p-3">
                 <p className="text-xs font-semibold text-muted-foreground">Evidence to bring back</p>
                 <p className="mt-1 text-sm leading-relaxed">{lessonEvidence}</p>
+                <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                  Post one takeaway, question, or win in the Community after you try the move.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -419,6 +427,11 @@ export default function MastermindTraining() {
                   <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate(backHref)}>
                     {backLabel}
                   </Button>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={openCommunity}>
+                    <Users className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Post takeaway
+                    <ExternalLink className="ml-2 h-3.5 w-3.5" aria-hidden="true" />
+                  </Button>
                 </div>
                 {progressSaved && (
                   <div className="mt-3 rounded-md border bg-background p-3">
@@ -438,6 +451,10 @@ export default function MastermindTraining() {
                       </Button>
                       <Button type="button" variant="secondary" className="min-h-11 w-full sm:w-auto" onClick={() => navigate('/evidence')}>
                         Record evidence
+                      </Button>
+                      <Button type="button" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={openCommunity}>
+                        Share in Community
+                        <ExternalLink className="ml-2 h-3.5 w-3.5" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>

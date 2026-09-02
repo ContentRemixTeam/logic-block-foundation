@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, CheckCircle2, ListTodo, Loader2, MessageCircle, PlayCircle, Search, Sparkles, Target, Zap } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ExternalLink, ListTodo, Loader2, MessageCircle, PlayCircle, Search, Sparkles, Target, Users, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import {
   getMastermindPhaseRound,
   type MastermindRoundMode,
 } from '@/data/mastermindPhaseRounds';
+import { COMMUNITY_URLS } from '@/constants/community';
 
 interface SuccessPathPlanCardProps {
   cycle: MastermindPlanCycle | null | undefined;
@@ -160,6 +161,9 @@ export function SuccessPathPlanCard({
   const realGoal = getRealGoal(cycle.goal);
   const currentAction = roundMode === 'build' ? round.buildAction : round.improveAction;
   const weeklyMoveTaskState = weeklyMoveTaskStates[weeklyMoveTaskKey] ?? 'idle';
+  const openCommunity = () => {
+    window.open(COMMUNITY_URLS.COMMUNITY_HOME, '_blank', 'noopener,noreferrer');
+  };
   const setCurrentWeeklyMoveTaskState = (state: WeeklyMoveTaskState) => {
     setWeeklyMoveTaskStates((states) => ({ ...states, [weeklyMoveTaskKey]: state }));
   };
@@ -323,6 +327,9 @@ export function SuccessPathPlanCard({
                 <p className="text-sm font-semibold">Bring back this evidence</p>
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">{round.evidence}</p>
+              <p className="mt-3 text-xs leading-snug text-muted-foreground">
+                After you try it, post one takeaway, question, or win in the Community so the room can help you keep moving.
+              </p>
               <p className="mt-3 text-sm"><span className="font-semibold">Round complete when: </span>{round.doneEnough}</p>
               <div className="mt-4 grid gap-2">
                 <Button
@@ -422,6 +429,11 @@ export function SuccessPathPlanCard({
             <Button type="button" variant="outline" onClick={onAskFaith}>
               <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
               Ask Faith
+            </Button>
+            <Button type="button" variant="outline" onClick={openCommunity}>
+              <Users className="mr-2 h-4 w-4" aria-hidden="true" />
+              Post in Community
+              <ExternalLink className="ml-2 h-3.5 w-3.5" aria-hidden="true" />
             </Button>
             {aiStudioEnabled && onOpenAiStudio && (
               <Button type="button" variant="secondary" onClick={onOpenAiStudio}>

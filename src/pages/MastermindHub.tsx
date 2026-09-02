@@ -43,6 +43,7 @@ import {
   searchMastermindPortalResources,
 } from '@/lib/mastermindPortalSearch';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
+import { COMMUNITY_URLS } from '@/constants/community';
 import {
   ArrowRight,
   Bot,
@@ -664,6 +665,10 @@ export default function MastermindHub() {
     }
   };
 
+  const openCommunity = () => {
+    window.open(COMMUNITY_URLS.COMMUNITY_HOME, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <Layout>
       <AccessBoundary>
@@ -802,13 +807,16 @@ export default function MastermindHub() {
                         </p>
                       )}
                     </div>
-                    <div className="rounded-lg border bg-background p-4">
-                      <div className="mb-2 flex items-center gap-2">
-                        <ClipboardCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-                        <p className="text-sm font-semibold">Record this</p>
+                      <div className="rounded-lg border bg-background p-4">
+                        <div className="mb-2 flex items-center gap-2">
+                          <ClipboardCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                          <p className="text-sm font-semibold">Record this</p>
+                        </div>
+                        <p className="text-sm leading-relaxed">{currentRound.evidence}</p>
+                        <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                          Then post one takeaway, question, or win in the Community.
+                        </p>
                       </div>
-                      <p className="text-sm leading-relaxed">{currentRound.evidence}</p>
-                    </div>
                   </div>
 
                   <div className="rounded-lg border bg-muted/35 p-4">
@@ -871,6 +879,11 @@ export default function MastermindHub() {
                       )}
                       <Button type="button" variant="outline" className="w-full" onClick={() => navigate('/evidence')}>
                         Record evidence
+                      </Button>
+                      <Button type="button" variant="outline" className="w-full" onClick={openCommunity}>
+                        <Users className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Post in Community
+                        <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" />
                       </Button>
                       <Button type="button" variant="ghost" className="w-full" onClick={() => void copyAskFaithBrief()}>
                         <Copy className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -1235,10 +1248,10 @@ export default function MastermindHub() {
                 />
                 <SupportCard
                   icon={Users}
-                  title="Use the room"
-                  description="When the next step is emotionally sticky, take it to coworking, community, or coaching instead of disappearing."
+                  title="Post in Community"
+                  description="Share a takeaway, question, win, or sticky spot so the room can help you stay with the 90-day move."
                   buttonLabel="Open Community"
-                  onClick={() => window.open('https://portal.faithmariah.com/communities/groups/mastermind/home', '_blank', 'noopener,noreferrer')}
+                  onClick={openCommunity}
                 />
                 <SupportCard
                   icon={Calendar}
