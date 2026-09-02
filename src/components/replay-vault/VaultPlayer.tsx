@@ -27,7 +27,8 @@ interface VaultPlayerProps {
 export function VaultPlayer({ playback, target, videoRef, announcement, sourceGeneration, recoveryBusy, recoveryFailed, onLoadedMetadata, onMediaError, onManualRefresh, onOpen, onCurrentTimeChange, showVaultTools = true, footer }: VaultPlayerProps) {
   const isYouTube = playback.provider === 'youtube';
   const [currentTime, setCurrentTime] = useState(0);
-  useEffect(() => { setCurrentTime(0); }, [sourceGeneration]);
+  const [mediaReady, setMediaReady] = useState(false);
+  useEffect(() => { setCurrentTime(0); setMediaReady(false); }, [sourceGeneration]);
   useEffect(() => { onCurrentTimeChange?.(currentTime); }, [currentTime, onCurrentTimeChange]);
   const youtubeUrl = isYouTube ? `${playback.playbackUrl}${playback.playbackUrl.includes('?') ? '&' : '?'}start=${Math.max(0, Math.floor(target.startSeconds ?? 0))}` : null;
   return (
@@ -44,11 +45,11 @@ export function VaultPlayer({ playback, target, videoRef, announcement, sourceGe
             <p className="rounded-md border p-3 text-sm text-muted-foreground">Automatic playback recovery is not available for YouTube. If this player stops, return to the answer and open it again.</p>
           </>
         ) : (
-          <video ref={videoRef} key={`${playback.resourceId}:${sourceGeneration}`} src={playback.playbackUrl} data-source-generation={sourceGeneration} controls controlsList="nodownload noremoteplayback" disablePictureInPicture playsInline preload="metadata" className="aspect-video w-full max-w-full rounded-md bg-black sm:rounded-lg" onContextMenu={(event) => event.preventDefault()} onLoadedMetadata={onLoadedMetadata} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)} onError={onMediaError} aria-label={`Protected replay: ${playback.title}`}>
+          <video ref={videoRef} key={`${playback.resourceId}:${sourceGeneration}`} src={playback.playbackUrl} data-source-generation={sourceGeneration} controls controlsList="nodownload noremoteplayback" disablePictureInPicture playsInline preload="metadata" className="aspect-video w-full max-w-full rounded-md bg-black sm:rounded-lg" onContextMenu={(event) => event.preventDefault()} onLoadedMetadata={() => { setMediaReady(true); onLoadedMetadata(); }} onPlaying={() => setMediaReady(true)} onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)} onError={onMediaError} aria-label={`Protected replay: ${playback.title}`}>
             Protected replay video is loading. If it does not start, use Refresh video or open this replay again.
           </video>
         )}
-        {!isYouTube && <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">Loading your video… Larger replays may take a minute to begin. Please keep this page open.</p>}
+        {!isYouTube && !mediaReady && !recoveryFailed && <p role="status" className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">Loading your video… Larger replays may take a minute to begin. Please keep this page open.</p>}
         {showVaultTools && <VaultTakeawayPrompt />}
         {showVaultTools && (target.momentId || target.questionId
           ? <VaultInteractionBar playback={playback} target={target} videoRef={videoRef} sourceGeneration={sourceGeneration} />

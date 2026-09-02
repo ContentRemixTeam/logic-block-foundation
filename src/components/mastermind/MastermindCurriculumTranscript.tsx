@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { activeCueIndex, normalizeCursor, normalizeTranscript } from '@/components/replay-vault/replayVaultLibraryCore.mjs';
 import { formatCompactTime, formatSpokenTime, isStableVaultId } from '@/components/replay-vault/replayVaultCore.mjs';
 import type { PlaybackTarget } from '@/components/replay-vault/types';
+import { vaultPreviewEnabled } from '@/components/replay-vault/previewMode';
 
 type TranscriptState = 'loading' | 'ready' | 'empty' | 'error';
 
@@ -58,6 +59,7 @@ export function MastermindCurriculumTranscript({
             resourceId,
             cursor,
             limit: PAGE_SIZE,
+            preview: vaultPreviewEnabled(),
           },
         });
 
