@@ -230,7 +230,7 @@ export function SuccessPathPlanCard({
               <span>After the planning wizard</span>
             </div>
             <p className="mt-1 text-sm leading-relaxed text-[#555555]">
-              Plan saved, focus chosen, one weekly move, one useful training, evidence for check-in.
+              Plan saved, focus chosen, one weekly move, one useful training, evidence for check-in. Your plan setup chose {stage.label} as the current bottleneck.
             </p>
           </div>
 
@@ -249,7 +249,7 @@ export function SuccessPathPlanCard({
               <p className="mt-1 text-sm leading-relaxed">
                 {successPath?.stageId === selectedStageId
                   ? successPath.reason
-                  : `You chose ${stage.label} because it feels like the most important constraint to solve first.`}
+                  : `This is the focus saved from your planning setup. If the evidence says another bottleneck matters more, choose a different focus; otherwise keep this round simple and keep moving.`}
               </p>
             </div>
             <div className="border bg-background p-4">

@@ -576,7 +576,7 @@ export default function MastermindHub() {
                   Your 90-Day <span>Plan</span>
                 </h1>
                 <p className="mastermind-brand__subtitle mt-2 max-w-xl text-sm">
-                  After the planning wizard, this page turns the plan into one focus, one weekly move, and one useful training.
+                  After the planning wizard, this is your weekly work view: one focus, one move, one training, one evidence loop.
                 </p>
               </div>
             </div>
@@ -616,12 +616,12 @@ export default function MastermindHub() {
               {dashboardCycle && (
                 <Card className="border-[#111111] bg-white">
                   <CardHeader className="pb-3 pt-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <Badge variant="outline" className="mb-2 w-fit">Built from this plan</Badge>
                         <CardTitle className="text-base">Your plan, tasks, training, and AI setup in one place.</CardTitle>
                         <CardDescription>
-                          A quick check for what is active and what has moved forward.
+                          A compact status check. The weekly move above is still the main path.
                         </CardDescription>
                       </div>
                       <Badge variant="secondary" className="w-fit">Active 90-day cycle</Badge>

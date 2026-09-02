@@ -738,7 +738,9 @@ html.theme-transitioning * {
   }
 
   .mastermind-brand__hero {
-    box-shadow: none;
+    position: relative;
+    overflow: hidden;
+    box-shadow: none !important;
   }
 
   .mastermind-brand__title {
@@ -853,6 +855,17 @@ html.theme-transitioning * {
     background-color: var(--mastermind-pink) !important;
     color: #ffffff !important;
     box-shadow: none !important;
+  }
+
+  .mastermind-brand__tab[data-state="active"] * {
+    color: #ffffff !important;
+  }
+
+  .mastermind-brand button[data-selected="true"],
+  .mastermind-brand button[data-selected="true"] * {
+    border-color: var(--mastermind-ink) !important;
+    background-color: var(--mastermind-ink) !important;
+    color: #ffffff !important;
   }
 
   .mastermind-brand__tab:not([data-state="active"]):hover {
