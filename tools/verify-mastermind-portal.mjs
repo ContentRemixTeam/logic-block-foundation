@@ -609,7 +609,7 @@ try {
   assert.ok(mastermindSupportBotSource.includes('evidence_to_record'), 'Coaching response should ask for evidence, not only inspiration');
   assert.ok(mastermindSupportBotSource.includes('Only ready, playable curriculum videos appear here.'), 'Finder should only show playable hidden curriculum videos');
   assert.ok(successPathPlanCardSource.includes('Do this this week'), 'The 90-day guidance card should name one concrete weekly move');
-  assert.ok(successPathPlanCardSource.includes('Bring back this evidence'), 'The 90-day guidance card should define the evidence target');
+  assert.ok(successPathPlanCardSource.includes('Evidence to bring back'), 'The 90-day guidance card should define the evidence target');
   assert.ok(successPathPlanCardSource.includes('useResilientTaskMutation'), 'The 90-day guidance card should create weekly moves through the existing resilient Planner task path');
   assert.ok(successPathPlanCardSource.includes('Add this weekly move'), 'The 90-day guidance card should let members turn the move into one Planner task');
   assert.ok(!successPathPlanCardSource.includes('!cycle || !successPath'), 'A saved 90-day plan must still show the weekly move when the routing recommendation is missing');
@@ -754,13 +754,13 @@ try {
   assert.ok(mastermindHubSource.includes('nextMoveMode'), 'Next-step panel should support a quick-win mode instead of one fixed action');
   assert.ok(mastermindHubSource.includes('Low capacity'), 'Next-step panel should expose the smaller next move for low-capacity weeks');
   assert.ok(mastermindHubSource.includes('currentNextMove'), 'Next-step panel should render the selected standard or low-capacity action');
-  assert.ok(mastermindHubSource.includes('data-testid="mastermind-dashboard-weekly-move"'), '90-day hub should expose a dashboard-level weekly Planner handoff');
-  assert.ok(mastermindHubSource.includes('addDashboardWeeklyMoveToPlanner'), '90-day hub should create the weekly move from the dashboard next-step panel');
-  assert.ok(mastermindHubSource.includes('useResilientTaskMutation'), '90-day hub should reuse the resilient Planner task save path for dashboard weekly moves');
-  assert.ok(mastermindHubSource.includes("status: 'backlog'"), 'Dashboard weekly move tasks should use a database-safe Planner task status');
-  assert.ok(!mastermindHubSource.includes("status: 'focus'"), 'Dashboard weekly move tasks must not use the rejected focus status');
-  assert.ok(mastermindHubSource.includes("system_source: 'mastermind-90-day-plan'"), 'Dashboard weekly move tasks should be labeled as Mastermind 90-day plan work');
-  assert.ok(mastermindHubSource.includes('rememberWeeklyMoveTaskKey(dashboardWeeklyMoveTaskKey)'), 'Dashboard weekly move handoff should prevent repeat task creation after save or queued sync');
+  assert.equal(mastermindHubSource.includes('data-testid="mastermind-dashboard-weekly-move"'), false, '90-day hub should not render a second weekly Planner handoff');
+  assert.equal(mastermindHubSource.includes('addDashboardWeeklyMoveToPlanner'), false, '90-day hub should keep task creation in the main weekly guidance card');
+  assert.ok(successPathPlanCardSource.includes('useResilientTaskMutation'), 'The main weekly guidance card should reuse the resilient Planner task save path');
+  assert.ok(successPathPlanCardSource.includes("status: 'backlog'"), 'Main weekly move tasks should use a database-safe Planner task status');
+  assert.ok(!successPathPlanCardSource.includes("status: 'focus'"), 'Main weekly move tasks must not use the rejected focus status');
+  assert.ok(successPathPlanCardSource.includes("system_source: 'mastermind-90-day-plan'"), 'Main weekly move tasks should be labeled as Mastermind 90-day plan work');
+  assert.ok(successPathPlanCardSource.includes('rememberWeeklyMoveTaskKey(weeklyMoveTaskKey)'), 'Main weekly move handoff should prevent repeat task creation after save or queued sync');
   assert.ok(mastermindHubSource.includes('useActiveCycle'), '90-day hub should use the Planner active cycle as a dashboard fallback');
   assert.ok(mastermindHubSource.includes('const dashboardCycle = useMemo<MastermindPlanCycle | null>'), '90-day hub should normalize a single dashboard cycle from success-path or active-cycle data');
   assert.ok(mastermindHubSource.includes('usePhaseOneState(Boolean(dashboardCycle?.cycle_id))'), 'Phase One state should hydrate from the dashboard cycle fallback');
@@ -797,7 +797,7 @@ try {
   assert.equal(indexCssSource.includes('.mastermind-brand [class*="text-primary"]'), false, 'Brand CSS must not treat text-primary-foreground as text-primary');
 
   const requiredMastermindHubLayoutGuards = [
-    'className="mastermind-brand__tabs grid h-auto w-full grid-cols-3 p-0"',
+    'className="mastermind-brand__tabs grid h-auto w-full max-w-2xl grid-cols-3 p-0"',
     'className="mastermind-brand__tab"',
     'className="pl-10 pr-10"',
     'className="min-h-9 whitespace-normal text-left leading-tight"',
@@ -815,19 +815,18 @@ try {
   const requiredSuccessPathLayoutGuards = [
     'className="max-w-3xl"',
     'className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"',
-    'className="rounded-lg border bg-background p-4"',
-    'className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"',
-    'className="border-t bg-background/60 px-6 py-4 md:px-8"',
+    'className="border bg-background p-4"',
+    'className="flex flex-col gap-2 border-t border-[#111111] pt-4 sm:flex-row sm:flex-wrap"',
+    'className="border-t bg-[#F7F5F2] px-4 py-4 sm:px-5 md:px-6"',
     'Choose/change focus',
     'After the planning wizard',
-    'The wizard sets the 90-day result.',
-    'Watch only what helps the move.',
-    'Bring results back to check-in.',
+    'Plan saved, focus chosen, one weekly move, one useful training, evidence for check-in.',
+    'ready to watch',
   ];
   for (const guard of requiredSuccessPathLayoutGuards) {
     assert.ok(successPathPlanCardSource.includes(guard), 'SuccessPathPlanCard is missing responsive layout guard: ' + guard);
   }
-  assert.ok(mastermindHubSource.includes('After your planning wizard is saved'), 'MastermindHub should clarify that the planning wizard comes before the Mastermind execution page');
+  assert.ok(mastermindHubSource.includes('After the planning wizard'), 'MastermindHub should clarify that the planning wizard comes before the Mastermind execution page');
   assert.ok(successPathPlanCardSource.includes('const roundModeButtonClass'), 'Build/improve toggle should use an explicit readable selected-button class');
   assert.ok(successPathPlanCardSource.includes("data-selected={roundMode === 'build'}"), 'Build round button should mark selected state without the default variant color collision');
   assert.ok(successPathPlanCardSource.includes("data-selected={roundMode === 'improve'}"), 'Improve round button should mark selected state without the default variant color collision');

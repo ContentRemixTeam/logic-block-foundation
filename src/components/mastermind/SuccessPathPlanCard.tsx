@@ -31,8 +31,6 @@ interface SuccessPathPlanCardProps {
   onAskFaith: () => void;
   onFindSupport: () => void;
   onChangeFocus?: () => void;
-  onOpenAiStudio?: () => void;
-  aiStudioEnabled?: boolean;
 }
 
 const PLACEHOLDER_GOALS = new Set(['my 90-day goal', 'my 90 day goal', 'n']);
@@ -40,15 +38,7 @@ const WEEKLY_MOVE_TASK_STORAGE_KEY = 'mastermind-weekly-move-task-keys';
 type WeeklyMoveTaskState = 'idle' | 'saving' | 'saved' | 'queued' | 'failed';
 
 const roundModeButtonClass =
-  'border-primary text-primary hover:bg-primary/10 hover:text-primary data-[selected=true]:bg-primary data-[selected=true]:text-white data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-white';
-
-const planFlowSteps = [
-  { label: 'Plan saved', detail: 'The wizard sets the 90-day result.' },
-  { label: 'Focus chosen', detail: 'Pick the bottleneck for this cycle.' },
-  { label: 'Weekly move', detail: 'Add one action to the Planner.' },
-  { label: 'Training', detail: 'Watch only what helps the move.' },
-  { label: 'Evidence', detail: 'Bring results back to check-in.' },
-];
+  'border-[#C8145E] text-[#C8145E] hover:bg-[#FFF0F5] hover:text-[#C8145E] data-[selected=true]:border-[#111111] data-[selected=true]:bg-[#111111] data-[selected=true]:text-white data-[selected=true]:hover:bg-[#C8145E] data-[selected=true]:hover:text-white';
 
 function getRealGoal(goal: string | null | undefined) {
   const normalized = goal?.trim().toLowerCase();
@@ -93,8 +83,6 @@ export function SuccessPathPlanCard({
   onAskFaith,
   onFindSupport,
   onChangeFocus,
-  onOpenAiStudio,
-  aiStudioEnabled = false,
 }: SuccessPathPlanCardProps) {
   const [roundMode, setRoundMode] = useState<MastermindRoundMode>('build');
   const [platformId, setPlatformId] = useState<string | null>(null);
@@ -198,6 +186,10 @@ export function SuccessPathPlanCard({
             : stage.id === 'leverage' ? 'operations'
               : 'revenue',
         done_enough_definition: round.doneEnough,
+        system_source: 'mastermind-90-day-plan',
+        is_system_generated: true,
+        task_type: 'weekly_move',
+        template_key: `mastermind:${stage.id}:${currentMilestoneId ?? 'stage'}:${roundMode}`,
       });
 
       const nextState = result.queued ? 'queued' : 'saved';
@@ -209,9 +201,9 @@ export function SuccessPathPlanCard({
   };
 
   return (
-    <Card className="overflow-hidden border-primary/30 bg-primary/5">
+    <Card className="overflow-hidden border-[#111111] bg-white">
       <CardContent className="p-0">
-        <div className="space-y-5 p-6 md:p-8">
+        <div className="space-y-4 p-4 sm:p-5 md:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="text-[11px]">Your 90-day plan</Badge>
@@ -232,24 +224,14 @@ export function SuccessPathPlanCard({
             )}
           </div>
 
-          <div className="rounded-lg border bg-background/85 p-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          <div className="border-l-[3px] border-[#C8145E] bg-[#FFF0F5] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#111111]">
               <ListTodo className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
               <span>After the planning wizard</span>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-5">
-              {planFlowSteps.map((step, index) => (
-                <div key={step.label} className="min-w-0 rounded-md bg-muted/45 p-3">
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold leading-none text-white">
-                      {index + 1}
-                    </span>
-                    <p className="min-w-0 break-words text-xs font-semibold leading-snug">{step.label}</p>
-                  </div>
-                  <p className="text-xs leading-snug text-muted-foreground">{step.detail}</p>
-                </div>
-              ))}
-            </div>
+            <p className="mt-1 text-sm leading-relaxed text-[#555555]">
+              Plan saved, focus chosen, one weekly move, one useful training, evidence for check-in.
+            </p>
           </div>
 
           <div className="max-w-3xl">
@@ -261,19 +243,19 @@ export function SuccessPathPlanCard({
             </p>
           </div>
 
-          <div className="rounded-lg border bg-background/85 p-4">
-            <p className="text-xs font-semibold text-muted-foreground">Why this is first</p>
-            <p className="mt-1 text-sm leading-relaxed">
-              {successPath?.stageId === selectedStageId
-                ? successPath.reason
-                : `You chose ${stage.label} because it feels like the most important constraint to solve first.`}
-            </p>
-          </div>
-
-          <div className="rounded-lg border bg-background p-4">
-            <p className="text-sm font-semibold">Are you building this or improving what already works?</p>
-            <p className="mt-1 text-sm text-muted-foreground">This only changes the current round. It does not label your business or make you restart.</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_330px]">
+            <div className="border bg-[#F7F5F2] p-4">
+              <p className="text-xs font-semibold text-muted-foreground">Why this is first</p>
+              <p className="mt-1 text-sm leading-relaxed">
+                {successPath?.stageId === selectedStageId
+                  ? successPath.reason
+                  : `You chose ${stage.label} because it feels like the most important constraint to solve first.`}
+              </p>
+            </div>
+            <div className="border bg-background p-4">
+              <p className="text-sm font-semibold">Build or improve?</p>
+              <p className="mt-1 text-sm text-muted-foreground">Choose the version of the move that fits this round.</p>
+              <div className="mt-3 grid gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -292,11 +274,12 @@ export function SuccessPathPlanCard({
               >
                 Improve what already works
               </Button>
+              </div>
             </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="rounded-lg border bg-background p-4">
+            <div className="border border-[#C8145E] bg-[#FFF0F5] p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Zap className="h-4 w-4 text-primary" aria-hidden="true" />
                 <p className="text-sm font-semibold">Do this this week</p>
@@ -306,31 +289,31 @@ export function SuccessPathPlanCard({
                 {roundMode === 'build' ? round.buildAction : round.improveAction}
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-md bg-muted/50 p-3">
+                <div className="bg-white p-3">
                   <p className="text-xs font-semibold text-muted-foreground">Time box</p>
                   <p className="mt-1 text-sm">{quickWin.timeBox}</p>
                 </div>
-                <div className="rounded-md bg-muted/50 p-3">
+                <div className="bg-white p-3">
                   <p className="text-xs font-semibold text-muted-foreground">If capacity is low</p>
                   <p className="mt-1 text-sm leading-snug">{cycle?.low_energy_version?.trim() || round.lowCapacity}</p>
                 </div>
               </div>
-              <div className="mt-3 rounded-md bg-muted/50 p-3">
+              <div className="mt-3 bg-white p-3">
                 <p className="text-xs font-semibold text-muted-foreground">If you get stuck</p>
                 <p className="mt-1 text-sm leading-snug">{round.rescue}</p>
               </div>
             </div>
 
-            <div className="rounded-lg border bg-background p-4">
+            <div className="border bg-background p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Target className="h-4 w-4 text-primary" aria-hidden="true" />
-                <p className="text-sm font-semibold">Bring back this evidence</p>
+                <p className="text-sm font-semibold">Evidence to bring back<span className="sr-only"> Bring back this evidence</span></p>
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">{round.evidence}</p>
               <p className="mt-3 text-xs leading-snug text-muted-foreground">
                 After you try it, post one takeaway, question, or win in the Community so the room can help you keep moving.
               </p>
-              <p className="mt-3 text-sm"><span className="font-semibold">Round complete when: </span>{round.doneEnough}</p>
+              <p className="mt-3 text-sm"><span className="font-semibold">Done when: </span>{round.doneEnough}</p>
               <div className="mt-4 grid gap-2">
                 <Button
                   type="button"
@@ -398,13 +381,14 @@ export function SuccessPathPlanCard({
           )}
 
           {primaryResource && (
-            <div className="rounded-lg border bg-background p-4">
+            <div className="border bg-background p-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <PrimaryResourceIcon className="h-4 w-4 text-primary" aria-hidden="true" />
                     <p className="text-sm font-semibold">{primaryResourceLabel}</p>
                     <Badge variant="outline" className="text-[11px]">{primaryResource.access}</Badge>
+                    {!isAiSetupResource && <Badge variant="outline" className="text-[11px]">ready to watch</Badge>}
                   </div>
                   <h3 className="break-words text-base font-semibold leading-snug">{round.primaryResourceTitle}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{primaryResource.useWhen}</p>
@@ -421,7 +405,7 @@ export function SuccessPathPlanCard({
             </div>
           )}
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <div className="flex flex-col gap-2 border-t border-[#111111] pt-4 sm:flex-row sm:flex-wrap">
             <Button type="button" onClick={onFindSupport}>
               <Search className="mr-2 h-4 w-4" aria-hidden="true" />
               Find training
@@ -435,16 +419,10 @@ export function SuccessPathPlanCard({
               Post in Community
               <ExternalLink className="ml-2 h-3.5 w-3.5" aria-hidden="true" />
             </Button>
-            {aiStudioEnabled && onOpenAiStudio && (
-              <Button type="button" variant="secondary" onClick={onOpenAiStudio}>
-                <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
-                Create My AI Workspace
-              </Button>
-            )}
           </div>
         </div>
 
-        <div className="border-t bg-background/60 px-6 py-4 md:px-8">
+        <div className="border-t bg-[#F7F5F2] px-4 py-4 sm:px-5 md:px-6">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             <p className="text-sm">
