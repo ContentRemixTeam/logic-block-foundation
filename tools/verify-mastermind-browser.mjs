@@ -1011,13 +1011,15 @@ async function runChecks(client, checks, label) {
   if (checks.includes('resourceFinder')) {
     await clickText(client, 'Training');
     await waitFor(client, 'document.body.innerText.includes("Find a training")', `${label} Training Finder`);
-    await assertText(client, 'Training Library');
+    await assertText(client, 'All training');
     await assertText(client, 'Videos ready');
     await assertText(client, 'Watched');
     await assertText(client, 'Search-ready');
     await assertText(client, 'Training by focus area');
     await assertText(client, 'Sell focus');
-    await assertText(client, 'Watch the videos that are ready inside this app.');
+    await assertText(client, 'Choose the next useful training.');
+    await assertText(client, 'Your plan picks the first recommendation');
+    await assertText(client, 'Browse here only when you need a different lesson');
     await assertText(client, 'This finder only shows curriculum videos that open in the in-app player');
     await assertText(client, 'Search only finds videos that are ready to watch.');
     await assertNoText(client, 'Being added next');

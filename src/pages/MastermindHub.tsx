@@ -833,7 +833,7 @@ export default function MastermindHub() {
                         </>
                       ) : hasCompletedCurrentMilestoneResources ? (
                         <p className="text-sm leading-relaxed text-muted-foreground">
-                          Training for this checkpoint is complete. Do the move, record evidence, and use Show watched in the Training Library if you need to rewatch.
+                          Training for this checkpoint is complete. Do the move, record evidence, and use Show watched if you need to rewatch.
                         </p>
                       ) : (
                         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -1253,10 +1253,10 @@ export default function MastermindHub() {
                 <CardHeader>
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <Badge variant="secondary" className="mb-2 w-fit">Training Library</Badge>
-                      <CardTitle>Watch the videos that are ready inside this app.</CardTitle>
+                      <Badge variant="secondary" className="mb-2 w-fit">All training</Badge>
+                      <CardTitle>Choose the next useful training.</CardTitle>
                       <CardDescription>
-                        Choose the smallest useful next resource. The Replay Vault, AI tools, and support links stay separate so every choice has one clear job.
+                        Your plan picks the first recommendation. Browse here only when you need a different lesson or want to rewatch something.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="w-fit">
@@ -1599,7 +1599,7 @@ export default function MastermindHub() {
 
                   {watchedVisibleResourceCount > 0 && !showWatchedResources && !searchQuery && resourceFilter === 'all' && (
                     <p className="text-sm text-muted-foreground">
-                      Watched videos are hidden from the default list and still available through search or section filters.
+                      Watched videos are hidden from the default list so this stays uncluttered. Use Show watched when you need to rewatch.
                     </p>
                   )}
                 </CardContent>

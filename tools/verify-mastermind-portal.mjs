@@ -466,9 +466,9 @@ try {
   const adminPreviewGateSource = readFileSync(adminPreviewGateSourcePath, 'utf8');
   const indexCssSource = readFileSync(indexCssSourcePath, 'utf8');
   assert.ok(mastermindHubSource.includes("label: 'Search-ready'"), 'Resource filter should use clear member-facing search language');
-  assert.ok(mastermindHubSource.includes('Choose the smallest useful next resource'), 'Resource map should explain member value, not audit mechanics');
-  assert.ok(mastermindHubSource.includes('Watch the videos that are ready inside this app.'), 'Training finder should set the expectation that every card is playable now');
-  assert.ok(mastermindHubSource.includes('The Replay Vault, AI tools, and support links stay separate'), 'Training finder should explain the product boundary without sounding unfinished');
+  assert.ok(mastermindHubSource.includes('Your plan picks the first recommendation'), 'Resource map should explain member value, not audit mechanics');
+  assert.ok(mastermindHubSource.includes('Choose the next useful training.'), 'Training finder should set the expectation that every card supports the plan');
+  assert.ok(mastermindHubSource.includes('Browse here only when you need a different lesson'), 'Training finder should explain self-directed browsing without making a second content hub');
   assert.equal(mastermindHubSource.includes('Portal path'), false, 'Training cards should not show internal portal-path language to members');
   assert.ok(mastermindHubSource.includes('How this helps'), 'Training cards should explain why the video matters to the plan');
   assert.ok(mastermindHubSource.includes('This finder only shows curriculum videos that open in the in-app player'), 'Training finder should not present planning/support links as playable curriculum');

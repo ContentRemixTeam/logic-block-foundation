@@ -307,7 +307,7 @@ export default function MastermindTraining() {
       <section className="mastermind-brand mx-auto w-full max-w-5xl space-y-4 overflow-x-clip">
         <div className="mastermind-brand__hero flex flex-col gap-3 border-2 border-[#111111] bg-[#F7F5F2] p-4 shadow-none sm:p-5 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <Badge variant="secondary" className="mastermind-brand__eyebrow w-fit">Mastermind Training Library</Badge>
+            <Badge variant="secondary" className="mastermind-brand__eyebrow w-fit">Plan-matched training</Badge>
             <div>
               <h1 className="mastermind-brand__title text-3xl font-normal leading-none md:text-4xl" aria-label="Your Weekly Training">
                 Your Weekly <span>Training</span>

@@ -133,8 +133,9 @@ const requiredMastermindHubStrings = [
   'Action step',
   'Evidence to bring back',
   'Done when',
-  'Choose the smallest useful next resource',
-  'Watch the videos that are ready inside this app.',
+  'Your plan picks the first recommendation',
+  'Choose the next useful training.',
+  'Browse here only when you need a different lesson',
   'This finder only shows curriculum videos that open in the in-app player',
   'Clear resource search',
 ];
