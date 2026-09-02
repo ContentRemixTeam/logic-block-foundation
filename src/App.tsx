@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { MembershipProvider } from "@/hooks/useMembership";
 import { ArcadeProvider } from "@/hooks/useArcade";
@@ -171,11 +171,16 @@ const LowBatteryWorkshopAdmin = lazyWithRetry(() => import('./pages/LowBatteryWo
 const MastermindReplacementPreview = lazyWithRetry(() => import('./pages/MastermindReplacementPreview'));
 const AdminPreviewGate = lazyWithRetry(() => import('./components/admin/AdminPreviewGate').then(m => ({ default: m.AdminPreviewGate })));
 const ENABLE_MASTERMIND_90_DAY_PLAN = import.meta.env.VITE_ENABLE_MASTERMIND_90_DAY_PLAN === 'true';
+const HIDDEN_MASTERMIND_QA_EMAILS = new Set(['faithhawks@gmail.com', 'info@faithmariah.com']);
 
 function MastermindLaunchGate({ children }: { children: ReactNode }) {
-  if (!ENABLE_MASTERMIND_90_DAY_PLAN) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  const { user, loading } = useAuth();
+
+  if (ENABLE_MASTERMIND_90_DAY_PLAN) return <>{children}</>;
+  if (loading) return <LoadingState message="Checking Mastermind access..." />;
+
+  const email = (user?.email ?? '').trim().toLowerCase();
+  if (!HIDDEN_MASTERMIND_QA_EMAILS.has(email)) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
 }

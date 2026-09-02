@@ -779,6 +779,10 @@ try {
   assert.ok(authSource.includes('setSession(null);') && authSource.includes('setUser(null);') && authSource.includes('setLoading(false);'), 'Auth bootstrap timeout should resolve loading into a signed-out state');
   assert.ok(protectedRouteSource.includes('location.search') && protectedRouteSource.includes('location.hash'), 'ProtectedRoute auth redirect should preserve query strings and hashes for hidden training links');
   assert.ok(protectedRouteSource.includes("sessionStorage.setItem('auth_redirect', authRedirect)"), 'ProtectedRoute should store the full protected-route return URL');
+  assert.ok(appSource.includes('HIDDEN_MASTERMIND_QA_EMAILS'), 'Hidden member QA routes should have an explicit two-account allowlist');
+  assert.ok(appSource.includes("'faithhawks@gmail.com'") && appSource.includes("'info@faithmariah.com'"), 'Hidden member QA routes should keep the two approved account emails');
+  assert.ok(appSource.includes('if (ENABLE_MASTERMIND_90_DAY_PLAN) return <>{children}</>;'), 'Member launch flag should still control broad member route release');
+  assert.ok(appSource.includes('HIDDEN_MASTERMIND_QA_EMAILS.has(email)'), 'Launch-disabled member routes should still permit exact QA accounts for private testing');
   assert.ok(adminPreviewGateSource.includes("'faithhawks@gmail.com'") && adminPreviewGateSource.includes("'info@faithmariah.com'"), 'Hidden Mastermind QA preview should keep the two-account allowlist');
   assert.equal(adminPreviewGateSource.includes("supabase.rpc('is_admin'"), false, 'Hidden Mastermind QA preview must not fall back to broad admin access');
   assert.ok(mastermindHubSource.includes('Ask Faith coaching brief'), '90-day hub should generate a plan-aware Ask Faith handoff brief');
