@@ -30,6 +30,7 @@ import { useMastermindSuccessPath } from '@/hooks/useMastermindSuccessPath';
 import { useMembership } from '@/hooks/useMembership';
 import { formatCompactTime } from '@/components/replay-vault/replayVaultCore.mjs';
 import {
+  getMastermindCommunityPrompt,
   MASTERMIND_SUCCESS_STAGES,
   type MastermindPlanCycle,
   type MastermindStageId,
@@ -493,6 +494,7 @@ export default function MastermindHub() {
     selectedStage.label,
     dashboardCycle,
   ]);
+  const selectedCommunityPrompt = getMastermindCommunityPrompt(selectedStageId);
 
   const workspaceStatus = phaseOneStateQuery.data?.workspace_status ?? 'not_started';
   const planDashboardItems = [
@@ -848,8 +850,12 @@ export default function MastermindHub() {
                         </div>
                         <p className="text-sm leading-relaxed">{currentRound.evidence}</p>
                         <p className="mt-2 text-xs leading-snug text-muted-foreground">
-                          Then post one takeaway, question, or win in the Community.
+                          Then use the Community prompt for this focus.
                         </p>
+                        <div className="mt-3 border-l-[3px] border-[#C8145E] bg-[#FFF0F5] px-3 py-2">
+                          <p className="text-xs font-semibold text-[#111111]">Community prompt</p>
+                          <p className="mt-1 text-sm leading-snug text-[#555555]">{selectedCommunityPrompt}</p>
+                        </div>
                       </div>
                   </div>
 
@@ -1234,7 +1240,7 @@ export default function MastermindHub() {
                 <SupportCard
                   icon={Users}
                   title="Post in Community"
-                  description="Share a takeaway, question, win, or sticky spot so the room can help you stay with the 90-day move."
+                  description={selectedCommunityPrompt}
                   buttonLabel="Open Community"
                   onClick={openCommunity}
                 />

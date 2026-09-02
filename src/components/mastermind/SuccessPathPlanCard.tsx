@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useResilientTaskMutation } from '@/hooks/useResilientTaskMutation';
 import { cn } from '@/lib/utils';
 import {
+  getMastermindCommunityPrompt,
   getMastermindWeeklyGuidance,
   type MastermindPlanCycle,
   type MastermindResourceRecommendation,
@@ -164,6 +165,7 @@ export function SuccessPathPlanCard({
   const selectedPlatform = CREATOR_CAMP_PLATFORM_MATCHES.find((item) => item.id === platformId) ?? null;
   const realGoal = getRealGoal(cycle.goal);
   const currentAction = roundMode === 'build' ? round.buildAction : round.improveAction;
+  const communityPrompt = getMastermindCommunityPrompt(stage.id);
   const weeklyMoveTaskState = weeklyMoveTaskStates[weeklyMoveTaskKey] ?? 'idle';
   const openCommunity = () => {
     window.open(COMMUNITY_URLS.COMMUNITY_HOME, '_blank', 'noopener,noreferrer');
@@ -187,6 +189,7 @@ export function SuccessPathPlanCard({
           `Current focus: ${stage.label}`,
           `Checkpoint: ${round.question}`,
           `Evidence to bring back: ${round.evidence}`,
+          `Community prompt: ${communityPrompt}`,
           `Done enough: ${round.doneEnough}`,
           `Low-capacity version: ${cycle?.low_energy_version?.trim() || round.lowCapacity}`,
           `Suggested training: ${round.primaryResourceTitle}`,
@@ -223,7 +226,7 @@ export function SuccessPathPlanCard({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="text-[11px]">Your 90-day plan</Badge>
-              <Badge variant="outline" className="text-[11px]">Current focus: {stage.label}</Badge>
+              <Badge variant="outline" className="text-[11px]">Current focus from plan: {stage.label}</Badge>
               <Badge variant="outline" className="text-[11px]">{roundMode === 'build' ? 'Build round' : 'Improve round'}</Badge>
             </div>
             {onChangeFocus && (
@@ -329,9 +332,13 @@ export function SuccessPathPlanCard({
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">{round.evidence}</p>
               <p className="mt-3 text-xs leading-snug text-muted-foreground">
-                After you try it, post one takeaway, question, or win in the Community so the room can help you keep moving.
+                After you try it, use the Community prompt below so the room can help you keep moving.
               </p>
               <p className="mt-3 text-sm"><span className="font-semibold">Done when: </span>{round.doneEnough}</p>
+              <div className="mt-3 border-l-[3px] border-[#C8145E] bg-[#FFF0F5] px-3 py-2">
+                <p className="text-xs font-semibold text-[#111111]">Community prompt</p>
+                <p className="mt-1 text-sm leading-snug text-[#555555]">{communityPrompt}</p>
+              </div>
               <div className="mt-4 grid gap-2">
                 <Button
                   type="button"

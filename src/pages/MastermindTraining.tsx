@@ -15,6 +15,7 @@ import {
   type MastermindPortalResource,
 } from '@/data/mastermindPortalResources';
 import {
+  getMastermindCommunityPrompt,
   MASTERMIND_SUCCESS_STAGES,
   type MastermindResourceRecommendation,
   type MastermindStageId,
@@ -106,6 +107,9 @@ export default function MastermindTraining() {
     ?? 'Go back to your plan and record the action or evidence this lesson helps you create.';
   const lessonEvidence = lessonStage?.quickWin.evidence
     ?? 'Record what you tried, what happened, and what you will do next.';
+  const lessonCommunityPrompt = lessonStage
+    ? getMastermindCommunityPrompt(lessonStage.id)
+    : 'Post one takeaway, question, or win in the Community after you try the move.';
   const lessonNextAction = lessonStage?.doThis ?? lessonAfterWatching;
   // Only "checking" while an authorized fetch is genuinely in flight.
   const catalogPending = catalogQuery.isFetching && catalogQuery.data === undefined;
@@ -371,7 +375,7 @@ export default function MastermindTraining() {
                 <p className="text-xs font-semibold text-muted-foreground">Evidence to bring back</p>
                 <p className="mt-1 text-sm leading-relaxed">{lessonEvidence}</p>
                 <p className="mt-2 text-xs leading-snug text-muted-foreground">
-                  Post one takeaway, question, or win in the Community after you try the move.
+                  {lessonCommunityPrompt}
                 </p>
               </div>
             </CardContent>
@@ -436,6 +440,10 @@ export default function MastermindTraining() {
                 <p className="mt-2 text-sm leading-relaxed">
                   <span className="font-semibold">Bring back: </span>{lessonEvidence}
                 </p>
+                <div className="mt-3 border-l-[3px] border-[#C8145E] bg-white px-3 py-2">
+                  <p className="text-xs font-semibold text-[#111111]">Community prompt</p>
+                  <p className="mt-1 text-sm leading-snug text-[#555555]">{lessonCommunityPrompt}</p>
+                </div>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                   <Button type="button" variant="secondary" className="w-full sm:w-auto" disabled={catalogPending} onClick={() => void persistProgress(true)}>
                     {catalogPending ? 'Checking your progress…' : progressSaved ? 'Marked complete' : 'Mark lesson complete'}

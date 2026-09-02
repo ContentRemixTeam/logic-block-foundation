@@ -890,7 +890,7 @@ async function runChecks(client, checks, label) {
   await assertNoHorizontalOverflow(client, `${label} initial view`);
 
   if (checks.includes('savedCyclePath')) {
-    await waitFor(client, 'document.body.innerText.includes("Current focus: Sell")', `${label} saved-cycle guidance`);
+    await waitFor(client, 'document.body.innerText.includes("Current focus from plan: Sell")', `${label} saved-cycle guidance`);
     await assertText(client, 'Your 90-day plan');
     await assertText(client, 'Do this this week');
     await assertText(client, 'What sales activity would make this 90-day goal possible?');
@@ -906,6 +906,7 @@ async function runChecks(client, checks, label) {
     await assertText(client, 'AI workspace');
     await assertText(client, 'Ready');
     await assertText(client, 'Evidence to bring back');
+    await waitFor(client, 'document.body.innerText.includes("Post the invitation, follow-up, objection, or sales moment where you need help deciding the next move.")', `${label} sell community prompt`);
     await assertText(client, 'Done when');
     await assertText(client, 'ready to watch');
     await assertNoText(client, 'Being added');
@@ -990,10 +991,11 @@ async function runChecks(client, checks, label) {
   }
 
   if (checks.includes('cycleWithoutInferredPath')) {
-    await waitFor(client, 'document.body.innerText.includes("Current focus: Offer")', `${label} fallback offer focus`);
+    await waitFor(client, 'document.body.innerText.includes("Current focus from plan: Offer")', `${label} fallback offer focus`);
     await assertText(client, 'Your 90-day plan');
     await assertText(client, 'Do this this week');
     await assertText(client, "Pick the thing you're going to sell this quarter.");
+    await waitFor(client, 'document.body.innerText.includes("Post your one-sentence offer, price/scope question, or the objection you heard after sharing it.")', `${label} offer community prompt`);
     await assertText(client, 'Add this weekly move');
     await assertText(client, 'This creates one task tied to this 90-day cycle.');
     await assertText(client, 'Task-ready');

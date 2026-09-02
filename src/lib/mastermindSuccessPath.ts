@@ -73,6 +73,15 @@ interface KeywordRule {
   keywords: string[];
 }
 
+export const MASTERMIND_COMMUNITY_PROMPTS: Record<MastermindStageId, string> = {
+  offer: 'Post your one-sentence offer, price/scope question, or the objection you heard after sharing it.',
+  find: 'Post the discovery move you tried, who saw it, and what signal you got back.',
+  nurture: 'Post the email, post, or belief shift you tested and what people clicked, replied to, or asked.',
+  sell: 'Post the invitation, follow-up, objection, or sales moment where you need help deciding the next move.',
+  deliver: 'Post the customer result, onboarding step, proof request, or retention bottleneck you are improving.',
+  leverage: 'Post the workflow you want to simplify before you automate, delegate, or add AI to it.',
+};
+
 export const MASTERMIND_STAGE_MILESTONES: Record<MastermindStageId, MastermindMilestone[]> = {
   offer: [
     { id: 'offer-focus', label: "Pick the thing you're selling", output: 'Choose one offer or revenue stream so the rest of the plan has a job.' },
@@ -372,6 +381,10 @@ const KEYWORD_RULES: KeywordRule[] = [
 
 export function getMastermindStage(stageId: MastermindStageId) {
   return MASTERMIND_SUCCESS_STAGES.find((stage) => stage.id === stageId) ?? MASTERMIND_SUCCESS_STAGES[0];
+}
+
+export function getMastermindCommunityPrompt(stageId: MastermindStageId) {
+  return MASTERMIND_COMMUNITY_PROMPTS[stageId];
 }
 
 export function inferMastermindSuccessPath(cycle: MastermindPlanCycle | null): MastermindSuccessPathOutput | null {
