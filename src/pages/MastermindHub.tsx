@@ -381,7 +381,9 @@ export default function MastermindHub() {
       .map((resource) => resourcesById.get(resource.resourceId))
       .filter((resource): resource is MastermindPortalResource => Boolean(resource));
     const planResourceIds = new Set(planOrderedResources.map((resource) => resource.id));
-    const fallbackResources = visibleResources.filter((resource) => !planResourceIds.has(resource.id));
+    const fallbackResources = visibleResources.filter((resource) =>
+      !planResourceIds.has(resource.id) && resource.stages.includes(activeTrainingStageId)
+    );
     const candidates = [...planOrderedResources, ...fallbackResources]
       .filter((resource) => !completedResourceIds.has(resource.id));
 
@@ -404,7 +406,7 @@ export default function MastermindHub() {
       selectedSeconds,
       targetSeconds,
     };
-  }, [completedResourceIds, durationByResourceId, selectedStage.resources, visibleResources, weeklyTrainingMinutes]);
+  }, [activeTrainingStageId, completedResourceIds, durationByResourceId, selectedStage.resources, visibleResources, weeklyTrainingMinutes]);
 
   const filteredResources = useMemo(() => {
     const resources = searchMastermindPortalResources(
@@ -1287,7 +1289,7 @@ export default function MastermindHub() {
                       <Badge variant="outline" className="mb-2 w-fit">This week's playlist</Badge>
                       <CardTitle>Fit training into the time you actually have.</CardTitle>
                       <CardDescription>
-                        Choose a weekly watch budget and this page will prioritize unwatched videos from your current 90-day focus first.
+                        Choose a weekly watch budget and this page will keep the playlist inside your current 90-day focus.
                       </CardDescription>
                     </div>
                     <Badge variant="secondary" className="w-fit">
