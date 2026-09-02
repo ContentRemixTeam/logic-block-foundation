@@ -1,38 +1,19 @@
-import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { LoadingState } from '@/components/system/LoadingState';
+
+const HIDDEN_QA_ALLOWED_EMAILS = new Set(['faithhawks@gmail.com', 'info@faithmariah.com']);
 
 /**
  * Launch gate for the Mastermind portal (/mastermind).
- * Admin-only until Faith says launch. At launch: swap this gate for a
- * member-entitlement check (add a can_view_mastermind_portal RPC +
- * typegen, or check_mastermind_entitlement) and re-add sidebar nav links.
+ * Hidden QA is limited to Faith's two approved signed-in accounts while
+ * public navigation remains off.
  */
 export function MastermindGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const [canView, setCanView] = useState<boolean | null>(null);
+  const { user, loading } = useAuth();
+  const email = (user?.email ?? '').trim().toLowerCase();
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!user) {
-        setCanView(false);
-        return;
-      }
-      try {
-        const { data } = await supabase.rpc('is_admin', { check_user_id: user.id });
-        if (!cancelled) setCanView(!!data);
-      } catch {
-        if (!cancelled) setCanView(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  if (canView === null) return null; // gate resolving
-  if (!canView) return <Navigate to="/" replace />;
+  if (loading) return <LoadingState message="Checking Mastermind access..." />;
+  if (!user || !HIDDEN_QA_ALLOWED_EMAILS.has(email)) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }

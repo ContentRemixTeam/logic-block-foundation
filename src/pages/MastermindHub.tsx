@@ -67,6 +67,7 @@ import { toast } from 'sonner';
 
 const STORAGE_KEY = 'mastermind-pinned-resources';
 const TRAINING_TIME_STORAGE_KEY = 'mastermind-weekly-training-minutes';
+const ORIENTATION_STORAGE_KEY = 'mastermind-post-plan-orientation-dismissed';
 const SHOW_AI_STUDIO = import.meta.env.VITE_ENABLE_MASTERMIND_AI_STUDIO === 'true';
 const TRAINING_TIME_OPTIONS = [
   { minutes: 30, label: '30 min' },
@@ -127,6 +128,7 @@ export default function MastermindHub() {
   const [showWatchedResources, setShowWatchedResources] = useState(false);
   const [nextMoveMode, setNextMoveMode] = useState<'standard' | 'low'>('standard');
   const [weeklyTrainingMinutes, setWeeklyTrainingMinutes] = useState(180);
+  const [showPostPlanOrientation, setShowPostPlanOrientation] = useState(true);
   const focusChooserRef = useRef<HTMLDivElement | null>(null);
   const dashboardCycle = useMemo<MastermindPlanCycle | null>(() => {
     if (successPathData?.cycle) return successPathData.cycle;
@@ -203,6 +205,10 @@ export default function MastermindHub() {
     }
   }, []);
 
+  useEffect(() => {
+    setShowPostPlanOrientation(getStorageItem(ORIENTATION_STORAGE_KEY) !== 'true');
+  }, []);
+
   const savePinned = (ids: string[]) => {
     setStorageItem(STORAGE_KEY, JSON.stringify(ids));
     setPinnedIds(ids);
@@ -211,6 +217,11 @@ export default function MastermindHub() {
   const updateWeeklyTrainingMinutes = (minutes: number) => {
     setStorageItem(TRAINING_TIME_STORAGE_KEY, String(minutes));
     setWeeklyTrainingMinutes(minutes);
+  };
+
+  const dismissPostPlanOrientation = () => {
+    setStorageItem(ORIENTATION_STORAGE_KEY, 'true');
+    setShowPostPlanOrientation(false);
   };
 
   const togglePin = (id: string) => {
@@ -612,6 +623,88 @@ export default function MastermindHub() {
             </TabsList>
 
             <TabsContent value="guidance" className="space-y-4">
+              {showPostPlanOrientation && (
+                <section
+                  aria-labelledby="mastermind-post-plan-orientation-title"
+                  className="border-2 border-[#111111] bg-white p-4 sm:p-5"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="max-w-2xl">
+                      <Badge variant="secondary" className="mastermind-brand__eyebrow mb-3 w-fit">
+                        After Your Planning Wizard
+                      </Badge>
+                      <h2
+                        id="mastermind-post-plan-orientation-title"
+                        className="text-2xl font-bold leading-tight text-[#111111] md:text-3xl"
+                      >
+                        Your plan turns into one calm weekly loop.
+                      </h2>
+                      <p className="mt-2 text-sm leading-relaxed text-[#555555]">
+                        Your saved 90-day plan stays the source of truth. This page turns it into one focus,
+                        one move, one useful lesson, and one evidence check so the curriculum supports the work
+                        instead of becoming more work.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full justify-center text-[#555555] hover:bg-[#FFF0F5] hover:text-[#C8145E] sm:w-auto"
+                      onClick={dismissPostPlanOrientation}
+                    >
+                      <X className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Skip for now
+                    </Button>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    <div className="border-2 border-[#111111] bg-[#F7F5F2] p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <Target className="h-4 w-4 text-primary" aria-hidden="true" />
+                        <p className="text-sm font-semibold">Follow the focus</p>
+                      </div>
+                      <p className="text-sm leading-relaxed text-[#555555]">
+                        The app uses your plan and current bottleneck to choose the next constraint.
+                      </p>
+                    </div>
+                    <div className="border-2 border-[#111111] bg-[#F7F5F2] p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <Video className="h-4 w-4 text-primary" aria-hidden="true" />
+                        <p className="text-sm font-semibold">Watch one lesson</p>
+                      </div>
+                      <p className="text-sm leading-relaxed text-[#555555]">
+                        A recommendation appears because it helps this week's action, not because you need another module.
+                      </p>
+                    </div>
+                    <div className="border-2 border-[#111111] bg-[#F7F5F2] p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <ClipboardCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                        <p className="text-sm font-semibold">Bring back evidence</p>
+                      </div>
+                      <p className="text-sm leading-relaxed text-[#555555]">
+                        Record what happened, post a takeaway or question, then adjust the next move.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      className="w-full sm:w-auto"
+                      onClick={() => {
+                        setShowPostPlanOrientation(false);
+                        setActiveTab('guidance');
+                      }}
+                    >
+                      Start this week
+                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </Button>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={scrollToFocusChooser}>
+                      Change recommendation
+                    </Button>
+                  </div>
+                </section>
+              )}
+
               <SuccessPathPlanCard
                 cycle={dashboardCycle}
                 successPath={successPathData?.successPath}
