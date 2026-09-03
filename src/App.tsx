@@ -280,7 +280,7 @@ const App = () => (
                       
                       <Route path="/tasks" element={<ProtectedRoute><PageSuspense><Tasks /></PageSuspense></ProtectedRoute>} />
                       <Route path="/all-tasks" element={<ProtectedRoute><PageSuspense><AllTasks /></PageSuspense></ProtectedRoute>} />
-                      <Route path="/scorecard/*" element={<ProtectedRoute allowScorecardOnly><ScorecardGate><PageSuspense><ScorecardApp /></PageSuspense></ScorecardGate></ProtectedRoute>} />
+                      <Route path="/scorecard/*" element={<ProtectedRoute allowScorecardOnly><PageSuspense><ScorecardGate><ScorecardApp /></ScorecardGate></PageSuspense></ProtectedRoute>} />
                       <Route path="/projects" element={<ProtectedRoute><PageSuspense><Projects /></PageSuspense></ProtectedRoute>} />
                       <Route path="/projects/:id" element={<ProtectedRoute><PageSuspense><ProjectDetail /></PageSuspense></ProtectedRoute>} />
                       <Route path="/sops" element={<ProtectedRoute><PageSuspense><SOPs /></PageSuspense></ProtectedRoute>} />
