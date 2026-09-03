@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import process from 'node:process';
 
 const root = process.cwd();
-const migration = join(root, 'supabase/migrations/20260903120000_scorecard_product_foundation.sql');
+const foundationMigration = join(root, 'supabase/migrations/20260903120000_scorecard_product_foundation.sql');
+const commerceMigration = join(root, 'supabase/migrations/20260903233000_scorecard_commerce_bridge.sql');
 const pgDir = mkdtempSync(join(tmpdir(), 'scorecard-pg-'));
 const port = String(55432 + (process.pid % 500));
 const connectionArgs = ['-h', pgDir, '-p', port, '-d', 'scorecard_test'];
@@ -67,7 +68,7 @@ CREATE TABLE public.entitlements (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX entitlements_email_lower_idx ON public.entitlements (lower(email));
+CREATE UNIQUE INDEX entitlements_email_unique ON public.entitlements (email);
 
 CREATE TABLE public.cycles_90_day (
   cycle_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -233,6 +234,127 @@ END $$;
 RESET ROLE;
 `;
 
+const commerceAssertions = `
+INSERT INTO public.scorecard_commerce_config (provider, secret_sha256)
+VALUES ('ghl', encode(extensions.digest('test-secret', 'sha256'), 'hex'));
+
+SET ROLE anon;
+SET request.headers = '{"x-ghl-api-key":"wrong-secret"}';
+DO $$
+BEGIN
+  BEGIN
+    PERFORM public.process_scorecard_commerce_event(
+      'purchase-unauthorized',
+      'commerce@example.com',
+      'grant',
+      '6a99ffc0722c713622d07e5f',
+      '6a99ffc1e7735bdf5b08f6d3',
+      'order-unauthorized',
+      '2026-09-03T20:00:00Z'
+    );
+    RAISE EXCEPTION 'wrong webhook secret unexpectedly succeeded';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END $$;
+
+SET request.headers = '{"x-ghl-api-key":"test-secret"}';
+
+SELECT public.process_scorecard_commerce_event(
+  'purchase-1',
+  'commerce@example.com',
+  'grant',
+  '6a99ffc0722c713622d07e5f',
+  '6a99ffc1e7735bdf5b08f6d3',
+  'order-1',
+  '2026-09-03T20:00:00Z'
+);
+
+RESET ROLE;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.entitlements
+    WHERE email = 'commerce@example.com'
+      AND scorecard_status = 'active'
+      AND tier = 'none'
+      AND status = 'inactive'
+      AND planner_tier IS NULL
+  ) THEN
+    RAISE EXCEPTION 'commerce grant did not create a Scorecard-only entitlement';
+  END IF;
+
+  IF (public.process_scorecard_commerce_event(
+    'purchase-1',
+    'commerce@example.com',
+    'grant',
+    '6a99ffc0722c713622d07e5f',
+    '6a99ffc1e7735bdf5b08f6d3',
+    'order-1',
+    '2026-09-04T20:00:00Z'
+  ) ->> 'status') <> 'replayed' THEN
+    RAISE EXCEPTION 'duplicate purchase was not idempotent';
+  END IF;
+
+  IF (public.process_scorecard_commerce_event(
+    'purchase-1',
+    'commerce@example.com',
+    'refund',
+    '6a99ffc0722c713622d07e5f',
+    '6a99ffc1e7735bdf5b08f6d3',
+    'order-1',
+    '2026-09-05T20:00:00Z'
+  ) ->> 'status') <> 'event_id_payload_conflict' THEN
+    RAISE EXCEPTION 'conflicting duplicate event was not rejected';
+  END IF;
+END $$;
+
+SELECT public.process_scorecard_commerce_event(
+  'refund-1',
+  'commerce@example.com',
+  'refund',
+  '6a99ffc0722c713622d07e5f',
+  '6a99ffc1e7735bdf5b08f6d3',
+  'order-1',
+  '2026-09-05T20:00:00Z'
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.entitlements
+    WHERE email = 'commerce@example.com'
+      AND scorecard_status = 'refunded'
+  ) THEN
+    RAISE EXCEPTION 'refund did not revoke Scorecard access';
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  BEGIN
+    PERFORM public.process_scorecard_commerce_event(
+      'purchase-unmapped',
+      'commerce@example.com',
+      'grant',
+      'wrong-product',
+      'wrong-price',
+      'order-unmapped',
+      '2026-09-03T20:00:00Z'
+    );
+    RAISE EXCEPTION 'unmapped product unexpectedly granted access';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM = 'unmapped product unexpectedly granted access' THEN
+      RAISE;
+    END IF;
+  END;
+END $$;
+RESET ROLE;
+`;
+
 let started = false;
 try {
   run('initdb', [
@@ -255,10 +377,13 @@ try {
   process.stdout.write('Started temporary Postgres.\n');
   psql(fixture);
   process.stdout.write('Loaded the test fixture.\n');
-  run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', migration]);
-  process.stdout.write('Applied the Scorecard migration.\n');
+  run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', foundationMigration]);
+  process.stdout.write('Applied the Scorecard foundation migration.\n');
   psql(assertions);
-  process.stdout.write('Scorecard Postgres verification passed.\n');
+  run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', commerceMigration]);
+  process.stdout.write('Applied the Scorecard commerce migration.\n');
+  psql(commerceAssertions);
+  process.stdout.write('Scorecard Postgres and commerce verification passed.\n');
 } catch (error) {
   const stderr = error?.stderr?.toString?.() ?? '';
   const stdout = error?.stdout?.toString?.() ?? '';

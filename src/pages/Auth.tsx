@@ -12,6 +12,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { AuthLogo } from '@/components/auth/AuthLogo';
 import { Loader2, HelpCircle } from 'lucide-react';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : '';
+}
+
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -171,8 +175,9 @@ export default function Auth() {
             title: 'Welcome!',
             description: 'Your account has been created.',
           });
-          // New signups are guests, go to dashboard
-          navigate('/dashboard');
+          const storedRedirect = sessionStorage.getItem('auth_redirect');
+          sessionStorage.removeItem('auth_redirect');
+          navigate(storedRedirect || '/dashboard');
         } else {
           toast({
             title: 'Account created!',
@@ -181,20 +186,21 @@ export default function Auth() {
           setIsLogin(true);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // User-friendly error messages
       let errorMessage = 'An unexpected error occurred. Please try again.';
+      const detail = getErrorMessage(error);
       
-      if (error.message?.includes('Invalid login credentials')) {
+      if (detail.includes('Invalid login credentials')) {
         errorMessage = 'Invalid email or password. Please check your credentials.';
-      } else if (error.message?.includes('Email not confirmed')) {
+      } else if (detail.includes('Email not confirmed')) {
         errorMessage = 'Please confirm your email address before signing in.';
-      } else if (error.message?.includes('User already registered') || error.message?.includes('already registered')) {
+      } else if (detail.includes('User already registered') || detail.includes('already registered')) {
         errorMessage = 'This email is already registered. Try signing in instead.';
         setIsLogin(true); // Switch to login mode
-      } else if (error.message?.includes('rate limit')) {
+      } else if (detail.includes('rate limit')) {
         errorMessage = 'Too many attempts. Please wait a moment and try again.';
-      } else if (error.message?.includes('Database error')) {
+      } else if (detail.includes('Database error')) {
         errorMessage = 'There was an issue creating your account. Please try again or contact support.';
       }
       
@@ -219,12 +225,13 @@ export default function Auth() {
       });
 
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = 'Failed to sign in with Google. Please try again.';
+      const detail = getErrorMessage(error);
       
-      if (error?.message?.includes('provider is not enabled') || error?.message?.includes('Provider not enabled')) {
+      if (detail.includes('provider is not enabled') || detail.includes('Provider not enabled')) {
         errorMessage = 'Google Sign-In is not available. Please use email and password instead.';
-      } else if (error?.message?.includes('popup')) {
+      } else if (detail.includes('popup')) {
         errorMessage = 'Sign-in popup was blocked. Please allow popups and try again.';
       }
       
@@ -251,8 +258,8 @@ export default function Auth() {
               {isForgotPassword
                 ? 'Enter your email to receive a reset link'
                 : isLogin
-                ? 'Welcome back to the Becoming Boss Mastermind ⚡'
-                : 'Start your Becoming Boss transformation ⚡'}
+                ? 'Welcome back to your Becoming Boss tools ⚡'
+                : 'Create your account to access your Becoming Boss tools ⚡'}
             </CardDescription>
           </CardHeader>
         <CardContent>

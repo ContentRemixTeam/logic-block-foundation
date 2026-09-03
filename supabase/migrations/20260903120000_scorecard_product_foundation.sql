@@ -334,7 +334,9 @@ BEGIN
     p_order_id,
     now()
   )
-  ON CONFLICT (lower(email)) DO UPDATE SET
+  -- The production table's canonical uniqueness guarantee is on the already
+  -- normalized email column, so target that exact index.
+  ON CONFLICT (email) DO UPDATE SET
     scorecard_status = EXCLUDED.scorecard_status,
     scorecard_starts_at = EXCLUDED.scorecard_starts_at,
     scorecard_ends_at = EXCLUDED.scorecard_ends_at,
