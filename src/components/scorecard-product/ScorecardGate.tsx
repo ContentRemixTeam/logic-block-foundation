@@ -5,7 +5,9 @@ import { LoadingState } from '@/components/system/LoadingState';
 import { useAuth } from '@/hooks/useAuth';
 import { SCORECARD_CAPABILITY, useProductCapabilities } from '@/hooks/useScorecardProduct';
 
-const SCORECARD_PRODUCT_LIVE = import.meta.env.VITE_ENABLE_SCORECARD_PRODUCT === 'true';
+// Live by default after the verified commerce launch. Setting the environment
+// variable to "false" is the emergency kill switch.
+const SCORECARD_PRODUCT_LIVE = import.meta.env.VITE_ENABLE_SCORECARD_PRODUCT !== 'false';
 const PREVIEW_EMAILS = new Set(['faithhawks@gmail.com', 'info@faithmariah.com']);
 
 export function ScorecardGate({ children }: { children: ReactNode }) {
@@ -18,8 +20,8 @@ export function ScorecardGate({ children }: { children: ReactNode }) {
     return <LoadingState message="Checking Scorecard access…" />;
   }
 
-  // Until the product is deliberately launched, only Faith's private preview
-  // accounts can enter. The database separately enforces admin/capability access.
+  // The environment kill switch preserves Faith's private preview while
+  // immediately closing the public product surface.
   if (!SCORECARD_PRODUCT_LIVE) {
     return isPreviewAdmin ? <>{children}</> : <Navigate to="/dashboard" replace />;
   }
