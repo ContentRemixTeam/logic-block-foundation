@@ -41,6 +41,7 @@ import {
   Package,
   LifeBuoy,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -68,12 +69,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useArcade } from '@/hooks/useArcade';
 import { SidebarProjectsDropdown } from '@/components/sidebar/SidebarProjectsDropdown';
 import { prefetchRoute } from '@/lib/routePrefetch';
+import { SCORECARD_CAPABILITY, useProductCapabilities } from '@/hooks/useScorecardProduct';
+
+const SCORECARD_PRODUCT_LIVE = import.meta.env.VITE_ENABLE_SCORECARD_PRODUCT === 'true';
 
 // ── Core Navigation (4 groups) ──────────────────────────────────────
 const HOME_NAV = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, questIcon: '🗺️' },
   { name: 'Today', href: '/daily-plan', icon: Flame, questIcon: '🔥' },
   { name: 'This Week', href: '/weekly-plan', icon: CalendarDays, questIcon: '📅', isActiveCheck: (path: string) => path.startsWith('/weekly-plan') },
+  { name: 'Scorecard', href: '/scorecard/today', icon: ClipboardCheck, questIcon: '✅', isActiveCheck: (path: string) => path.startsWith('/scorecard'), requiresScorecard: true },
 ];
 
 const BUILD_NAV = [
@@ -130,6 +135,7 @@ export function AppSidebar() {
   const { openQuickCapture } = useQuickCapture();
   const { settings: arcadeSettings, isLoading: arcadeLoading } = useArcade();
   const { settings: userSettings } = useUserSettings();
+  const { data: productCapabilities = [] } = useProductCapabilities();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -163,7 +169,7 @@ export function AppSidebar() {
     };
     
     checkAdmin();
-  }, [user?.id]);
+  }, [user]);
 
   const isActive = (item: { href: string; isActiveCheck?: (path: string) => boolean }) => {
     if (item.isActiveCheck) {
@@ -180,11 +186,15 @@ export function AppSidebar() {
     showLabel = true,
   }: { 
     label?: string; 
-    items: Array<{ name: string; href: string; icon: any; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; dataTour?: string }>;
+    items: Array<{ name: string; href: string; icon: LucideIcon; questIcon: string; isExternal?: boolean; isActiveCheck?: (path: string) => boolean; settingsKey?: string; dataTour?: string; requiresScorecard?: boolean }>;
     showLabel?: boolean;
   }) => {
     // Filter items based on user settings
     const visibleItems = items.filter(item => {
+      if (item.requiresScorecard) {
+        const hasAccess = productCapabilities.includes(SCORECARD_CAPABILITY);
+        if (!isAdmin && (!SCORECARD_PRODUCT_LIVE || !hasAccess)) return false;
+      }
       if (!item.settingsKey) return true; // No setting = always show
       if (!userSettings) return true; // Settings not loaded = show all
       return (userSettings as Record<string, unknown>)[item.settingsKey] === true;

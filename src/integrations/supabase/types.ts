@@ -2968,6 +2968,13 @@ export type Database = {
           planner_starts_at: string | null
           planner_status: string | null
           planner_tier: string | null
+          scorecard_ends_at: string | null
+          scorecard_last_purchase_at: string | null
+          scorecard_order_id: string | null
+          scorecard_price_id: string | null
+          scorecard_product_id: string | null
+          scorecard_starts_at: string | null
+          scorecard_status: string | null
           starts_at: string | null
           status: string
           tier: string
@@ -2989,6 +2996,13 @@ export type Database = {
           planner_starts_at?: string | null
           planner_status?: string | null
           planner_tier?: string | null
+          scorecard_ends_at?: string | null
+          scorecard_last_purchase_at?: string | null
+          scorecard_order_id?: string | null
+          scorecard_price_id?: string | null
+          scorecard_product_id?: string | null
+          scorecard_starts_at?: string | null
+          scorecard_status?: string | null
           starts_at?: string | null
           status?: string
           tier?: string
@@ -3010,6 +3024,13 @@ export type Database = {
           planner_starts_at?: string | null
           planner_status?: string | null
           planner_tier?: string | null
+          scorecard_ends_at?: string | null
+          scorecard_last_purchase_at?: string | null
+          scorecard_order_id?: string | null
+          scorecard_price_id?: string | null
+          scorecard_product_id?: string | null
+          scorecard_starts_at?: string | null
+          scorecard_status?: string | null
           starts_at?: string | null
           status?: string
           tier?: string
@@ -9050,6 +9071,56 @@ export type Database = {
           },
         ]
       }
+      scorecard_actions: {
+        Row: {
+          action_text: string
+          cadence: string
+          category: string | null
+          created_at: string
+          cycle_id: string | null
+          id: string
+          is_active: boolean
+          scheduled_days: number[]
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_text: string
+          cadence?: string
+          category?: string | null
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          is_active?: boolean
+          scheduled_days?: number[]
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_text?: string
+          cadence?: string
+          category?: string | null
+          created_at?: string
+          cycle_id?: string | null
+          id?: string
+          is_active?: boolean
+          scheduled_days?: number[]
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scorecard_actions_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       sales_log: {
         Row: {
           amount: number
@@ -9970,6 +10041,8 @@ export type Database = {
           reschedule_nudge_dismissed_until: string | null
           scheduled_date: string | null
           scheduled_time: string | null
+          scorecard_action_id: string | null
+          scorecard_week_start: string | null
           section_id: string | null
           sop_id: string | null
           source: string | null
@@ -10053,6 +10126,8 @@ export type Database = {
           reschedule_nudge_dismissed_until?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
+          scorecard_action_id?: string | null
+          scorecard_week_start?: string | null
           section_id?: string | null
           sop_id?: string | null
           source?: string | null
@@ -10136,6 +10211,8 @@ export type Database = {
           reschedule_nudge_dismissed_until?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
+          scorecard_action_id?: string | null
+          scorecard_week_start?: string | null
           section_id?: string | null
           sop_id?: string | null
           source?: string | null
@@ -10249,6 +10326,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sops"
             referencedColumns: ["sop_id"]
+          },
+          {
+            foreignKeyName: "tasks_scorecard_action_id_fkey"
+            columns: ["scorecard_action_id"]
+            isOneToOne: false
+            referencedRelation: "scorecard_actions"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tasks_source_note_id_fkey"
@@ -12053,6 +12137,7 @@ export type Database = {
           why: string
         }[]
       }
+      get_current_product_capabilities: { Args: never; Returns: string[] }
       get_current_week: {
         Args: { p_cycle_id: string; p_today?: string }
         Returns: {
@@ -12089,6 +12174,22 @@ export type Database = {
           status: string
           tier: string
         }[]
+      }
+      grant_scorecard_entitlement: {
+        Args: {
+          p_email: string
+          p_ends_at?: string
+          p_order_id?: string
+          p_price_id?: string
+          p_product_id?: string
+          p_starts_at?: string
+          p_status?: string
+        }
+        Returns: string
+      }
+      has_product_capability: {
+        Args: { p_capability: string }
+        Returns: boolean
       }
       is_admin: { Args: { check_user_id: string }; Returns: boolean }
       load_low_battery_workshop_answers: {
@@ -12858,6 +12959,10 @@ export type Database = {
           starts_at_seconds: number
           title: string
         }[]
+      }
+      sync_scorecard_week: {
+        Args: { p_week_start?: string }
+        Returns: Database["public"]["Tables"]["tasks"]["Row"][]
       }
       toggle_habit: {
         Args: { p_date: string; p_habit_id: string; p_user_id: string }
