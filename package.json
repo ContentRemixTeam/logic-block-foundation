@@ -25,6 +25,7 @@
     "verify:phase-one-planner-connector": "node tools/verify-phase-one-planner-connector.mjs",
     "verify:phase-one-core-curriculum": "node tools/verify-phase-one-core-curriculum.mjs",
     "verify:phase-one-playable-ids": "node tools/verify-phase-one-playable-ids.mjs",
+    "verify:scorecard-pg": "node tools/verify-scorecard-foundation-pg.mjs",
     "qa:mastermind-live-gates": "node tools/qa-mastermind-live-gates.mjs",
     "qa:mastermind-live-gates:dry-run": "node tools/qa-mastermind-live-gates.mjs --dry-run",
     "qa:mastermind-live-gates:mock": "node tools/qa-mastermind-live-gates-mock.mjs",

@@ -169,6 +169,8 @@ const MoneyMovesSprintPage = lazyWithRetry(() => import('./pages/MoneyMovesSprin
 const LowBatteryPlanPage = lazyWithRetry(() => import('./pages/LowBatteryPlanPage'));
 const LowBatteryWorkshopAdmin = lazyWithRetry(() => import('./pages/LowBatteryWorkshopAdmin'));
 const MastermindReplacementPreview = lazyWithRetry(() => import('./pages/MastermindReplacementPreview'));
+const ScorecardApp = lazyWithRetry(() => import('./pages/ScorecardApp'));
+const ScorecardGate = lazyWithRetry(() => import('./components/scorecard-product/ScorecardGate').then(m => ({ default: m.ScorecardGate })));
 const AdminPreviewGate = lazyWithRetry(() => import('./components/admin/AdminPreviewGate').then(m => ({ default: m.AdminPreviewGate })));
 const ENABLE_MASTERMIND_90_DAY_PLAN = import.meta.env.VITE_ENABLE_MASTERMIND_90_DAY_PLAN === 'true';
 const HIDDEN_MASTERMIND_QA_EMAILS = new Set(['faithhawks@gmail.com', 'info@faithmariah.com']);
@@ -278,6 +280,7 @@ const App = () => (
                       
                       <Route path="/tasks" element={<ProtectedRoute><PageSuspense><Tasks /></PageSuspense></ProtectedRoute>} />
                       <Route path="/all-tasks" element={<ProtectedRoute><PageSuspense><AllTasks /></PageSuspense></ProtectedRoute>} />
+                      <Route path="/scorecard/*" element={<ProtectedRoute allowScorecardOnly><ScorecardGate><PageSuspense><ScorecardApp /></PageSuspense></ScorecardGate></ProtectedRoute>} />
                       <Route path="/projects" element={<ProtectedRoute><PageSuspense><Projects /></PageSuspense></ProtectedRoute>} />
                       <Route path="/projects/:id" element={<ProtectedRoute><PageSuspense><ProjectDetail /></PageSuspense></ProtectedRoute>} />
                       <Route path="/sops" element={<ProtectedRoute><PageSuspense><SOPs /></PageSuspense></ProtectedRoute>} />

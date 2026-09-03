@@ -110,6 +110,9 @@ export interface Task {
   is_maintenance?: boolean;
   done_enough_definition?: string | null;
   connection_swept_at?: string | null;
+  // Scorecard occurrences use the same canonical task record.
+  scorecard_action_id?: string | null;
+  scorecard_week_start?: string | null;
 }
 
 export type FilterTab = 'today' | 'week' | 'future' | 'all' | 'completed';

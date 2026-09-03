@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { SCORECARD_CAPABILITY, useProductCapabilities } from '@/hooks/useScorecardProduct';
 import { Loader2 } from 'lucide-react';
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function ProtectedRoute({ children, allowScorecardOnly = false }: { children: React.ReactNode; allowScorecardOnly?: boolean }) {
   const { user, loading } = useAuth();
+  const { data: capabilities = [], isLoading: capabilitiesLoading, isError: capabilitiesError } = useProductCapabilities();
   const navigate = useNavigate();
   const location = useLocation();
   const [showContent, setShowContent] = useState(false);
@@ -22,7 +24,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, navigate, location.pathname, location.search, location.hash]);
 
-  if (loading) {
+  if (loading || (user && capabilitiesLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -35,6 +37,17 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return null;
+  }
+
+  // Preserve legacy/trial access when the capability resolver is unavailable,
+  // but keep known Scorecard-only buyers inside the product they purchased.
+  const isScorecardOnly = !capabilitiesError
+    && capabilities.includes(SCORECARD_CAPABILITY)
+    && !capabilities.includes('planner.core')
+    && !capabilities.includes('mastermind.core');
+
+  if (isScorecardOnly && !allowScorecardOnly) {
+    return <Navigate to="/scorecard/today" replace />;
   }
 
   // Smooth fade-in transition
