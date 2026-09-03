@@ -37,7 +37,8 @@ serve(async (req: Request) => {
 
     const surface = VALID_SURFACES.has(body.surface as AccessSurface) ? body.surface as AccessSurface : "vault";
     const service = createClient(supabaseUrl, serviceKey);
-    let accessDecision = await service.rpc("mastermind_media_access_decision", {
+    // Single surface-aware policy; no fallback to the older pre-surface Vault access decision.
+    const accessDecision = await service.rpc("mastermind_media_access_decision", {
       p_user_id: data.user.id,
       p_email: data.user.email,
       p_resource_id: null,
@@ -45,15 +46,6 @@ serve(async (req: Request) => {
       p_surface: surface,
       p_preview: body.preview === true,
     });
-    if (surface === "vault" && accessDecision.error) {
-      accessDecision = await service.rpc("replay_vault_access_decision", {
-        p_user_id: data.user.id,
-        p_email: data.user.email,
-        p_resource_id: null,
-        p_action: "access",
-        p_preview: body.preview === true,
-      });
-    }
     const { data: decision, error } = accessDecision;
     if (error) throw error;
 

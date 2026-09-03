@@ -74,17 +74,13 @@ serve(async (req: Request) => {
     if (authError || !authData.user?.email) return secureJson(req, { error: "Unauthorized" }, 401);
 
     const service = createClient(supabaseUrl, serviceKey);
-    let playbackDecision = await service.rpc("resolve_mastermind_media_playback", {
+    // Single surface-aware resolver. A denial here is final; it is not retried through the
+    // older pre-surface Vault resolver policy.
+    const playbackDecision = await service.rpc("resolve_mastermind_media_playback", {
       p_user_id: authData.user.id, p_email: authData.user.email, p_resource_id: resourceId,
       p_surface: surface as PlaybackSurface,
       p_question_id: questionId || null, p_moment_id: momentId || null, p_preview: body.preview === true,
     });
-    if (surface === "vault" && (playbackDecision.error || !(playbackDecision.data as unknown[] | null)?.length)) {
-      playbackDecision = await service.rpc("resolve_replay_vault_playback", {
-        p_user_id: authData.user.id, p_email: authData.user.email, p_resource_id: resourceId,
-        p_question_id: questionId || null, p_moment_id: momentId || null, p_preview: body.preview === true,
-      });
-    }
     if (playbackDecision.error) throw playbackDecision.error;
     const row = ((playbackDecision.data ?? []) as PlaybackRow[])[0];
     if (!row || row.portal_resource_id !== resourceId || !RESOURCE_ID.test(row.portal_resource_id)) return inaccessible(req);

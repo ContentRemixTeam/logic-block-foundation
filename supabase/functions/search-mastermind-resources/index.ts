@@ -40,14 +40,11 @@ serve(async (req: Request) => {
 
     const service=createClient(supabaseUrl,serviceKey), preview=body.preview===true;
     const surface = VALID_SURFACES.has(body.surface as SearchSurface) ? body.surface as SearchSurface : "vault";
-    let accessDecision = await service.rpc("mastermind_media_access_decision",{
+    // Single surface-aware policy. The pre-surface replay_vault_* functions are no longer consulted,
+    // so a denial or error here is final instead of being re-evaluated under older rules.
+    const accessDecision = await service.rpc("mastermind_media_access_decision",{
       p_user_id:authData.user.id,p_email:authData.user.email,p_resource_id:null,p_action:"access",p_surface:surface,p_preview:preview,
     });
-    if (surface === "vault" && accessDecision.error) {
-      accessDecision = await service.rpc("replay_vault_access_decision",{
-        p_user_id:authData.user.id,p_email:authData.user.email,p_resource_id:null,p_action:"access",p_preview:preview,
-      });
-    }
     const { data:access,error:accessError }=accessDecision;
     if (accessError) throw accessError;
     if (access?.allowed !== true) return inaccessible(req);
@@ -57,19 +54,19 @@ serve(async (req: Request) => {
     if (path && !VALID_PATHS.has(path)) return secureJson(req,{ error:"Invalid path filter" },400);
     const limit=Math.min(Math.max(Number.isFinite(body.limit) ? Math.trunc(body.limit as number) : 12,1),25);
     const momentsPerReplay=Math.min(Math.max(Number.isFinite(body.momentsPerReplay) ? Math.trunc(body.momentsPerReplay as number) : 3,1),8);
-    let searchResult=await service.rpc("search_mastermind_media_resources",{
+    const searchResult=await service.rpc("search_mastermind_media_resources",{
       p_user_id:authData.user.id,p_email:authData.user.email,p_query:query,p_stage:path,p_limit:limit,
       p_moments_per_replay:momentsPerReplay,p_include_metadata_fallback:body.filters?.includeMetadataFallback===true,
       p_surface:surface,p_preview:preview,
     });
-    if (surface === "vault" && searchResult.error) {
-      searchResult=await service.rpc("search_replay_vault_resources",{
-        p_user_id:authData.user.id,p_email:authData.user.email,p_query:query,p_stage:path,p_limit:limit,
-        p_include_metadata_fallback:body.filters?.includeMetadataFallback===true,p_preview:preview,
-      });
-    }
     const { data,error }=searchResult;
-    if (error) throw error;
+    if (error) {
+      // 57014 = query_canceled (the function's own statement_timeout). Report it as a
+      // too-broad search rather than a generic failure so the member can narrow it.
+      const code = (error as { code?: string }).code;
+      if (code === "57014") return secureJson(req,{ results:[], tooBroad:true });
+      throw error;
+    }
     return secureJson(req,{ results:((data??[]) as SearchRow[]).map(mapSearchRow) });
   } catch (error) {
     console.error("[replay-vault-search]",requestId,error instanceof Error ? error.message : "internal_error");

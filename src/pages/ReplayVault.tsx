@@ -15,6 +15,7 @@ import type { PlaybackResult, PlaybackTarget, VaultAccessState, VaultReplayGroup
 import { useVaultSeekCoordinator } from '@/components/replay-vault/useVaultSeekCoordinator';
 import { VaultOnboarding } from '@/components/replay-vault/VaultOnboarding';
 import { VaultCuratedPlaylists } from '@/components/replay-vault/VaultCuratedPlaylists';
+import { vaultPreviewEnabled } from '@/components/replay-vault/previewMode';
 
 function canUseVault(access: VaultAccessState) { return access.status === 'allowed'; }
 type DeepLinkState = { key: string | null; status: 'idle' | 'loading' | 'success' | 'error' };
@@ -71,7 +72,7 @@ function ProtectedReplayVault() {
     setAccess({ status: 'loading' });
     setPlayback(null); setTarget(null);
     try {
-      const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', { body: { preview: true, surface: VAULT_SURFACE } });
+      const { data, error } = await supabase.functions.invoke('get-mastermind-portal-access', { body: { preview: vaultPreviewEnabled(), surface: VAULT_SURFACE } });
       if (controller.signal.aborted || accessRequest.current.generation !== generation) return;
       setAccess(error ? { status: 'unavailable' } : normalizeAccessResponse(data));
     } catch {
@@ -102,7 +103,7 @@ function ProtectedReplayVault() {
           questionId: nextTarget.questionId,
           momentId: nextTarget.momentId,
           responseShape: 'verified_cue_v1',
-          preview: true,
+          preview: vaultPreviewEnabled(),
           surface: VAULT_SURFACE,
         },
       });
@@ -173,13 +174,15 @@ function ProtectedReplayVault() {
           momentsPerReplay,
           filters: { includeMetadataFallback: true },
           responseShape: 'grouped_moments_v1',
-          preview: true,
+          preview: vaultPreviewEnabled(),
           surface: VAULT_SURFACE,
         },
       });
       if (controller.signal.aborted || searchRequest.current.generation !== generation) return;
-      setGroups(error ? [] : groupSearchResults(data));
+      const tooBroad = !error && Boolean((data as { tooBroad?: unknown } | null)?.tooBroad);
+      setGroups(error || tooBroad ? [] : groupSearchResults(data));
       if (error) setSearchError('Search is temporarily unavailable. Your access has not changed.');
+      else if (tooBroad) setSearchError('That search matches too much of the library to rank quickly. Add another word to narrow it.');
     } catch {
       if (!controller.signal.aborted && searchRequest.current.generation === generation) { setGroups([]); setSearchError('Search is temporarily unavailable. Your access has not changed.'); }
     } finally { if (!controller.signal.aborted && searchRequest.current.generation === generation) setSearching(false); }
@@ -205,7 +208,7 @@ function ProtectedReplayVault() {
         momentsPerReplay: 1,
         filters: { includeMetadataFallback: true },
         responseShape: 'grouped_moments_v1',
-        preview: true,
+        preview: vaultPreviewEnabled(),
         surface: VAULT_SURFACE,
       },
     });
@@ -244,7 +247,7 @@ function ProtectedReplayVault() {
         {hasVaultAccess && <header className="space-y-3"><Badge variant="secondary" className="w-fit">Becoming Boss Mastermind</Badge><div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div className="space-y-2"><h1 ref={headingRef} className="text-3xl font-bold tracking-tight" tabIndex={-1}>Replay Vault</h1><p className="max-w-2xl text-muted-foreground">Search every call by topic, open the exact answer, or browse the complete replay library.</p></div><VaultOnboarding /></div></header>}
         {access.status === 'loading' && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">Checking access…</p>}
         {access.status === 'unavailable' && <Card role="alert"><CardHeader><CardTitle className="flex items-center gap-2"><WifiOff className="h-5 w-5" aria-hidden="true" />Access check unavailable</CardTitle><CardDescription>We could not verify access right now. This does not mean your membership changed.</CardDescription></CardHeader><CardContent><Button type="button" onClick={() => void loadAccess()}>Try again</Button></CardContent></Card>}
-        {access.status === 'allowed' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Library className="h-5 w-5 text-primary" aria-hidden="true" />Full Replay Vault</CardTitle><CardDescription>Your access includes the full approved replay library.</CardDescription></CardHeader></Card>}
+        {access.status === 'allowed' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Library className="h-5 w-5 text-primary" aria-hidden="true" />Full Replay Vault</CardTitle><CardDescription>Your access includes the full approved replay library.{access.previewActive ? ' Admin preview is on: you are seeing approved-but-unpublished items. Add ?preview=0 to the URL to see the member view.' : ''}</CardDescription></CardHeader></Card>}
 
         {access.status === 'not_launched' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" aria-hidden="true" />This page is not open yet</CardTitle><CardDescription>Your account is recognized, but this private page is currently disabled or limited to the pilot group.</CardDescription></CardHeader></Card>}
         {access.status === 'denied' && <Card><CardHeader><CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5" aria-hidden="true" />This page is not available for this account</CardTitle><CardDescription>Use the main Planner dashboard, or sign in with the approved account for this private preview.</CardDescription></CardHeader></Card>}
