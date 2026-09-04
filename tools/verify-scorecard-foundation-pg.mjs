@@ -9,6 +9,7 @@ const foundationMigration = join(root, 'supabase/migrations/20260903120000_score
 const commerceMigration = join(root, 'supabase/migrations/20260903233000_scorecard_commerce_bridge.sql');
 const plannerCommerceMigration = join(root, 'supabase/migrations/20260904160000_planner_commerce_bridge.sql');
 const plannerMappingCleanupMigration = join(root, 'supabase/migrations/20260904170000_remove_collab_studio_planner_mapping.sql');
+const offerCommerceMigration = join(root, 'supabase/migrations/20260904183000_scorecard_planner_offer_commerce.sql');
 const pgDir = mkdtempSync(join(tmpdir(), 'scorecard-pg-'));
 const port = String(55432 + (process.pid % 500));
 const connectionArgs = ['-h', pgDir, '-p', port, '-d', 'scorecard_test'];
@@ -480,6 +481,188 @@ END $$;
 RESET ROLE;
 `;
 
+const offerCommerceAssertions = `
+INSERT INTO public.scorecard_commerce_mappings (
+  provider, product_id, price_id, entitlement_days, entitlement_kind, planner_tier,
+  billing_interval, interval_count, expected_currency, expected_amount_cents,
+  expected_renewal_amount_cents, is_active
+) VALUES
+  ('thrivecart', 'product-101', 'plan-201', NULL, 'scorecard', NULL, 'lifetime', 1, 'USD', 900, NULL, true),
+  ('thrivecart', 'upsell-101', 'plan-annual-upgrade', NULL, 'planner', 'annual', 'year', 1, 'USD', 4000, 4900, true),
+  ('thrivecart', 'product-102', 'plan-202', NULL, 'planner', 'annual', 'year', 1, 'USD', 4900, 4900, true),
+  ('thrivecart', 'downsell-102', 'plan-203', NULL, 'planner', 'monthly', 'month', 1, 'USD', 700, 700, true);
+
+SET ROLE service_role;
+
+DO $$
+DECLARE result jsonb;
+BEGIN
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-scorecard-1', 'bundle@example.com', 'purchase',
+    'product-101', 'plan-201', 'order-101', 'txn-scorecard-1', NULL,
+    'USD', 800, '2026-09-04T12:00:00Z', NULL, repeat('a', 64)
+  );
+  IF result ->> 'status' <> 'rejected_amount' THEN
+    RAISE EXCEPTION 'amount mismatch was not rejected: %', result;
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-scorecard-2', 'bundle@example.com', 'purchase',
+    'product-101', 'plan-201', 'order-101', 'txn-scorecard-1', NULL,
+    'USD', 900, '2026-09-04T12:00:00Z', NULL, repeat('b', 64)
+  );
+  IF result ->> 'status' <> 'active' OR result ->> 'entitlementKind' <> 'scorecard' THEN
+    RAISE EXCEPTION 'Scorecard purchase failed: %', result;
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-scorecard-duplicate-event', 'bundle@example.com', 'purchase',
+    'product-101', 'plan-201', 'order-101', 'txn-scorecard-1', NULL,
+    'USD', 900, '2026-09-04T12:00:00Z', NULL, repeat('c', 64)
+  );
+  IF result ->> 'status' <> 'replayed_transaction' THEN
+    RAISE EXCEPTION 'duplicate transaction was not replayed: %', result;
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-upsell-1', 'bundle@example.com', 'purchase',
+    'upsell-101', 'plan-annual-upgrade', 'order-101', 'txn-upsell-1', NULL,
+    'USD', 4000, '2026-09-04T12:00:00Z', NULL, repeat('d', 64)
+  );
+  IF result ->> 'status' <> 'active' OR result ->> 'plannerTier' <> 'annual' THEN
+    RAISE EXCEPTION 'Planner annual upsell purchase failed: %', result;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.entitlements
+    WHERE email = 'bundle@example.com'
+      AND scorecard_status = 'active'
+      AND planner_status = 'active'
+      AND planner_tier = 'annual'
+      AND planner_ends_at = '2027-09-04'
+  ) THEN
+    RAISE EXCEPTION 'combined Scorecard and Planner access was not stored independently';
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-upsell-refund-1', 'bundle@example.com', 'refund',
+    'upsell-101', '', 'order-101', NULL, NULL,
+    'USD', 4000, '2026-09-05T12:00:00Z', NULL, repeat('e', 64)
+  );
+  IF result ->> 'status' <> 'refunded' THEN
+    RAISE EXCEPTION 'Planner annual upsell refund failed: %', result;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.entitlements
+    WHERE email = 'bundle@example.com'
+      AND scorecard_status = 'active'
+      AND planner_status = 'refunded'
+  ) THEN
+    RAISE EXCEPTION 'Planner refund did not preserve separately purchased Scorecard access';
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-monthly-1', 'monthly@example.com', 'purchase',
+    'downsell-102', 'plan-203', 'order-203', 'txn-monthly-1', NULL,
+    'USD', 700, '2026-09-04T12:00:00Z', '2026-10-04T12:00:00Z', repeat('f', 64)
+  );
+  IF result ->> 'status' <> 'active' OR result ->> 'plannerTier' <> 'monthly' THEN
+    RAISE EXCEPTION 'Monthly Planner purchase failed: %', result;
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-monthly-failed-1', 'monthly@example.com', 'payment_failed',
+    'downsell-102', 'plan-203', 'order-203', NULL, NULL,
+    'USD', 700, '2026-10-04T12:00:00Z', NULL, repeat('1', 64)
+  );
+  IF result ->> 'status' <> 'needs_review' THEN
+    RAISE EXCEPTION 'Failed payment was not held for review: %', result;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.entitlements
+    WHERE email = 'monthly@example.com'
+      AND planner_status = 'active'
+      AND planner_ends_at = '2026-10-04'
+  ) THEN
+    RAISE EXCEPTION 'Failed payment incorrectly revoked Planner access';
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-upsell-renewal-1', 'renewal@example.com', 'purchase',
+    'upsell-101', 'plan-annual-upgrade', 'order-renewal', 'txn-upsell-initial', NULL,
+    'USD', 4000, '2026-09-04T12:00:00Z', '2027-09-04T12:00:00Z', repeat('2', 64)
+  );
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-upsell-renewal-2', 'renewal@example.com', 'renewal',
+    'upsell-101', '', 'order-renewal', 'txn-upsell-renewal', NULL,
+    'USD', 4900, '2027-09-04T12:00:00Z', '2028-09-04T12:00:00Z', repeat('3', 64)
+  );
+  IF result ->> 'status' <> 'active' THEN
+    RAISE EXCEPTION 'Reduced first-year annual upsell did not accept its renewal amount: %', result;
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-upsell-cancel-1', 'renewal@example.com', 'cancel_at_period_end',
+    'upsell-101', '', 'order-renewal', NULL, NULL,
+    'USD', NULL, '2027-10-04T12:00:00Z', NULL, repeat('4', 64)
+  );
+  IF result ->> 'status' <> 'cancelled' THEN
+    RAISE EXCEPTION 'Cancellation without a repeated payment-plan ID was not resolved: %', result;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.entitlements
+    WHERE email = 'renewal@example.com'
+      AND planner_status = 'cancelled'
+      AND planner_ends_at = '2028-09-04'
+  ) THEN
+    RAISE EXCEPTION 'Cancelled annual access did not preserve the paid-through date';
+  END IF;
+
+  BEGIN
+    PERFORM public.grant_planner_entitlement(
+      'bad-lifetime@example.com', 'lifetime', 'active', '2026-09-04', '2027-09-04'
+    );
+    RAISE EXCEPTION 'Lifetime Planner access accepted an end date';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM = 'Lifetime Planner access accepted an end date' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM public.grant_planner_entitlement(
+      'bad-annual@example.com', 'annual', 'active', '2026-09-04', NULL
+    );
+    RAISE EXCEPTION 'Annual Planner access accepted a missing end date';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM = 'Annual Planner access accepted a missing end date' THEN RAISE; END IF;
+  END;
+END $$;
+
+RESET ROLE;
+
+INSERT INTO auth.users (id, email)
+VALUES ('66666666-6666-4666-8666-666666666666', 'monthly@example.com');
+
+SET ROLE authenticated;
+SET request.jwt.claim.sub = '66666666-6666-4666-8666-666666666666';
+SET request.jwt.claims = '{"email":"monthly@example.com"}';
+
+DO $$
+BEGIN
+  IF NOT public.has_product_capability('scorecard.core')
+     OR NOT public.has_product_capability('planner.core') THEN
+    RAISE EXCEPTION 'Monthly Planner did not inherit Planner and Scorecard access';
+  END IF;
+  IF public.has_product_capability('mastermind.core') THEN
+    RAISE EXCEPTION 'Monthly Planner leaked Mastermind access';
+  END IF;
+END $$;
+
+RESET ROLE;
+`;
+
 let started = false;
 try {
   run('initdb', [
@@ -524,7 +707,10 @@ try {
   END $$;`);
   process.stdout.write('Verified the Collab Studio mapping cleanup.\n');
   psql(plannerCommerceAssertions);
-  process.stdout.write('Scorecard and Planner Postgres commerce verification passed.\n');
+  run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', offerCommerceMigration]);
+  process.stdout.write('Applied the Scorecard + Planner offer commerce migration.\n');
+  psql(offerCommerceAssertions);
+  process.stdout.write('Scorecard, Planner, and offer commerce verification passed.\n');
 } catch (error) {
   const stderr = error?.stderr?.toString?.() ?? '';
   const stdout = error?.stdout?.toString?.() ?? '';

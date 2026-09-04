@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { CalendarCheck2, CalendarDays, LogOut, Settings2, Smartphone } from 'lucide-react';
+import { CalendarCheck2, CalendarDays, LogOut, Settings2, Smartphone, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
@@ -9,6 +9,7 @@ import { CelebrationOverlay } from '@/components/celebrations/CelebrationOverlay
 const navigation = [
   { href: '/scorecard/today', label: 'Today', icon: CalendarCheck2 },
   { href: '/scorecard/week', label: 'My Week', icon: CalendarDays },
+  { href: '/scorecard/toolkit', label: 'Toolkit', icon: Sparkles },
   { href: '/scorecard/setup', label: 'Set Up', icon: Settings2 },
 ];
 
@@ -80,7 +81,7 @@ export function ScorecardShell({ children }: { children: ReactNode }) {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[#111111] bg-white sm:hidden">
-        <div className="grid grid-cols-3 pb-[env(safe-area-inset-bottom)]">
+        <div className="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
           {navigation.map(({ href, label, icon: Icon }) => {
             const active = location.pathname === href;
             return (

@@ -1,23 +1,34 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addDays, addWeeks, format, isSameWeek, startOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardCopy, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTaskMutations } from '@/hooks/useTasks';
-import { useScorecardActions, useScorecardWeek } from '@/hooks/useScorecardProduct';
+import { useOptionalActiveCycle, useScorecardActions, useScorecardWeek } from '@/hooks/useScorecardProduct';
 import type { Task } from '@/components/tasks/types';
 import { triggerCelebration } from '@/components/celebrations/CelebrationOverlay';
 import { ScorecardProgress } from './ScorecardProgress';
 import { ScorecardTaskRow } from './ScorecardTaskRow';
+import { buildScorecardBrief, copyScorecardText } from './scorecardBrief';
 
 export function ScorecardWeek() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const { actions } = useScorecardActions();
+  const { data: activeCycle } = useOptionalActiveCycle();
   const { tasks, isLoading, refresh } = useScorecardWeek(selectedDate);
   const { toggleComplete } = useTaskMutations();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const completed = tasks.filter(task => task.is_completed).length;
+
+  const handleCopyWeek = async () => {
+    try {
+      await copyScorecardText(buildScorecardBrief(tasks, format(weekStart, 'yyyy-MM-dd'), activeCycle?.goal));
+      toast.success('Your week is ready to paste into Claude or ChatGPT.');
+    } catch {
+      toast.error('Your browser blocked copying.');
+    }
+  };
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, index) => {
     const date = addDays(weekStart, index);
@@ -60,30 +71,41 @@ export function ScorecardWeek() {
           </p>
         </div>
 
-        <div className="flex border-2 border-[#111111] bg-white">
+        <div className="flex flex-wrap justify-end gap-2">
           <button
             type="button"
-            onClick={() => setSelectedDate(date => addWeeks(date, -1))}
-            className="grid h-11 w-11 place-items-center border-r-2 border-[#111111] hover:bg-[#FFF0F5]"
-            aria-label="Previous week"
+            onClick={() => void handleCopyWeek()}
+            disabled={!tasks.length}
+            className="flex min-h-11 items-center gap-2 border-2 border-[#111111] bg-white px-3 text-xs font-bold uppercase tracking-wide hover:bg-[#FFF0F5] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ClipboardCopy className="h-4 w-4" />
+            Copy my week
           </button>
-          <button
-            type="button"
-            onClick={() => setSelectedDate(new Date())}
-            className="min-h-11 px-4 text-xs font-bold uppercase tracking-wide hover:bg-[#FFF0F5]"
-          >
-            This week
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedDate(date => addWeeks(date, 1))}
-            className="grid h-11 w-11 place-items-center border-l-2 border-[#111111] hover:bg-[#FFF0F5]"
-            aria-label="Next week"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+          <div className="flex border-2 border-[#111111] bg-white">
+            <button
+              type="button"
+              onClick={() => setSelectedDate(date => addWeeks(date, -1))}
+              className="grid h-11 w-11 place-items-center border-r-2 border-[#111111] hover:bg-[#FFF0F5]"
+              aria-label="Previous week"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedDate(new Date())}
+              className="min-h-11 px-4 text-xs font-bold uppercase tracking-wide hover:bg-[#FFF0F5]"
+            >
+              This week
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedDate(date => addWeeks(date, 1))}
+              className="grid h-11 w-11 place-items-center border-l-2 border-[#111111] hover:bg-[#FFF0F5]"
+              aria-label="Next week"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </section>
 

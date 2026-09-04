@@ -96,9 +96,13 @@ verify_jwt = false
 [functions.ghl-webhook-planner-access]
 verify_jwt = false
 
-# Scorecard commerce uses a PostgREST RPC protected by a private GHL header,
-# an exact product/price allowlist, and an idempotent event ledger. No separate
-# Edge Function deployment is required.
+[functions.scorecard-commerce-webhook]
+verify_jwt = false
+
+# ThriveCart posts to this public webhook. The function verifies the account's
+# private webhook secret, then calls a service-role-only RPC with exact product,
+# price, amount, parent-purchase, and idempotency checks. The GHL Planner bridge
+# above remains separate for the existing annual and lifetime products.
 
 [functions.sync-asana-tasks]
 verify_jwt = false
