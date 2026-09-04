@@ -7,6 +7,7 @@ import process from 'node:process';
 const root = process.cwd();
 const foundationMigration = join(root, 'supabase/migrations/20260903120000_scorecard_product_foundation.sql');
 const commerceMigration = join(root, 'supabase/migrations/20260903233000_scorecard_commerce_bridge.sql');
+const plannerCommerceMigration = join(root, 'supabase/migrations/20260904160000_planner_commerce_bridge.sql');
 const pgDir = mkdtempSync(join(tmpdir(), 'scorecard-pg-'));
 const port = String(55432 + (process.pid % 500));
 const connectionArgs = ['-h', pgDir, '-p', port, '-d', 'scorecard_test'];
@@ -22,7 +23,7 @@ function psql(sql) {
 const fixture = `
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
-CREATE ROLE service_role NOLOGIN;
+CREATE ROLE service_role NOLOGIN BYPASSRLS;
 CREATE SCHEMA auth;
 
 CREATE TABLE auth.users (id uuid PRIMARY KEY, email text NOT NULL);
@@ -69,6 +70,7 @@ CREATE TABLE public.entitlements (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX entitlements_email_unique ON public.entitlements (email);
+GRANT SELECT ON public.entitlements TO service_role;
 
 CREATE TABLE public.cycles_90_day (
   cycle_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -355,6 +357,122 @@ END $$;
 RESET ROLE;
 `;
 
+const plannerCommerceAssertions = `
+SET ROLE service_role;
+
+SELECT public.process_planner_commerce_event(
+  'ghl', 'planner-purchase-1', 'planner-commerce@example.com', 'purchase',
+  '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+  'planner-order-1', 'planner-transaction-1', '2026-09-04T12:00:00Z'
+);
+
+DO $$
+DECLARE result jsonb;
+BEGIN
+  SELECT public.process_planner_commerce_event(
+    'ghl', 'planner-purchase-1', 'planner-commerce@example.com', 'purchase',
+    '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+    'planner-order-1', 'planner-transaction-1', '2026-09-04T12:00:00Z'
+  ) INTO result;
+  IF result ->> 'status' <> 'replayed' THEN RAISE EXCEPTION 'Planner duplicate was not idempotent'; END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.entitlements
+    WHERE email = 'planner-commerce@example.com'
+      AND planner_tier = 'annual' AND planner_status = 'active'
+      AND planner_starts_at = '2026-09-04' AND planner_ends_at = '2027-09-04'
+      AND tier = 'none' AND status = 'inactive'
+  ) THEN RAISE EXCEPTION 'Annual purchase did not create Planner-only access'; END IF;
+END $$;
+
+SELECT public.process_planner_commerce_event(
+  'ghl', 'planner-renewal-1', 'planner-commerce@example.com', 'renewal',
+  '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+  'planner-order-2', 'planner-transaction-2', '2027-08-01T12:00:00Z'
+);
+
+DO $$
+BEGIN
+  IF (SELECT planner_ends_at FROM public.entitlements WHERE email = 'planner-commerce@example.com') <> '2028-09-03' THEN
+    RAISE EXCEPTION 'Early annual renewal did not extend the existing term';
+  END IF;
+END $$;
+
+SELECT public.process_planner_commerce_event(
+  'ghl', 'planner-stale-refund', 'planner-commerce@example.com', 'refund',
+  '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+  'planner-order-1', 'planner-transaction-1', '2027-07-01T12:00:00Z'
+);
+
+DO $$
+BEGIN
+  IF (SELECT planner_status FROM public.entitlements WHERE email = 'planner-commerce@example.com') <> 'active' THEN
+    RAISE EXCEPTION 'A stale event revoked newer Planner access';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.planner_commerce_events WHERE event_id = 'planner-stale-refund' AND result_status = 'ignored_stale') THEN
+    RAISE EXCEPTION 'Stale event was not recorded';
+  END IF;
+END $$;
+
+SELECT public.process_planner_commerce_event(
+  'ghl', 'planner-refund-1', 'planner-commerce@example.com', 'refund',
+  '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+  'planner-order-2', 'planner-transaction-2', '2027-08-02T12:00:00Z'
+);
+
+DO $$
+BEGIN
+  IF (SELECT planner_status FROM public.entitlements WHERE email = 'planner-commerce@example.com') <> 'refunded' THEN
+    RAISE EXCEPTION 'Refund did not revoke Planner access';
+  END IF;
+END $$;
+
+SELECT public.process_planner_commerce_event(
+  'ghl', 'planner-lifetime-1', 'lifetime@example.com', 'purchase',
+  '6a70dd57bee6fddba29f2654', '6a70dd5716f0cca8c90d2db2',
+  'lifetime-order-1', 'lifetime-transaction-1', '2026-09-04T12:00:00Z'
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.entitlements
+    WHERE email = 'lifetime@example.com' AND planner_tier = 'lifetime'
+      AND planner_status = 'active' AND planner_ends_at IS NULL
+      AND tier = 'none' AND status = 'inactive'
+  ) THEN RAISE EXCEPTION 'Lifetime purchase was not non-expiring Planner-only access'; END IF;
+
+  BEGIN
+    PERFORM public.process_planner_commerce_event(
+      'ghl', 'planner-unmapped', 'blocked@example.com', 'purchase',
+      'wrong-product', 'wrong-price', 'wrong-order', 'wrong-transaction', now()
+    );
+    RAISE EXCEPTION 'Unmapped Planner product unexpectedly granted access';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM = 'Unmapped Planner product unexpectedly granted access' THEN RAISE; END IF;
+  END;
+END $$;
+
+RESET ROLE;
+
+INSERT INTO auth.users (id, email)
+VALUES ('55555555-5555-4555-8555-555555555555', 'lifetime@example.com');
+
+SET ROLE authenticated;
+SET request.jwt.claim.sub = '55555555-5555-4555-8555-555555555555';
+SET request.jwt.claims = '{"email":"lifetime@example.com"}';
+DO $$
+BEGIN
+  IF NOT public.has_product_capability('planner.core') THEN
+    RAISE EXCEPTION 'Planner buyer did not receive planner.core';
+  END IF;
+  IF public.has_product_capability('mastermind.core') THEN
+    RAISE EXCEPTION 'Planner buyer leaked mastermind.core';
+  END IF;
+END $$;
+RESET ROLE;
+`;
+
 let started = false;
 try {
   run('initdb', [
@@ -383,7 +501,10 @@ try {
   run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', commerceMigration]);
   process.stdout.write('Applied the Scorecard commerce migration.\n');
   psql(commerceAssertions);
-  process.stdout.write('Scorecard Postgres and commerce verification passed.\n');
+  run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', plannerCommerceMigration]);
+  process.stdout.write('Applied the Planner commerce migration.\n');
+  psql(plannerCommerceAssertions);
+  process.stdout.write('Scorecard and Planner Postgres commerce verification passed.\n');
 } catch (error) {
   const stderr = error?.stderr?.toString?.() ?? '';
   const stdout = error?.stdout?.toString?.() ?? '';
