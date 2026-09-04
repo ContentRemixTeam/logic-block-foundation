@@ -7617,6 +7617,38 @@ export type Database = {
         }
         Relationships: []
       }
+      replay_resource_search_index: {
+        Row: {
+          cue_count: number
+          refreshed_at: string
+          resource_id: string
+          search_vector: unknown
+          transcript_version_id: string
+        }
+        Insert: {
+          cue_count?: number
+          refreshed_at?: string
+          resource_id: string
+          search_vector: unknown
+          transcript_version_id: string
+        }
+        Update: {
+          cue_count?: number
+          refreshed_at?: string
+          resource_id?: string
+          search_vector?: unknown
+          transcript_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replay_resource_search_index_transcript_version_id_fkey"
+            columns: ["transcript_version_id"]
+            isOneToOne: true
+            referencedRelation: "replay_transcript_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replay_source_assets: {
         Row: {
           asset_role: string
@@ -7996,6 +8028,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      replay_vault_category_title_backup_20260904: {
+        Row: {
+          backed_up_at: string | null
+          category_title: string | null
+          id: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          category_title?: string | null
+          id?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          category_title?: string | null
+          id?: string | null
+        }
+        Relationships: []
       }
       replay_vault_commercial_deliveries: {
         Row: {
@@ -9071,6 +9121,50 @@ export type Database = {
           },
         ]
       }
+      sales_log: {
+        Row: {
+          amount: number
+          client_name: string | null
+          created_at: string | null
+          cycle_id: string | null
+          date: string
+          id: string
+          notes: string | null
+          offer_name: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          client_name?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          date: string
+          id?: string
+          notes?: string | null
+          offer_name?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          client_name?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          offer_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_log_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "cycles_90_day"
+            referencedColumns: ["cycle_id"]
+          },
+        ]
+      }
       scorecard_actions: {
         Row: {
           action_text: string
@@ -9121,49 +9215,101 @@ export type Database = {
           },
         ]
       }
-      sales_log: {
+      scorecard_commerce_config: {
         Row: {
-          amount: number
-          client_name: string | null
-          created_at: string | null
-          cycle_id: string | null
-          date: string
-          id: string
-          notes: string | null
-          offer_name: string | null
-          user_id: string
+          created_at: string
+          is_active: boolean
+          provider: string
+          secret_sha256: string
+          updated_at: string
         }
         Insert: {
-          amount: number
-          client_name?: string | null
-          created_at?: string | null
-          cycle_id?: string | null
-          date: string
-          id?: string
-          notes?: string | null
-          offer_name?: string | null
-          user_id: string
+          created_at?: string
+          is_active?: boolean
+          provider: string
+          secret_sha256: string
+          updated_at?: string
         }
         Update: {
-          amount?: number
-          client_name?: string | null
-          created_at?: string | null
-          cycle_id?: string | null
-          date?: string
-          id?: string
-          notes?: string | null
-          offer_name?: string | null
-          user_id?: string
+          created_at?: string
+          is_active?: boolean
+          provider?: string
+          secret_sha256?: string
+          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "sales_log_cycle_id_fkey"
-            columns: ["cycle_id"]
-            isOneToOne: false
-            referencedRelation: "cycles_90_day"
-            referencedColumns: ["cycle_id"]
-          },
-        ]
+        Relationships: []
+      }
+      scorecard_commerce_events: {
+        Row: {
+          effective_at: string
+          email: string
+          event_id: string
+          event_type: string
+          order_id: string | null
+          payload_sha256: string
+          price_id: string
+          processed_at: string
+          product_id: string
+          provider: string
+          result_status: string
+        }
+        Insert: {
+          effective_at: string
+          email: string
+          event_id: string
+          event_type: string
+          order_id?: string | null
+          payload_sha256: string
+          price_id: string
+          processed_at?: string
+          product_id: string
+          provider: string
+          result_status: string
+        }
+        Update: {
+          effective_at?: string
+          email?: string
+          event_id?: string
+          event_type?: string
+          order_id?: string | null
+          payload_sha256?: string
+          price_id?: string
+          processed_at?: string
+          product_id?: string
+          provider?: string
+          result_status?: string
+        }
+        Relationships: []
+      }
+      scorecard_commerce_mappings: {
+        Row: {
+          created_at: string
+          entitlement_days: number | null
+          is_active: boolean
+          price_id: string
+          product_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entitlement_days?: number | null
+          is_active?: boolean
+          price_id: string
+          product_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entitlement_days?: number | null
+          is_active?: boolean
+          price_id?: string
+          product_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       selling_points: {
         Row: {
@@ -10314,6 +10460,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_scorecard_action_id_fkey"
+            columns: ["scorecard_action_id"]
+            isOneToOne: false
+            referencedRelation: "scorecard_actions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_section_id_fkey"
             columns: ["section_id"]
             isOneToOne: false
@@ -10326,13 +10479,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sops"
             referencedColumns: ["sop_id"]
-          },
-          {
-            foreignKeyName: "tasks_scorecard_action_id_fkey"
-            columns: ["scorecard_action_id"]
-            isOneToOne: false
-            referencedRelation: "scorecard_actions"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tasks_source_note_id_fkey"
@@ -12210,6 +12356,18 @@ export type Database = {
         }
         Returns: Json
       }
+      process_scorecard_commerce_event: {
+        Args: {
+          p_effective_at?: string
+          p_email: string
+          p_event_id: string
+          p_event_type: string
+          p_order_id?: string
+          p_price_id: string
+          p_product_id: string
+        }
+        Returns: Json
+      }
       reconcile_replay_vault_unmapped_event_r7: {
         Args: { p_actor: string; p_original_delivery_id: string }
         Returns: Json
@@ -12492,6 +12650,10 @@ export type Database = {
           p_reason: string
         }
         Returns: undefined
+      }
+      replay_refresh_resource_search_index: {
+        Args: { p_limit?: number; p_transcript_version_id?: string }
+        Returns: number
       }
       replay_revoke_resource: {
         Args: { actor: string; reason: string; rid: string }
@@ -12962,7 +13124,97 @@ export type Database = {
       }
       sync_scorecard_week: {
         Args: { p_week_start?: string }
-        Returns: Database["public"]["Tables"]["tasks"]["Row"][]
+        Returns: {
+          actual_minutes: number | null
+          archived_at: string | null
+          category: string | null
+          checklist_progress: Json | null
+          completed_at: string | null
+          connection_swept_at: string | null
+          content_channel: string | null
+          content_creation_date: string | null
+          content_item_id: string | null
+          content_publish_date: string | null
+          content_topic_id: string | null
+          content_type: string | null
+          context_tags: string[] | null
+          course_id: string | null
+          created_at: string | null
+          cycle_id: string | null
+          daily_plan_id: string | null
+          day_order: number | null
+          deleted_at: string | null
+          done_enough_definition: string | null
+          due_date: string | null
+          energy_cost: string | null
+          energy_level: string | null
+          estimated_minutes: number | null
+          external_id: string | null
+          external_raw: Json | null
+          external_source: string | null
+          external_updated_at: string | null
+          external_url: string | null
+          goal_id: string | null
+          is_bare_minimum: boolean
+          is_completed: boolean | null
+          is_maintenance: boolean
+          is_recurring_parent: boolean | null
+          is_system_generated: boolean | null
+          last_rescheduled_at: string | null
+          launch_id: string | null
+          momentum_type: Database["public"]["Enums"]["momentum_type"] | null
+          month_in_cycle: number | null
+          notes: string | null
+          original_due_date: string | null
+          original_scheduled_at: string | null
+          parent_task_id: string | null
+          planned_day: string | null
+          position_in_column: number | null
+          priority: string | null
+          priority_order: number | null
+          project_column: string | null
+          project_id: string | null
+          recurrence_days: Json | null
+          recurrence_end_date: string | null
+          recurrence_interval: number | null
+          recurrence_pattern: string | null
+          recurrence_unit: string | null
+          reschedule_count: number
+          reschedule_count_30d: number
+          reschedule_loop_active: boolean
+          reschedule_nudge_dismissed_until: string | null
+          scheduled_date: string | null
+          scheduled_time: string | null
+          scorecard_action_id: string | null
+          scorecard_week_start: string | null
+          section_id: string | null
+          sop_id: string | null
+          source: string | null
+          source_note_id: string | null
+          source_note_title: string | null
+          status: string | null
+          subtasks: Json | null
+          system_source: string | null
+          tags: Json | null
+          task_description: string | null
+          task_id: string
+          task_text: string
+          task_type: string | null
+          template_key: string | null
+          time_block_end: string | null
+          time_block_start: string | null
+          time_slot_duration: number | null
+          updated_at: string | null
+          user_id: string
+          waiting_on: string | null
+          week_in_cycle: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       toggle_habit: {
         Args: { p_date: string; p_habit_id: string; p_user_id: string }
@@ -13003,12 +13255,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -13032,11 +13284,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -13057,11 +13309,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -13082,11 +13334,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -13099,11 +13351,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
