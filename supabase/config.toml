@@ -100,6 +100,12 @@ verify_jwt = false
 # private webhook secret, then calls a service-role-only RPC with exact product,
 # price, amount, parent-purchase, and idempotency checks.
 
+[functions.ghl-webhook-planner-access]
+verify_jwt = false
+
+# GHL Planner commerce is a separate exact-product bridge for the existing
+# annual and lifetime Planner products.
+
 [functions.sync-asana-tasks]
 verify_jwt = false
 

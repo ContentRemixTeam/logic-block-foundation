@@ -147,6 +147,14 @@ BEGIN
     RAISE EXCEPTION 'Invalid planner status';
   END IF;
 
+  IF p_tier = 'lifetime' AND p_status = 'active' AND p_ends_at IS NOT NULL THEN
+    RAISE EXCEPTION 'Lifetime Planner access cannot expire';
+  END IF;
+
+  IF p_tier IN ('monthly', 'annual') AND p_status = 'active' AND p_ends_at IS NULL THEN
+    RAISE EXCEPTION 'Recurring Planner access requires an end date';
+  END IF;
+
   INSERT INTO public.entitlements (
     email,
     tier,
