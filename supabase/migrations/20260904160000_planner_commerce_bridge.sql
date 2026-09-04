@@ -2,7 +2,7 @@
 --
 -- This is intentionally separate from ghl-webhook-grant-planner, which is the
 -- Replay Vault commercial pipeline despite its legacy name. Only the two
--- verified GHL product/price pairs below can change Planner access.
+-- explicitly verified Planner product/price pairs can change Planner access.
 
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
@@ -33,16 +33,8 @@ ALTER TABLE public.planner_commerce_mappings ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.planner_commerce_mappings FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.planner_commerce_mappings TO service_role;
 
-INSERT INTO public.planner_commerce_mappings (
-  provider, product_id, price_id, planner_tier, entitlement_days, is_active
-) VALUES
-  ('ghl', '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366', 'annual', 365, true),
-  ('ghl', '6a70dd57bee6fddba29f2654', '6a70dd5716f0cca8c90d2db2', 'lifetime', NULL, true)
-ON CONFLICT (provider, product_id, price_id) DO UPDATE SET
-  planner_tier = EXCLUDED.planner_tier,
-  entitlement_days = EXCLUDED.entitlement_days,
-  is_active = EXCLUDED.is_active,
-  updated_at = now();
+-- Product mappings are intentionally not seeded here. They must be added only
+-- after the GHL records are verified as belonging to the 90 Day Planner.
 
 CREATE TABLE IF NOT EXISTS public.planner_commerce_events (
   provider text NOT NULL,
