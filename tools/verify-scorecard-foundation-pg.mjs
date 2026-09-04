@@ -8,6 +8,7 @@ const root = process.cwd();
 const foundationMigration = join(root, 'supabase/migrations/20260903120000_scorecard_product_foundation.sql');
 const commerceMigration = join(root, 'supabase/migrations/20260903233000_scorecard_commerce_bridge.sql');
 const plannerCommerceMigration = join(root, 'supabase/migrations/20260904160000_planner_commerce_bridge.sql');
+const plannerMappingCleanupMigration = join(root, 'supabase/migrations/20260904170000_remove_collab_studio_planner_mapping.sql');
 const pgDir = mkdtempSync(join(tmpdir(), 'scorecard-pg-'));
 const port = String(55432 + (process.pid % 500));
 const connectionArgs = ['-h', pgDir, '-p', port, '-d', 'scorecard_test'];
@@ -358,11 +359,17 @@ RESET ROLE;
 `;
 
 const plannerCommerceAssertions = `
+INSERT INTO public.planner_commerce_mappings
+  (provider, product_id, price_id, planner_tier, entitlement_days)
+VALUES
+  ('ghl', 'test-planner-annual', 'test-planner-annual-price', 'annual', 365),
+  ('ghl', 'test-planner-lifetime', 'test-planner-lifetime-price', 'lifetime', NULL);
+
 SET ROLE service_role;
 
 SELECT public.process_planner_commerce_event(
   'ghl', 'planner-purchase-1', 'planner-commerce@example.com', 'purchase',
-  '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+  'test-planner-annual', 'test-planner-annual-price',
   'planner-order-1', 'planner-transaction-1', '2026-09-04T12:00:00Z'
 );
 
@@ -371,7 +378,7 @@ DECLARE result jsonb;
 BEGIN
   SELECT public.process_planner_commerce_event(
     'ghl', 'planner-purchase-1', 'planner-commerce@example.com', 'purchase',
-    '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+    'test-planner-annual', 'test-planner-annual-price',
     'planner-order-1', 'planner-transaction-1', '2026-09-04T12:00:00Z'
   ) INTO result;
   IF result ->> 'status' <> 'replayed' THEN RAISE EXCEPTION 'Planner duplicate was not idempotent'; END IF;
@@ -387,7 +394,7 @@ END $$;
 
 SELECT public.process_planner_commerce_event(
   'ghl', 'planner-renewal-1', 'planner-commerce@example.com', 'renewal',
-  '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+  'test-planner-annual', 'test-planner-annual-price',
   'planner-order-2', 'planner-transaction-2', '2027-08-01T12:00:00Z'
 );
 
@@ -400,7 +407,7 @@ END $$;
 
 SELECT public.process_planner_commerce_event(
   'ghl', 'planner-stale-refund', 'planner-commerce@example.com', 'refund',
-  '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+  'test-planner-annual', 'test-planner-annual-price',
   'planner-order-1', 'planner-transaction-1', '2027-07-01T12:00:00Z'
 );
 
@@ -416,7 +423,7 @@ END $$;
 
 SELECT public.process_planner_commerce_event(
   'ghl', 'planner-refund-1', 'planner-commerce@example.com', 'refund',
-  '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366',
+  'test-planner-annual', 'test-planner-annual-price',
   'planner-order-2', 'planner-transaction-2', '2027-08-02T12:00:00Z'
 );
 
@@ -429,7 +436,7 @@ END $$;
 
 SELECT public.process_planner_commerce_event(
   'ghl', 'planner-lifetime-1', 'lifetime@example.com', 'purchase',
-  '6a70dd57bee6fddba29f2654', '6a70dd5716f0cca8c90d2db2',
+  'test-planner-lifetime', 'test-planner-lifetime-price',
   'lifetime-order-1', 'lifetime-transaction-1', '2026-09-04T12:00:00Z'
 );
 
@@ -503,6 +510,19 @@ try {
   psql(commerceAssertions);
   run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', plannerCommerceMigration]);
   process.stdout.write('Applied the Planner commerce migration.\n');
+  psql(`INSERT INTO public.planner_commerce_mappings
+    (provider, product_id, price_id, planner_tier, entitlement_days)
+    VALUES
+      ('ghl', '6a70dd49734d26b901d3e786', '6a70e7bb471129d5db161366', 'annual', 365),
+      ('ghl', '6a70dd57bee6fddba29f2654', '6a70dd5716f0cca8c90d2db2', 'lifetime', NULL);`);
+  run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', plannerMappingCleanupMigration]);
+  psql(`DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM public.planner_commerce_mappings WHERE product_id IN
+      ('6a70dd49734d26b901d3e786', '6a70dd57bee6fddba29f2654')) THEN
+      RAISE EXCEPTION 'Collab Studio mappings were not removed';
+    END IF;
+  END $$;`);
+  process.stdout.write('Verified the Collab Studio mapping cleanup.\n');
   psql(plannerCommerceAssertions);
   process.stdout.write('Scorecard and Planner Postgres commerce verification passed.\n');
 } catch (error) {
