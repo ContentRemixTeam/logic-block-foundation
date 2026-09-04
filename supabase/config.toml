@@ -93,6 +93,9 @@ verify_jwt = false
 [functions.ghl-webhook-grant-planner]
 verify_jwt = false
 
+[functions.ghl-webhook-planner-access]
+verify_jwt = false
+
 # Scorecard commerce uses a PostgREST RPC protected by a private GHL header,
 # an exact product/price allowlist, and an idempotent event ledger. No separate
 # Edge Function deployment is required.
