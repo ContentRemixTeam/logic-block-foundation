@@ -10,13 +10,14 @@ export type ScorecardPlannerRpcArgs = {
   p_parent_transaction_id: string | null;
   p_currency: string | null;
   p_amount_cents: number | null;
-  p_effective_at: string;
+  p_effective_at: string | null;
   p_access_expires_at: string | null;
   p_payload_sha256: string;
 };
 
 export type ScorecardPlannerWebhookDependencies = {
   expectedSecret: string;
+  acceptedModes?: readonly string[];
   rpc: (args: ScorecardPlannerRpcArgs) => Promise<Record<string, unknown>>;
 };
 
@@ -60,12 +61,27 @@ function parseInteger(value: string): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
-function isoDate(values: FormValues): string {
-  const timestamp = parseInteger(first(values, "order_timestamp", "order[date_unix]", "timestamp"));
-  if (timestamp !== null && timestamp > 0) return new Date(timestamp * 1000).toISOString();
-  const supplied = first(values, "order_date", "order[date]", "date");
-  const milliseconds = Date.parse(supplied);
-  return Number.isFinite(milliseconds) ? new Date(milliseconds).toISOString() : new Date().toISOString();
+function isoDate(values: FormValues, allowReceivedAtFallback: boolean): string | null {
+  const rawTimestamp = first(
+    values,
+    "event_timestamp",
+    "order_timestamp",
+    "order[date_unix]",
+    "timestamp",
+  );
+  const timestamp = parseInteger(rawTimestamp);
+  const supplied = first(values, "event_date", "order_date", "order[date]", "date");
+  if (!rawTimestamp && !supplied) {
+    if (!allowReceivedAtFallback) throw new Error("invalid_event_timestamp");
+    // ThriveCart's documented renewal/refund/subscription lifecycle payloads
+    // omit event timestamps. Null lets the database record transaction time
+    // exactly once, so retries do not invent a different effective time.
+    return null;
+  }
+  const milliseconds = timestamp !== null && timestamp > 0 ? timestamp * 1000 : Date.parse(supplied);
+  if (!Number.isFinite(milliseconds)) throw new Error("invalid_event_timestamp");
+  if (milliseconds > Date.now() + 10 * 60 * 1000) throw new Error("invalid_event_timestamp");
+  return new Date(milliseconds).toISOString();
 }
 
 function readCharges(values: FormValues): Charge[] {
@@ -156,12 +172,19 @@ export async function processScorecardPlannerWebhook(
   const eventType = EVENT_TYPES[providerEvent];
   if (!eventType) return { processed: 0, ignored: 1, results: [] };
 
+  const mode = first(values, "mode").toLowerCase();
+  const acceptedModes = dependencies.acceptedModes ?? ["live"];
+  if (!mode || !acceptedModes.includes(mode)) throw new Error("invalid_checkout_mode");
+
   const email = first(values, "customer[email]", "email").toLowerCase();
   if (!email.includes("@")) throw new Error("missing_customer_email");
 
   const orderId = first(values, "order_id", "subscription_id", "invoice_id");
   const currency = first(values, "currency", "order[currency]").toUpperCase() || null;
-  const effectiveAt = isoDate(values);
+  // Official order.success payloads include a provider timestamp, so fail
+  // closed when it is absent there. Official lifecycle payloads do not, so
+  // let the database record the authenticated receipt time for those events.
+  const effectiveAt = isoDate(values, providerEvent !== "order.success");
   const payloadHash = await sha256Hex(rawPayload);
   const charges = readCharges(values);
   const purchaseMap = splitItems(first(values, "purchase_map_flat"));

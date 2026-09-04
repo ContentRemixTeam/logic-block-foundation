@@ -22,6 +22,10 @@ Deno.serve(async (req: Request) => {
   const requestId = safeLogId();
   try {
     const webhookSecret = Deno.env.get("THRIVECART_WEBHOOK_SECRET");
+    const acceptedModes = (Deno.env.get("THRIVECART_ACCEPTED_MODES") ?? "live")
+      .split(",")
+      .map((mode) => mode.trim().toLowerCase())
+      .filter(Boolean);
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!webhookSecret || !supabaseUrl || !serviceKey) throw new Error("not_configured");
@@ -31,6 +35,7 @@ Deno.serve(async (req: Request) => {
     const service = createClient(supabaseUrl, serviceKey);
     const outcome = await processScorecardPlannerWebhook(values, raw, {
       expectedSecret: webhookSecret,
+      acceptedModes,
       rpc: async (args) => {
         const { data, error } = await service.rpc("apply_scorecard_planner_commerce_event", args);
         if (error) throw error;
@@ -50,7 +55,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     const reason = error instanceof Error ? error.message : "internal_error";
     if (reason === "invalid_secret") return secureJson(req, { error: "Unauthorized" }, 401);
-    if (/^(missing_customer_email|missing_purchase_items)$/.test(reason)) {
+    if (/^(missing_customer_email|missing_purchase_items|invalid_checkout_mode|invalid_event_timestamp)$/.test(reason)) {
       return secureJson(req, { error: "Invalid request" }, 400);
     }
     console.error("[scorecard-commerce-webhook]", requestId, reason);

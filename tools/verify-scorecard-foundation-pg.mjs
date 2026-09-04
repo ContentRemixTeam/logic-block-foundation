@@ -10,6 +10,7 @@ const commerceMigration = join(root, 'supabase/migrations/20260903233000_scoreca
 const plannerCommerceMigration = join(root, 'supabase/migrations/20260904160000_planner_commerce_bridge.sql');
 const plannerMappingCleanupMigration = join(root, 'supabase/migrations/20260904170000_remove_collab_studio_planner_mapping.sql');
 const offerCommerceMigration = join(root, 'supabase/migrations/20260904183000_scorecard_planner_offer_commerce.sql');
+const commerceHardeningMigration = join(root, 'supabase/migrations/20260904184000_harden_scorecard_planner_commerce.sql');
 const pgDir = mkdtempSync(join(tmpdir(), 'scorecard-pg-'));
 const port = String(55432 + (process.pid % 500));
 const connectionArgs = ['-h', pgDir, '-p', port, '-d', 'scorecard_test'];
@@ -495,7 +496,9 @@ INSERT INTO public.scorecard_commerce_mappings (
 SET ROLE service_role;
 
 DO $$
-DECLARE result jsonb;
+DECLARE
+  result jsonb;
+  recorded_effective_at timestamptz;
 BEGIN
   result := public.apply_scorecard_planner_commerce_event(
     'thrivecart', 'tc-scorecard-1', 'bundle@example.com', 'purchase',
@@ -525,6 +528,15 @@ BEGIN
   END IF;
 
   result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-scorecard-stolen-transaction', 'other@example.com', 'purchase',
+    'product-101', 'plan-201', 'order-other', 'txn-scorecard-1', NULL,
+    'USD', 900, '2026-09-04T12:00:00Z', NULL, repeat('0', 64)
+  );
+  IF result ->> 'status' <> 'transaction_payload_conflict' THEN
+    RAISE EXCEPTION 'reused transaction was not bound to the original buyer and order: %', result;
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
     'thrivecart', 'tc-upsell-1', 'bundle@example.com', 'purchase',
     'upsell-101', 'plan-annual-upgrade', 'order-101', 'txn-upsell-1', NULL,
     'USD', 4000, '2026-09-04T12:00:00Z', NULL, repeat('d', 64)
@@ -541,7 +553,8 @@ BEGIN
       AND planner_tier = 'annual'
       AND planner_ends_at = '2027-09-04'
   ) THEN
-    RAISE EXCEPTION 'combined Scorecard and Planner access was not stored independently';
+    RAISE EXCEPTION 'combined Scorecard and Planner access was not stored independently: %',
+      (SELECT row_to_json(entitlement) FROM public.entitlements entitlement WHERE email = 'bundle@example.com');
   END IF;
 
   result := public.apply_scorecard_planner_commerce_event(
@@ -569,6 +582,15 @@ BEGIN
   );
   IF result ->> 'status' <> 'active' OR result ->> 'plannerTier' <> 'monthly' THEN
     RAISE EXCEPTION 'Monthly Planner purchase failed: %', result;
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-monthly-invalid-expiry', 'expiry@example.com', 'purchase',
+    'downsell-102', 'plan-203', 'order-expiry', 'txn-monthly-expiry', NULL,
+    'USD', 700, '2026-09-04T12:00:00Z', '2027-10-04T12:00:00Z', repeat('9', 64)
+  );
+  IF result ->> 'status' <> 'rejected_expiry' THEN
+    RAISE EXCEPTION 'invalid paid-through date was not rejected: %', result;
   END IF;
 
   result := public.apply_scorecard_planner_commerce_event(
@@ -604,12 +626,59 @@ BEGIN
   END IF;
 
   result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-cross-buyer-refund', 'attacker@example.com', 'refund',
+    'upsell-101', 'plan-annual-upgrade', 'order-renewal', NULL, 'txn-upsell-initial',
+    'USD', 4000, '2027-09-05T12:00:00Z', NULL, repeat('5', 64)
+  );
+  IF result ->> 'status' <> 'rejected_parent_purchase' THEN
+    RAISE EXCEPTION 'cross-buyer lifecycle event was not rejected: %', result;
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-old-contribution-refund', 'renewal@example.com', 'refund',
+    'upsell-101', 'plan-annual-upgrade', 'order-renewal', NULL, 'txn-upsell-initial',
+    'USD', 4000, '2027-09-05T12:00:00Z', NULL, repeat('6', 64)
+  );
+  IF result ->> 'status' <> 'refunded' THEN
+    RAISE EXCEPTION 'exact older contribution refund failed: %', result;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.entitlements
+    WHERE email = 'renewal@example.com'
+      AND planner_status = 'active'
+      AND planner_ends_at = '2028-09-04'
+  ) THEN
+    RAISE EXCEPTION 'refunding an older contribution revoked newer paid access';
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
     'thrivecart', 'tc-upsell-cancel-1', 'renewal@example.com', 'cancel_at_period_end',
     'upsell-101', '', 'order-renewal', NULL, NULL,
-    'USD', NULL, '2027-10-04T12:00:00Z', NULL, repeat('4', 64)
+    'USD', NULL, NULL, NULL, repeat('4', 64)
   );
   IF result ->> 'status' <> 'cancelled' THEN
     RAISE EXCEPTION 'Cancellation without a repeated payment-plan ID was not resolved: %', result;
+  END IF;
+  SELECT effective_at INTO recorded_effective_at
+  FROM public.scorecard_commerce_events
+  WHERE provider = 'thrivecart' AND event_id = 'tc-upsell-cancel-1';
+  IF recorded_effective_at IS NULL THEN
+    RAISE EXCEPTION 'Timestamp-free lifecycle event did not store its first receipt time';
+  END IF;
+
+  result := public.apply_scorecard_planner_commerce_event(
+    'thrivecart', 'tc-upsell-cancel-1', 'renewal@example.com', 'cancel_at_period_end',
+    'upsell-101', '', 'order-renewal', NULL, NULL,
+    'USD', NULL, NULL, NULL, repeat('4', 64)
+  );
+  IF result ->> 'status' <> 'replayed' THEN
+    RAISE EXCEPTION 'Timestamp-free lifecycle retry was not idempotent: %', result;
+  END IF;
+  IF (SELECT effective_at FROM public.scorecard_commerce_events
+      WHERE provider = 'thrivecart' AND event_id = 'tc-upsell-cancel-1')
+     IS DISTINCT FROM recorded_effective_at THEN
+    RAISE EXCEPTION 'Lifecycle replay changed the stored effective time';
   END IF;
 
   IF NOT EXISTS (
@@ -709,6 +778,8 @@ try {
   psql(plannerCommerceAssertions);
   run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', offerCommerceMigration]);
   process.stdout.write('Applied the Scorecard + Planner offer commerce migration.\n');
+  run('psql', ['-v', 'ON_ERROR_STOP=1', ...connectionArgs, '-f', commerceHardeningMigration]);
+  process.stdout.write('Applied the Scorecard + Planner commerce hardening migration.\n');
   psql(offerCommerceAssertions);
   process.stdout.write('Scorecard, Planner, and offer commerce verification passed.\n');
 } catch (error) {

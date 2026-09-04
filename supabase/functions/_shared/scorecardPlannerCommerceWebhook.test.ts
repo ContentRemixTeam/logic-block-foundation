@@ -11,7 +11,7 @@ const secret = "test-thrivecart-secret";
 function officialStylePurchase() {
   return new URLSearchParams([
     ["event", "order.success"],
-    ["mode", "test"],
+    ["mode", "live"],
     ["thrivecart_secret", secret],
     ["order_id", "1514394"],
     ["invoice_id", "000000004"],
@@ -60,6 +60,7 @@ Deno.test("maps a $9 product and $40 Planner upsell as separate exact purchases"
 Deno.test("maps an official-style refund and leaves parent resolution to the ledger", async () => {
   const params = new URLSearchParams([
     ["event", "order.refund"],
+    ["mode", "live"],
     ["thrivecart_secret", secret],
     ["order_id", "1514394"],
     ["invoice_id", "refund-4"],
@@ -89,6 +90,7 @@ Deno.test("maps an official-style refund and leaves parent resolution to the led
 Deno.test("maps an official-style subscription renewal without charge rows", async () => {
   const params = new URLSearchParams([
     ["event", "order.subscription_payment"],
+    ["mode", "live"],
     ["event_id", "renewal-event-2"],
     ["thrivecart_secret", secret],
     ["order_id", "1514394"],
@@ -113,6 +115,7 @@ Deno.test("maps an official-style subscription renewal without charge rows", asy
   assertEquals(calls[0].p_price_id, "");
   assertEquals(calls[0].p_amount_cents, 4900);
   assertEquals(calls[0].p_transaction_id, "000000004-2");
+  assertEquals(calls[0].p_effective_at, null);
 });
 
 Deno.test("maps official-style cancellation and resume events", async () => {
@@ -123,6 +126,7 @@ Deno.test("maps official-style cancellation and resume events", async () => {
   ] as const) {
     const params = new URLSearchParams([
       ["event", providerEvent],
+      ["mode", "live"],
       ["thrivecart_secret", secret],
       ["order_id", "1514394"],
       ["invoice_id", "000000004"],
@@ -144,6 +148,7 @@ Deno.test("maps official-style cancellation and resume events", async () => {
     ["cancel_at_period_end", "upsell-101", ""],
     ["subscription_resumed", "upsell-101", ""],
   ]);
+  assertEquals(calls.map((call) => call.p_effective_at), [null, null]);
 });
 
 Deno.test("rejects an invalid account secret before any entitlement call", async () => {
@@ -162,6 +167,89 @@ Deno.test("rejects an invalid account secret before any entitlement call", async
     "invalid_secret",
   );
   assertEquals(calls, 0);
+});
+
+Deno.test("rejects test-mode purchases by default", async () => {
+  const params = officialStylePurchase();
+  params.set("mode", "test");
+  let calls = 0;
+  await assertRejects(
+    () => processScorecardPlannerWebhook(formValues(params.entries()), params.toString(), {
+      expectedSecret: secret,
+      rpc: () => {
+        calls += 1;
+        return Promise.resolve({});
+      },
+    }),
+    Error,
+    "invalid_checkout_mode",
+  );
+  assertEquals(calls, 0);
+});
+
+Deno.test("rejects a paid event without a provider timestamp", async () => {
+  const params = officialStylePurchase();
+  params.delete("order_timestamp");
+  let calls = 0;
+  await assertRejects(
+    () => processScorecardPlannerWebhook(formValues(params.entries()), params.toString(), {
+      expectedSecret: secret,
+      rpc: () => {
+        calls += 1;
+        return Promise.resolve({});
+      },
+    }),
+    Error,
+    "invalid_event_timestamp",
+  );
+  assertEquals(calls, 0);
+});
+
+Deno.test("accepts official lifecycle payloads without a provider timestamp", async () => {
+  const params = new URLSearchParams([
+    ["event", "order.rebill_failed"],
+    ["mode", "live"],
+    ["thrivecart_secret", secret],
+    ["order_id", "1514394"],
+    ["invoice_id", "000000004"],
+    ["currency", "USD"],
+    ["customer[email]", "buyer@example.com"],
+    ["subscription[type]", "upsell"],
+    ["subscription[id]", "101"],
+  ]);
+  const calls: ScorecardPlannerRpcArgs[] = [];
+  await processScorecardPlannerWebhook(formValues(params.entries()), params.toString(), {
+    expectedSecret: secret,
+    rpc: (args) => {
+      calls.push(args);
+      return Promise.resolve({ success: true, status: "needs_review" });
+    },
+  });
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0].p_event_type, "payment_failed");
+  assertEquals(calls[0].p_effective_at, null);
+});
+
+Deno.test("rejects an invalid supplied lifecycle timestamp instead of falling back", async () => {
+  const params = new URLSearchParams([
+    ["event", "order.refund"],
+    ["mode", "live"],
+    ["thrivecart_secret", secret],
+    ["order_id", "1514394"],
+    ["invoice_id", "000000004"],
+    ["order_timestamp", "not-a-timestamp"],
+    ["customer[email]", "buyer@example.com"],
+    ["refund[type]", "upsell"],
+    ["refund[id]", "101"],
+  ]);
+  await assertRejects(
+    () => processScorecardPlannerWebhook(formValues(params.entries()), params.toString(), {
+      expectedSecret: secret,
+      rpc: () => Promise.resolve({}),
+    }),
+    Error,
+    "invalid_event_timestamp",
+  );
 });
 
 Deno.test("ignores unrelated account products without failing the catch-all webhook", async () => {
