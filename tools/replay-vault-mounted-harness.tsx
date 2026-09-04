@@ -364,7 +364,7 @@ async function mountedPaginationAllLibrarySurfaces() {
   });
   await mount();await waitFor(()=>Boolean(document.body.textContent?.includes('First browse row 19')),'browse first producer page');
   assert(document.querySelectorAll('[data-vault-library] button').length>0&&document.body.textContent?.includes('Watch full replay'),'browse must mount returned rows and primary CTA');
-  await click(byText('More categories'));await waitFor(()=>Boolean(document.body.textContent?.includes('Terminal category 60')),'category terminal page');
+  await click(byText('Load more categories'));await waitFor(()=>Boolean(document.body.textContent?.includes('Terminal category 60')),'category terminal page');
   assert(__vaultMock.lastBody('vault-member-library').action==='categories'&&__vaultMock.lastBody('vault-member-library').cursor==='category_next'&&__vaultMock.lastBody('vault-member-library').limit===60,'categories continuation envelope must carry explicit cursor and limit');
   await click(byText('Load more'));await waitFor(()=>Boolean(document.body.textContent?.includes('Terminal browse row 20')),'browse terminal page');
   assert(__vaultMock.lastBody('vault-member-library').action==='browse'&&__vaultMock.lastBody('vault-member-library').cursor==='browse_next'&&__vaultMock.lastBody('vault-member-library').limit===20,'browse continuation envelope must carry explicit cursor and limit');
@@ -387,7 +387,7 @@ async function mountedPaginationAllLibrarySurfaces() {
     throw new Error(`unexpected exact-multiple request ${JSON.stringify(body)}`);
   });
   await mount();await waitFor(()=>Boolean(document.body.textContent?.includes('Exact browse row 19')),'browse exact multiple');
-  assert(!byText('Load more')&&!byText('More categories'),'exact-multiple browse/categories must not invent continuation');
+  assert(!byText('Load more')&&!byText('Load more categories'),'exact-multiple browse/categories must not invent continuation');
   await click(byText('questions'));await waitFor(()=>Boolean(document.body.textContent?.includes('Exact question row 39?')),'questions exact multiple');assert(!byText('Load more'),'exact-multiple Questions must not invent continuation');
   await click(byText('saved'));await waitFor(()=>Boolean(document.body.textContent?.includes('Exact saved row 39')),'Saved exact multiple');assert(!byText('Load more'),'exact-multiple Saved must not invent continuation');
 }
